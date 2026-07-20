@@ -27,8 +27,17 @@ follow the same convention.
 
 Phases iterate; the gates do not.
 
+0. **Speed is a first-class constraint.** Most work is exploratory de-risking in
+   notebooks and throwaway scripts, and that code is deliberately exempt from
+   polish and linting (`experiment-engineering` has the two-mode table). Gates
+   apply at *promotion* — when code produces evidence a claim rests on. What is
+   never deferred, even in explore mode, is the observability contract: structured
+   incremental logs, resumable checkpoints, fail-fast ordering, seeds. Unlogged
+   fast work has to be re-run, and re-running is slower than logging was.
 1. **Scope** — one narrow question answerable within the project's budget of
-   data, models, and time. Write it as `Q1` in TREE.md before anything else.
+   data, models, and time. Use `research-ideation`: de-risk load-bearing
+   components with cheap probes before executing, ordering by information gained
+   per unit time. Write the question as `Q1` in TREE.md before anything else.
 2. **Literature** (timebox it) — `research` skill for search/retrieval, papers
    land in `data/papers/`. Any synthesis document follows `derive-from-sources`:
    read every source, notes file with verbatim quotes first, draft only from notes.
@@ -36,10 +45,12 @@ Phases iterate; the gates do not.
    specification → operational definitions → question design → QC, with the
    construct-validity checklist. Name the confound-of-concern explicitly and
    design at least one read that separates construct from confound.
-4. **Experiment** — pipelines under `scripts/` or `src/`, results as files under
-   `results/` (JSON preferred; these paths are the evidence the tree links).
-   Fixed seeds; a result that can't be re-produced by re-running a script doesn't
-   count as evidence.
+4. **Experiment** — follow `experiment-engineering`. Explore freely in notebooks;
+   promoted pipelines live under `scripts/` or `src/`, results as `.jsonl` under
+   `results/` written incrementally (these paths are the evidence the tree links).
+   Any run costing real time or money must be resumable — kill it halfway and
+   re-running should pick up where it left off. Fixed seeds; a result that can't
+   be re-produced by re-running a script doesn't count as evidence.
 5. **Falsify** (gate) — before any claim graduates, run the `falsify` skill:
    design tests that could destroy each claim. Update claim statuses in TREE.md:
    `survived` / `weakened` / `failed`, scorecard linked as evidence.
@@ -48,6 +59,9 @@ Phases iterate; the gates do not.
    sentence to code, every citation to a real paper, looped to zero mismatches.
 7. **Log** — end every session by appending the day's RESEARCH_LOG.md entry and
    running the validator (`research-log` skill has the full ritual).
+8. **Communicate** — `communicate-results` for decks and write-ups: strongest
+   message first, failed setups in backup, error bars and *n* on every number,
+   full prompts and real outputs shown.
 
 ## Non-negotiables
 
@@ -64,9 +78,11 @@ Phases iterate; the gates do not.
   project root — after your first download, verify papers actually land there and
   switch to an absolute path in `.mcp.json` if they don't), `paper-search-mcp`
   (multi-source search). Configured in `.mcp.json`.
-- Skills (`.claude/skills/`): `research`, `eval-design`, `falsify`,
-  `validate-claims`, `derive-from-sources`, `research-log`. All generic and
-  portable — no machine-specific paths.
+- Skills (`.claude/skills/`): `research-ideation` (what to run next),
+  `research` (literature), `derive-from-sources` (grounded synthesis),
+  `eval-design`, `experiment-engineering` (how to write runs),
+  `falsify`, `validate-claims`, `research-log`, `communicate-results`.
+  All generic and portable — no machine-specific paths.
 - Machine-specific pointers (local copies of reference material, related repos)
   live in `CLAUDE.local.md`, which is gitignored — each team member keeps their
   own. All sources the skills cite are public; unequivocal identifiers (arXiv

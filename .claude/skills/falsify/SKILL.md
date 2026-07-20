@@ -27,6 +27,8 @@ For each claim, design at least one test that could destroy it:
 - **Small-n claims** → subsample instability (what happens at n=4?)
 - **Sweeping claims** → multiple comparisons correction. Was the "best" parameter pre-registered?
 - **Scorer-based claims** → test-retest reliability of the scorer
+- **Qualitative labels / interpretations** ("this feature means X", "this circuit does Y") → **discrimination against a matched distractor.** A label that also fits an unrelated unit explains nothing, and detection-style scoring is blind to this: published feature-label sets have been shown to be riddled with collisions where one description matches many distinct units. Test: given the label and two candidates (the real one and a random other), can a scorer pick the right one above chance? Report recall *and* selectivity, never recall alone.
+- **"My method finds X" claims** → **plant or borrow a ground truth and run blind.** The strongest validation design that still scales to a short project: hide a known answer, apply the method without looking, report what it recovered *and* how many false positives it produced out of the full candidate set.
 
 ### Step 3: Prioritize by destructive potential
 Order tests by: which test, if it succeeds, destroys the most important claim?

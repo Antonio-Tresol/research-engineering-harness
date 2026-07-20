@@ -33,6 +33,23 @@ ignore = [
 ]
 
 exclude = [
+    # Exploratory code is EXEMPT BY DESIGN. Most research work is de-risking in
+    # notebooks and throwaway scripts, where time-to-insight is the only metric
+    # that matters and polish is deferred on purpose (see the experiment-engineering
+    # skill's two-mode table). Linting this code would tax exactly the phase that
+    # should be cheapest. Quality gates apply at PROMOTION — when code moves to
+    # scripts/ or src/ because a claim will rest on it or someone else must run it.
+    #
+    # Note this exempts POLISH, not correctness: the observability contract
+    # (structured logs, resumable checkpoints, seeds, shuffling) still applies to
+    # any run that costs real time or money, because unlogged fast work has to be
+    # re-run — and re-running is slower than logging was.
+    "notebooks/**",
+    "explore/**",
+    "scratch/**",
+    "experiments/**",  # dated experiment folders — promote to scripts/ when reused
+    "**/*.ipynb",
+
     "data/**",         # downloaded papers and inputs
     "results/**",      # experiment outputs are evidence, not source
     "notes/**",        # working notes and source records

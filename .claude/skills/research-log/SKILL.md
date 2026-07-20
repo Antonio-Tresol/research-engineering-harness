@@ -53,6 +53,15 @@ Rules the validator enforces:
    validate-claims protocol ran. Mechanically enforced: at least one evidence
    path must be a scorecard artifact whose filename contains `falsify`,
    `scorecard`, or `validation`.
+7. **Claims carry their distribution.** State `n` and the aggregation rule (mean
+   over seeds, best-of-k, union over variants) in the claim text. Agent-benchmark
+   results have been shown to *reverse* depending on budget and aggregation, and a
+   single run of an investigation is close to uninformative — a bare number
+   without its `n` is an anecdote, not a claim.
+8. **Graders are pinned and never edited in the same commit as what they grade.**
+   If a validator, scorer, or rubric changes alongside the experiment it certifies,
+   the certification means nothing. Agent benchmarks have been broken in exactly
+   this way, by an agent with write access to its own test files.
 
 ## RESEARCH_LOG.md format (enforced by the validator)
 
