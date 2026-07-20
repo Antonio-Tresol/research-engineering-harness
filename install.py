@@ -196,6 +196,22 @@ class Installer:
         dest.write_text(content)
         self.actions.append(f"wrote {dest_rel}")
 
+    def link_codex_skills(self) -> None:
+        """Point .agents/skills at .claude/skills.
+
+        Codex searches `.agents/skills`; Claude Code requires `.claude/skills`.
+        A symlink means one set of files serves both, so a skill edited for one
+        agent can never drift from the other.
+        """
+        agents_dir = self.plan.target / ".agents"
+        link = agents_dir / "skills"
+        if link.is_symlink() or link.exists():
+            self.actions.append("SKIP (exists): .agents/skills")
+            return
+        agents_dir.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(Path("..") / ".claude" / "skills", target_is_directory=True)
+        self.actions.append("linked .agents/skills -> ../.claude/skills")
+
     def make_dirs(self) -> None:
         for rel in MKDIRS:
             directory = self.plan.target / rel
@@ -214,6 +230,7 @@ class Installer:
             self.copy_file(src_rel, dest_rel)
         for src_rel, dest_rel in RENDER:
             self.render_file(src_rel, dest_rel)
+        self.link_codex_skills()
         self.make_dirs()
         self.write_text_file(".gitignore", GITIGNORE)
         self.write_text_file("CLAUDE.local.md", LOCAL_POINTERS_TEXT)

@@ -83,9 +83,10 @@ Phases iterate; the gates do not.
   project root; after your first download, verify papers actually land there and
   switch to an absolute path in `.mcp.json` if they don't), `paper-search-mcp`
   (multi-source search). Configured in `.mcp.json`.
-- Skills live in `.claude/skills/<name>/SKILL.md`. Claude Code loads them
-  automatically; **other agents should read the file when its situation
-  applies.** Read the one that matches before starting that kind of work:
+- Skills live in `.claude/skills/<name>/SKILL.md`, with `.agents/skills`
+  symlinked to the same directory so Codex finds them too. Both load skills
+  automatically from the `description` field. If your agent does neither, read
+  the file that matches before starting that kind of work:
 
   | Read this | When |
   |---|---|

@@ -10,11 +10,12 @@ it.
 Built for AI safety research, useful for any empirical work where an agent is
 writing the code and the write-up.
 
-Works with any agent that reads [`AGENTS.md`](https://agents.md/) — Codex,
-Cursor, Aider, and others — and with Claude Code, where `CLAUDE.md` is a
-one-line import of the same file. Claude Code loads the skills automatically;
-other agents are told in `AGENTS.md` which skill file to read for which task.
-The checks are plain scripts and care about none of this.
+Works with Codex and Claude Code out of the box, and with anything else reading
+[`AGENTS.md`](https://agents.md/). Instructions live in `AGENTS.md`, which
+`CLAUDE.md` imports in one line. Skills are the shared `SKILL.md` format, kept in
+`.claude/skills/` with `.agents/skills` symlinked to it, so both tools load the
+same files automatically and neither can drift. The checks are plain scripts and
+care about none of this.
 
 **Requires** [`uv`](https://docs.astral.sh/uv/) and Python 3.10+. MIT licensed.
 
@@ -88,11 +89,11 @@ now *and* what you believed last Tuesday before the result came in.
 produced a scorecard file, which the checker requires by name. `failed` is a
 normal outcome: retracting a claim before it ships is the system working.
 
-**Skills** are Markdown files under `.claude/skills/` carrying the method: how to
-run a literature search, how to design an eval, how to attack a claim. The agent
-follows a documented procedure instead of improvising one per session. Claude
-Code loads them automatically; `AGENTS.md` carries a table telling other agents
-which file to read for which situation.
+**Skills** are `SKILL.md` files carrying the method: how to run a literature
+search, how to design an eval, how to attack a claim. The agent follows a
+documented procedure instead of improvising one per session. Claude Code and
+Codex both load them automatically based on the `description` field, and
+`AGENTS.md` lists which one applies to which situation for agents that do not.
 
 **Two modes for code.** Exploratory work in notebooks and scratch scripts is
 exempt from linting on purpose; most research is de-risking and gating it just
