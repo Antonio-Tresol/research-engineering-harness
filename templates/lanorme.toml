@@ -72,3 +72,8 @@ exclude = [
 # to files matched here. Point it at whatever holds your deliverables.
 [provenance]
 claim_bearing = ["reports/**/*.md", "findings/**/*.md"]
+
+# The Codex-link check (HSKILL-003) advises linking .agents/skills so Codex
+# finds your skills. Turn it off if this project targets Claude Code only.
+[skill_portability]
+require_codex_link = true

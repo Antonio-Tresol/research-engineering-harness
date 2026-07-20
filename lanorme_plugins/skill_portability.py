@@ -6,14 +6,17 @@ compliance. These are the harness's own concerns and do not overlap:
     HSKILL-001  no machine-specific absolute path in a skill body. Skills are
                 shared between machines and teammates; a `/Users/...` path
                 breaks on clone.
-    HSKILL-002  the description says WHEN to use the skill, not only what it
-                is — descriptions are the only text always in context, and
-                vague ones hurt triggering.  [warning]
-    HSKILL-003  no unrecognized frontmatter key (typo catcher).  [warning]
-    HSKILL-004  `.agents/skills` (where Codex looks) resolves to the same files
+    HSKILL-002  no unrecognized frontmatter key (typo catcher).  [warning]
+    HSKILL-003  `.agents/skills` (where Codex looks) resolves to the same files
                 as `.claude/skills` (where Claude Code looks). Catches the
                 Windows case where git checks a symlink out as a text file, and
                 the case where the two directories have drifted apart.
+
+A rule checking that descriptions state WHEN to use a skill was removed: across
+four real skill collections it produced 43 findings and no true positives.
+"Convert a Jupyter notebook to a marimo notebook" says when to use it perfectly
+well without containing the phrase "use when". Whether a description triggers
+reliably is a judgement a regex cannot make.
 
 Frontmatter is read with a minimal top-level key scanner rather than a YAML
 parser, so the check stays dependency-free inside lanorme's environment. Any
@@ -32,7 +35,7 @@ from typing import Final
 
 from lanorme import CheckResult, Status, Violation, register
 
-from ._common import normalize, scan_tree
+from ._common import scan_tree
 
 ABS_PATH_RE: Final[re.Pattern[str]] = re.compile(
     r"(/Users/|/home/|C:\\\\|~/(?:Documents|Desktop|Downloads))"
@@ -45,13 +48,9 @@ KNOWN_FIELDS: Final[frozenset[str]] = frozenset({
     "user-invocable", "disable-model-invocation", "allowed-tools", "metadata",
     "compatibility", "license", "version",
 })
-TRIGGER_HINTS: Final[tuple[str, ...]] = (
-    "use when", "use this", "when the user", "trigger", "whenever",
-)
 HSKILL_001: Final[str] = "HSKILL-001: skills contain no machine-specific absolute paths"
-HSKILL_002: Final[str] = "HSKILL-002: description states when to use the skill (warning)"
-HSKILL_003: Final[str] = "HSKILL-003: frontmatter keys are recognized (warning)"
-HSKILL_004: Final[str] = "HSKILL-004: .agents/skills and .claude/skills serve the same files"
+HSKILL_002: Final[str] = "HSKILL-002: frontmatter keys are recognized (warning)"
+HSKILL_003: Final[str] = "HSKILL-003: .agents/skills and .claude/skills serve the same files"
 
 CLAUDE_SKILLS: Final[str] = ".claude/skills"
 CODEX_SKILLS: Final[str] = ".agents/skills"
@@ -98,24 +97,11 @@ def check_portability(body: str, file: str) -> list[Violation]:
     return found
 
 
-def check_triggering(frontmatter: Frontmatter, file: str) -> list[Violation]:
-    if frontmatter.is_manual_only:
-        return []  # manual-only skills are never model-triggered
-    # normalize first: a folded block scalar can split "use when" across lines
-    description = normalize(frontmatter.value_of("description")).lower()
-    if not description or any(hint in description for hint in TRIGGER_HINTS):
-        return []
-    return [Violation(
-        file=file, line=1, rule=HSKILL_002,
-        message="Description does not say WHEN to use the skill",
-        fix="Add trigger phrasing, e.g. 'Use when ...' or 'Use whenever the user ...'",
-    )]
-
 
 def check_field_names(frontmatter: Frontmatter, file: str) -> list[Violation]:
     return [
         Violation(
-            file=file, line=1, rule=HSKILL_003,
+            file=file, line=1, rule=HSKILL_002,
             message=f"Unrecognized frontmatter key '{key}'",
             fix=f"Remove it or correct the spelling; known keys: {', '.join(sorted(KNOWN_FIELDS))}",
         )
@@ -142,13 +128,13 @@ def check_codex_link(root: Path) -> tuple[list[Violation], list[Violation]]:
 
     if not codex_dir.exists():
         return [], [finding(
-            HSKILL_004,
+            HSKILL_003,
             "No .agents/skills, so Codex will not find this project's skills",
             f"Run: mkdir -p .agents && ln -s ../{CLAUDE_SKILLS} {CODEX_SKILLS}",
         )]
     if codex_dir.is_file():
         return [finding(
-            HSKILL_004,
+            HSKILL_003,
             ".agents/skills is a file, not a directory. A symlink was checked out "
             "as text, so Codex silently loads no skills (usual cause: git on Windows "
             "without core.symlinks)",
@@ -163,7 +149,7 @@ def check_codex_link(root: Path) -> tuple[list[Violation], list[Violation]]:
     if claude_names != codex_names:
         missing = ", ".join(sorted(claude_names ^ codex_names)) or "unknown"
         return [finding(
-            HSKILL_004,
+            HSKILL_003,
             f".agents/skills is a copy that has drifted from .claude/skills ({missing})",
             "Re-copy, or replace the copy with a symlink so one set of files serves both",
         )], []
@@ -177,12 +163,12 @@ class SkillPortabilityCheck:
     name: str = "skill_portability"
     description: str = "Harness SKILL.md checks: portability, trigger phrasing, frontmatter typos"
     enabled: bool = True
+    require_codex_link: bool = True
     rules: list[str] = field(
         default_factory=lambda: [
             "HSKILL-001: skills contain no machine-specific absolute paths",
-            "HSKILL-002: description states when to use the skill (warning)",
-            "HSKILL-003: frontmatter keys are recognized (warning)",
-            "HSKILL-004: .agents/skills and .claude/skills serve the same files",
+            "HSKILL-002: frontmatter keys are recognized (warning)",
+            "HSKILL-003: .agents/skills and .claude/skills serve the same files",
         ]
     )
 
@@ -190,6 +176,9 @@ class SkillPortabilityCheck:
         enabled = settings.get("enabled")
         if isinstance(enabled, bool):
             self.enabled = enabled
+        codex = settings.get("require_codex_link")
+        if isinstance(codex, bool):
+            self.require_codex_link = codex
 
     def _scan_file(self, path: Path, file: str) -> tuple[list[Violation], list[Violation]]:
         text = path.read_text(encoding="utf-8")
@@ -198,14 +187,16 @@ class SkillPortabilityCheck:
         frontmatter = parse_frontmatter(text)
         if frontmatter is None:
             return violations, []  # unparseable frontmatter is lanorme's SKILL-006
-        warnings = check_triggering(frontmatter, file) + check_field_names(frontmatter, file)
+        warnings = check_field_names(frontmatter, file)
         return violations, warnings
 
     def run(self, *, src_root: str) -> CheckResult:
         if not self.enabled:
             return CheckResult(check=self.name, status=Status.PASS)
         result = scan_tree(name=self.name, src_root=src_root, pattern="SKILL.md", scan=self._scan_file)
-        link_violations, link_warnings = check_codex_link(Path(src_root))
+        link_violations, link_warnings = (
+            check_codex_link(Path(src_root)) if self.require_codex_link else ([], [])
+        )
         result.violations.extend(link_violations)
         result.warnings.extend(link_warnings)
         if result.violations:

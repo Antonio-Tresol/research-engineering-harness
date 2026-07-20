@@ -190,47 +190,53 @@ def test_hskill001_fires_on_machine_path(tmp_path: Path) -> None:
     assert "HSKILL-001" in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
 
 
-def test_hskill002_quiet_on_folded_block_scalar(tmp_path: Path) -> None:
-    """A folded scalar wraps mid-phrase; 'Use when' was split across lines."""
-    make_skill(tmp_path, "a", "name: a\ndescription: >-\n  Does a thing to data. Use\n  when the user asks.")
-    assert "HSKILL-002" not in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
+def test_task_style_descriptions_are_not_flagged(tmp_path: Path) -> None:
+    """Regression: a rule requiring literal 'use when' phrasing produced 43
+    findings and zero true positives across four real skill collections. An
+    imperative task description says when to use a skill perfectly well."""
+    for i, description in enumerate([
+        "Convert a Jupyter notebook (.ipynb) to a marimo notebook (.py).",
+        "Generate anywidget components for marimo notebooks.",
+        "Check if a marimo notebook is compatible with WASM and report issues.",
+    ]):
+        make_skill(tmp_path, f"s{i}", f"name: s{i}\ndescription: {description}")
+    (tmp_path / ".agents").mkdir()
+    (tmp_path / ".agents/skills").symlink_to(Path("..") / ".claude" / "skills", target_is_directory=True)
+    assert codes(SkillPortabilityCheck().run(src_root=str(tmp_path))) == []
 
 
-def test_hskill002_quiet_for_manual_only_skill(tmp_path: Path) -> None:
-    make_skill(tmp_path, "a", "name: a\ndescription: Does a thing.\ndisable-model-invocation: true")
-    assert "HSKILL-002" not in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
-
-
-def test_hskill002_fires_without_trigger_phrasing(tmp_path: Path) -> None:
-    make_skill(tmp_path, "a", "name: a\ndescription: A general utility for data.")
+def test_hskill002_fires_on_unknown_key(tmp_path: Path) -> None:
+    make_skill(tmp_path, "a", "name: a\ndescription: Use when testing.\ndescriptn: typo")
     assert "HSKILL-002" in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
 
 
-def test_hskill003_fires_on_unknown_key(tmp_path: Path) -> None:
-    make_skill(tmp_path, "a", "name: a\ndescription: Use when testing.\ndescriptn: typo")
-    assert "HSKILL-003" in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
-
-
-def test_hskill004_fires_when_link_is_a_text_file(tmp_path: Path) -> None:
+def test_hskill003_fires_when_link_is_a_text_file(tmp_path: Path) -> None:
     """Git on Windows checks a symlink out as text; Codex then sees no skills."""
     make_skill(tmp_path, "a", "name: a\ndescription: Use when testing.")
     write(tmp_path, ".agents/skills", "../.claude/skills")
-    assert "HSKILL-004" in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
+    assert "HSKILL-003" in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
 
 
-def test_hskill004_fires_when_copy_has_drifted(tmp_path: Path) -> None:
+def test_hskill003_fires_when_copy_has_drifted(tmp_path: Path) -> None:
     make_skill(tmp_path, "a", "name: a\ndescription: Use when testing.")
     make_skill(tmp_path, "b", "name: b\ndescription: Use when testing.")
     (tmp_path / ".agents").mkdir()
     (tmp_path / ".agents/skills/a").mkdir(parents=True)
-    assert "HSKILL-004" in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
+    assert "HSKILL-003" in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
 
 
-def test_hskill004_quiet_when_symlinked(tmp_path: Path) -> None:
+def test_codex_link_check_can_be_disabled(tmp_path: Path) -> None:
+    make_skill(tmp_path, "a", "name: a\ndescription: Use when testing.")
+    check = SkillPortabilityCheck()
+    check.configure(settings={"require_codex_link": False})
+    assert codes(check.run(src_root=str(tmp_path))) == []
+
+
+def test_hskill003_quiet_when_symlinked(tmp_path: Path) -> None:
     make_skill(tmp_path, "a", "name: a\ndescription: Use when testing.")
     (tmp_path / ".agents").mkdir()
     (tmp_path / ".agents/skills").symlink_to(Path("..") / ".claude" / "skills", target_is_directory=True)
-    assert "HSKILL-004" not in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
+    assert "HSKILL-003" not in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
 
 
 def test_skill_checks_quiet_on_a_well_formed_skill(tmp_path: Path) -> None:

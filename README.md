@@ -146,6 +146,10 @@ inside code fences, on ordinary Python with no tensors, on folded YAML. Each one
 encodes a false positive that was genuinely shipped at some point. A checker that
 cries wolf gets bypassed, and then its true positives go unread too.
 
+The rules are also measured against real repositories rather than only against
+fixtures. One rule was deleted on that evidence: it produced 43 findings across
+four existing skill collections and not one of them was a real problem.
+
 The optional pre-commit hook (`./hooks/install.sh`) blocks a commit when checks
 fail, and reminds you when experiment code changed but the tree did not.
 
