@@ -212,7 +212,7 @@ script, with dependencies declared inline, so there is no environment to create.
 ./check.sh
 ```
 
-That runs two things, and the split is deliberate:
+That runs two things:
 
 ```bash
 PYTHONPATH=. uvx lanorme check .        # code quality, skills spec, harness plugins
@@ -220,23 +220,16 @@ uv run scripts/validate_research.py     # research-integrity gate
 ```
 
 The harness's own rules are lanorme **plugins** in `lanorme_plugins/`, registered
-through `plugins = [...]` in `lanorme.toml`, so `TENSOR-001/002` and
-`HSKILL-001/002/003` report through the same runner, config, and exit code as the
-built-in rules. `PYTHONPATH=.` is what lets lanorme import them.
+through `plugins = [...]` in `lanorme.toml`, so `TENSOR-001/002`,
+`HSKILL-001/002/003`, and `PROV-001/002/003` report through the same runner,
+config, and exit code as the built-in rules. `PYTHONPATH=.` is what lets lanorme
+import them.
+
+The integrity gate is a zero-dependency script, so a project that never installs
+lanorme still gets every guarantee about evidence and claim graduation.
 
 The harness holds AI agents to mechanical checks, so it applies the same standard
 to itself: `./check.sh` must pass on this repository.
-
-**Why `validate_research.py` is not a plugin.** It is the research-integrity
-gate, covering evidence existence, scorecard-gated claim graduation, and
-tree-to-log consistency. Folding it into lanorme would make those guarantees
-depend on an optional external tool, so the check that most needs to be
-unskippable would become the easiest to skip. It stays a zero-dependency script.
-
-**Is lanorme required downstream?** No. Installed projects get a `lanorme.toml`,
-but lanorme is an optional external tool and the integrity gate does not depend
-on it. Adopt it when a project writes substantial analysis code. Skip it for a
-project that is mostly prose and notebooks.
 
 ## Maintaining the harness
 
