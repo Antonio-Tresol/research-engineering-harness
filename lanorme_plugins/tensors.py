@@ -65,7 +65,7 @@ TENSOR_LIBRARIES: Final[frozenset[str]] = frozenset({
 })
 
 
-def imports_a_tensor_library(tree: ast.AST) -> bool:
+def has_tensor_imports(tree: ast.AST) -> bool:
     """True when the file imports a tensor library.
 
     Without this gate the rules fire on any object that happens to expose a
@@ -170,7 +170,7 @@ class TensorsCheck:
             tree = ast.parse(path.read_text(encoding="utf-8"))
         except (SyntaxError, UnicodeDecodeError, ValueError):
             return [], []
-        if not imports_a_tensor_library(tree):
+        if not has_tensor_imports(tree):
             return [], []
         violations: list[Violation] = []
         for node in ast.walk(tree):
