@@ -26,6 +26,8 @@
 # to `ignore` with a one-line reason — the way this file documents its own
 # choice. Silent suppression is the thing to avoid, not suppression itself.
 
+plugins = ["lanorme_plugins.tensors", "lanorme_plugins.skill_portability"]
+
 select = ["ALL"]
 
 ignore = [

@@ -39,8 +39,9 @@ Licensed MIT.
 | `.claude/skills/validate-claims/` | Traceability protocol: every number → data file, every method sentence → code, every citation → real paper; loop to zero mismatches |
 | `.claude/skills/research-log/` | The tree/log conventions and session ritual |
 | `scripts/validate_research.py` | Mechanical validator for TREE.md + RESEARCH_LOG.md (structure, statuses, evidence existence, scorecard-gated claim graduation, tree↔log cross-refs) |
-| `scripts/lint_skills.py` | Harness-specific `SKILL.md` checks that complement lanorme: portability (no machine-specific absolute paths), trigger phrasing, frontmatter typos |
-| `scripts/lint_tensors.py` | Tensor-shape discipline: jaxtyping annotations on every tensor (vectors included) and einops instead of raw `.view`/`.permute` |
+| `lanorme_plugins/tensors.py` | `TENSOR-001/002`: jaxtyping annotations on every tensor (vectors included), einops instead of raw `.view`/`.permute` |
+| `lanorme_plugins/skill_portability.py` | `HSKILL-001/002/003`: no machine-specific paths in skills, trigger phrasing, frontmatter typos |
+| `check.sh` | Runs every mechanical check in one command |
 | `lanorme.toml` | Config for [lanorme](https://github.com/lanorme/lanorme), the authority on Python quality and Agent Skills spec compliance (`SKILL-001..006`). `templates/lanorme.toml` ships to installed projects |
 | `templates/` | Seed files for a new project: `CLAUDE.md`, `TREE.md`, `RESEARCH_LOG.md`, `mcp.json` |
 | `references/harness.bib` | BibTeX for every source underpinning the harness design, with unequivocal identifiers |
@@ -88,18 +89,30 @@ script: dependencies are declared inline at the top, so there is no environment
 to create and no requirements file to install.
 
 ```bash
-uv run scripts/validate_research.py     # tree + log structural validation
-uvx lanorme check .                     # Python quality + Agent Skills spec
-uv run scripts/lint_skills.py           # harness-specific skill checks
-uv run scripts/lint_tensors.py          # jaxtyping + einops discipline
+./check.sh                              # every mechanical check
 uv run install.py TARGET --name "..."   # install into a project
 ```
 
+`check.sh` runs two things, and the split is deliberate:
+
+```bash
+PYTHONPATH=. uvx lanorme check .        # code quality, skills spec, harness plugins
+uv run scripts/validate_research.py     # research-integrity gate
+```
+
+The harness's custom rules are lanorme **plugins** (`lanorme_plugins/`,
+registered via `plugins = [...]` in `lanorme.toml`), so `TENSOR-001/002` and
+`HSKILL-001/002/003` report through the same runner, config, and exit code as
+the built-ins. `PYTHONPATH=.` is what lets lanorme import them.
+
 The harness holds AI agents to mechanical checks, so it applies the same to
-itself: `uvx lanorme check .` must pass on this repo. lanorme owns Python
-quality (complexity, size, typing, security) and Agent Skills spec compliance;
-`lint_skills.py` adds only what lanorme does not cover — portability, trigger
-phrasing, and frontmatter typos. Run both; they do not overlap.
+itself: `./check.sh` must pass on this repo.
+
+**Why `validate_research.py` is not a lanorme plugin.** It is the
+research-integrity gate — evidence existence, scorecard-gated claim graduation,
+tree↔log consistency. Folding it into lanorme would make those guarantees depend
+on an optional external tool, so the check that most needs to be unskippable
+would become the easiest to skip. It stays a zero-dependency script.
 
 **Is lanorme required downstream?** No. Installed projects get a
 `lanorme.toml`, but lanorme is an optional external tool: the harness's own

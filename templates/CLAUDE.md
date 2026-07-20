@@ -15,12 +15,10 @@ only to record what is true.
   append-only history. Never encode state only here or history only in the tree.
 - `uv run scripts/validate_research.py` — mechanical validator for both. Must exit
   0 before ending any session and before any deliverable.
-- `uvx lanorme check .` — Python quality and Agent Skills spec compliance.
-- `uv run scripts/lint_skills.py` — harness-specific skill checks (portability,
-  trigger phrasing).
-- `uv run scripts/lint_tensors.py` — jaxtyping annotations on every tensor
-  (vectors included) and einops instead of raw shape ops, in promoted code.
-  Run these after editing any skill, script, or pipeline.
+- `./check.sh` — every mechanical check: `lanorme` (code quality, Agent Skills
+  spec, plus the harness plugins `tensors` for jaxtyping/einops discipline and
+  `skill_portability`) followed by the research-integrity gate. Run after
+  editing any skill, script, or pipeline.
 
 All scripts are self-contained PEP 723 uv scripts (inline dependencies, no venv
 to manage) and use type hints throughout. New scripts in this project should

@@ -42,7 +42,7 @@ from typing import Final
 HARNESS = Path(__file__).resolve().parent
 
 # Files/dirs copied verbatim (portable, no placeholders).
-COPY_TREE = [".claude", "scripts"]
+COPY_TREE = [".claude", "scripts", "lanorme_plugins"]
 # Reference material worth having in every project (read-only evidence base).
 COPY_REFERENCE = ["references", "research"]
 # Templates rendered with placeholder substitution: (template_src, dest_in_project).
@@ -55,6 +55,7 @@ RENDER = [
 COPY_AS = [
     ("templates/mcp.json", ".mcp.json"),
     ("templates/lanorme.toml", "lanorme.toml"),
+    ("check.sh", "check.sh"),
 ]
 # Directories to create empty.
 MKDIRS = ["data/papers", "results", "notes"]

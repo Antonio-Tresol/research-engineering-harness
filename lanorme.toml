@@ -9,6 +9,8 @@
 # compliance (SKILL-001..006); scripts/lint_skills.py adds only the
 # harness-specific checks lanorme does not cover (portability, triggering).
 
+plugins = ["lanorme_plugins.tensors", "lanorme_plugins.skill_portability"]
+
 select = ["ALL"]
 
 ignore = [
