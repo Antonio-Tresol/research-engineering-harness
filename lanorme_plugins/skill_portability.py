@@ -163,7 +163,7 @@ class SkillPortabilityCheck:
     name: str = "skill_portability"
     description: str = "Harness SKILL.md checks: portability, trigger phrasing, frontmatter typos"
     enabled: bool = True
-    require_codex_link: bool = True
+    check_codex_skills: bool = True
     rules: list[str] = field(
         default_factory=lambda: [
             "HSKILL-001: skills contain no machine-specific absolute paths",
@@ -176,9 +176,9 @@ class SkillPortabilityCheck:
         enabled = settings.get("enabled")
         if isinstance(enabled, bool):
             self.enabled = enabled
-        codex = settings.get("require_codex_link")
+        codex = settings.get("check_codex_skills")
         if isinstance(codex, bool):
-            self.require_codex_link = codex
+            self.check_codex_skills = codex
 
     def _scan_file(self, path: Path, file: str) -> tuple[list[Violation], list[Violation]]:
         text = path.read_text(encoding="utf-8")
@@ -195,7 +195,7 @@ class SkillPortabilityCheck:
             return CheckResult(check=self.name, status=Status.PASS)
         result = scan_tree(name=self.name, src_root=src_root, pattern="SKILL.md", scan=self._scan_file)
         link_violations, link_warnings = (
-            check_codex_link(Path(src_root)) if self.require_codex_link else ([], [])
+            check_codex_link(Path(src_root)) if self.check_codex_skills else ([], [])
         )
         result.violations.extend(link_violations)
         result.warnings.extend(link_warnings)

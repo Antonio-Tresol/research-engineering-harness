@@ -228,7 +228,7 @@ def test_hskill003_fires_when_copy_has_drifted(tmp_path: Path) -> None:
 def test_codex_link_check_can_be_disabled(tmp_path: Path) -> None:
     make_skill(tmp_path, "a", "name: a\ndescription: Use when testing.")
     check = SkillPortabilityCheck()
-    check.configure(settings={"require_codex_link": False})
+    check.configure(settings={"check_codex_skills": False})
     assert codes(check.run(src_root=str(tmp_path))) == []
 
 

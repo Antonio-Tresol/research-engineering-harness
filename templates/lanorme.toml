@@ -73,7 +73,9 @@ exclude = [
 [provenance]
 claim_bearing = ["reports/**/*.md", "findings/**/*.md"]
 
-# The Codex-link check (HSKILL-003) advises linking .agents/skills so Codex
-# finds your skills. Turn it off if this project targets Claude Code only.
+# Codex reads skills from .agents/skills; Claude Code reads .claude/skills. The
+# installer symlinks the first to the second so both find the same files.
+# HSKILL-003 warns if that link is missing, broken, or has become a stale copy.
+# Set false if this project targets Claude Code only.
 [skill_portability]
-require_codex_link = true
+check_codex_skills = true
