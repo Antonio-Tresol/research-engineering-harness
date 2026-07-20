@@ -133,7 +133,7 @@ runs two things:
 
 | | Covers |
 |---|---|
-| `lanorme` + harness plugins | Python quality, Agent Skills spec, tensor shape discipline (`TENSOR-*`), skill portability (`HSKILL-*`), claim provenance (`PROV-*`) |
+| `lanorme` + harness plugins | Python quality, Agent Skills spec, tensor shape discipline (`TENSOR-*`), skill portability (`HSKILL-*`), claim provenance (`PROV-*`), bookkeeping staleness (`STALE-*`) |
 | `scripts/validate_research.py` | Tree and log structure, evidence files exist, scorecard-gated graduation, tree-to-log cross-references |
 
 The integrity gate is a zero-dependency script, so a project that never installs
