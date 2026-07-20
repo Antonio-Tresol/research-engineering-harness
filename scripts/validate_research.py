@@ -42,7 +42,7 @@ NODE_ID_RE: Final[re.Pattern[str]] = re.compile(r"^[QHEC]\d+(\.[QHEC]\d+)*$")
 NODE_TYPE_RE: Final[re.Pattern[str]] = re.compile(r"([QHEC])\d+$")
 SCORECARD_RE: Final[re.Pattern[str]] = re.compile(r"falsif|scorecard|validat", re.IGNORECASE)
 
-LOG_HEADER_RE: Final[re.Pattern[str]] = re.compile(r"^### (\d{4}-\d{2}-\d{2})\s*$")
+LOG_HEADER_RE: Final[re.Pattern[str]] = re.compile(r"^### (\d{4}-\d{2}-\d{2})(?:\s+.*)?$")
 LOG_BULLETS: Final[tuple[str, ...]] = (
     "What I did:",
     "What I expected vs what happened:",
@@ -175,8 +175,12 @@ def validate_tree(report: Report) -> list[Node]:
         return []
     nodes: list[Node] = []
     seen: set[str] = set()
+    in_fence = False
     for lineno, line in enumerate(TREE.read_text().splitlines(), 1):
-        if not is_node_line(line.strip()):
+        if line.lstrip().startswith(("```", "~~~")):
+            in_fence = not in_fence   # fenced examples document the grammar
+            continue
+        if in_fence or not is_node_line(line.strip()):
             continue
         node = parse_node(line, lineno, report)
         if node is None:
@@ -190,14 +194,22 @@ def validate_tree(report: Report) -> list[Node]:
     return nodes
 
 
-def split_log_entries(text: str) -> dict[str, str]:
-    """Split the log into {ISO date: entry body}, preserving file order."""
+def split_log_entries(text: str, duplicates: list[str] | None = None) -> dict[str, str]:
+    """Split the log into {ISO date: entry body}, preserving file order.
+
+    Repeated dates are recorded in `duplicates` rather than silently overwriting:
+    a collapsed entry meant a whole day's content went unvalidated while the run
+    still reported success.
+    """
+    duplicates = duplicates if duplicates is not None else []
     entries: dict[str, str] = {}
     current: str | None = None
     for line in text.splitlines():
         header = LOG_HEADER_RE.match(line)
         if header:
             current = header.group(1)
+            if current in entries:
+                duplicates.append(current)
             entries[current] = ""
         elif current is not None:
             entries[current] += line + "\n"
@@ -216,9 +228,16 @@ def check_log_dates(dates: list[str], report: Report) -> None:
 
 
 def check_log_bullets(entries: dict[str, str], report: Report) -> None:
+    """Each entry answers all four questions.
+
+    Emphasis is stripped first: `* **What I did**: ...` puts the colon outside
+    the bold, which is the most natural markdown and previously failed.
+    """
     for entry_date, body in entries.items():
+        plain = body.replace("*", "").replace("_", "")
         for bullet in LOG_BULLETS:
-            if not re.search(re.escape(bullet) + r"\s*(\S.*)", body):
+            label = bullet.rstrip(":")
+            if not re.search(re.escape(label) + r"\s*:\s*(\S.*)", plain):
                 report.add(f"RESEARCH_LOG.md {entry_date}: missing or empty bullet '{bullet}'")
 
 
@@ -230,7 +249,10 @@ def validate_log(report: Report) -> set[str]:
     text = LOG.read_text()
     if "## Project summary" not in text and "## **Project summary**" not in text:
         report.add("RESEARCH_LOG.md: missing '## Project summary' section")
-    entries = split_log_entries(text)
+    duplicates: list[str] = []
+    entries = split_log_entries(text, duplicates)
+    for repeated in duplicates:
+        report.add(f"RESEARCH_LOG.md: duplicate entry for {repeated}; merge them")
     dates = list(entries)
     check_log_dates(dates, report)
     check_log_bullets(entries, report)

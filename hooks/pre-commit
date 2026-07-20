@@ -46,9 +46,20 @@ if has '^\.claude/skills/' && ! has '^(AGENTS\.md|README\.md)$'; then
     Do AGENTS.md and the README still describe it correctly?"
 fi
 
-if has '^(scripts|src)/' && has '^results/'; then
-    note "Code and results are moving together.
-    If any of these results already back a graduated claim, re-run falsify or validate-claims."
+# Only worth raising when a result that already backs a recorded claim is being
+# rewritten. Firing whenever code and results move together would nag on the
+# modal correct commit, which teaches people to skim the whole block.
+# Compare against the COMMITTED tree, and only for results being MODIFIED: a new
+# result arriving with its new citation is ordinary work, not a claim at risk.
+committed_tree="$(git show HEAD:TREE.md 2>/dev/null || true)"
+if [[ -n "$committed_tree" ]]; then
+    while IFS= read -r artefact; do
+        [[ -z "$artefact" ]] && continue
+        if grep -qF "$artefact" <<<"$committed_tree"; then
+            note "$artefact already backs a claim in TREE.md and is being rewritten.
+    Re-run falsify or validate-claims for any claim resting on it."
+        fi
+    done < <(git diff --cached --name-only --diff-filter=M | grep -E '^results/' || true)
 fi
 
 # A document that carries an `updated:` date should have it bumped in the same
@@ -56,7 +67,9 @@ fi
 # still cheap to fix.
 while IFS= read -r doc; do
     [[ -f "$doc" ]] || continue
-    declared="$(sed -n '1,20p' "$doc" | sed -n 's/^updated:[[:space:]]*\([0-9-]\{10\}\).*/\1/p' | head -1)"
+    # Frontmatter only: the file must open with --- and we stop at the closing ---.
+    head -1 "$doc" | grep -q '^---$' || continue
+    declared="$(sed -n '2,/^---$/p' "$doc" | sed -n 's/^updated:[[:space:]]*\([0-9-]\{10\}\).*/\1/p' | head -1)"
     [[ -z "$declared" ]] && continue
     if [[ "$declared" != "$(date +%F)" ]]; then
         note "$doc says 'updated: $declared' but is changing today.

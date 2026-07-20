@@ -37,16 +37,25 @@ from lanorme import CheckResult, Status, Violation, register
 
 from ._common import scan_tree
 
+# A user directory, not any path: /home/app in a Dockerfile is the same on every
+# machine. C:\ needed a single escape, not two, so Windows paths never matched.
 ABS_PATH_RE: Final[re.Pattern[str]] = re.compile(
-    r"(/Users/|/home/|C:\\\\|~/(?:Documents|Desktop|Downloads))"
+    r"(?:/Users/|/home/)[A-Za-z0-9._-]+/|C:\\Users\\|~/(?:Documents|Desktop|Downloads)"
 )
+INLINE_CODE_RE: Final[re.Pattern[str]] = re.compile(r"`[^`]*`")
+URL_RE: Final[re.Pattern[str]] = re.compile(r"https?://\S+")
 FRONTMATTER_RE: Final[re.Pattern[str]] = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 TOP_LEVEL_KEY_RE: Final[re.Pattern[str]] = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*):")
 
+# Keep in sync with https://code.claude.com/docs/en/skills (frontmatter table).
+# An earlier, shorter list reported documented fields such as `model` and
+# `argument-hint` as typos, including on Anthropic's own published skills.
 KNOWN_FIELDS: Final[frozenset[str]] = frozenset({
     "name", "description", "when_to_use", "effort", "user_invocable",
-    "user-invocable", "disable-model-invocation", "allowed-tools", "metadata",
-    "compatibility", "license", "version",
+    "user-invocable", "disable-model-invocation", "allowed-tools",
+    "disallowed-tools", "metadata", "compatibility", "license", "version",
+    "model", "argument-hint", "arguments", "context", "agent", "hooks",
+    "paths", "shell",
 })
 HSKILL_001: Final[str] = "HSKILL-001: skills contain no machine-specific absolute paths"
 HSKILL_002: Final[str] = "HSKILL-002: frontmatter keys are recognized (warning)"
@@ -83,10 +92,24 @@ def parse_frontmatter(text: str) -> Frontmatter | None:
     return Frontmatter(keys=keys, text=body)
 
 
-def check_portability(body: str, file: str) -> list[Violation]:
+def check_portability(text: str, file: str) -> list[Violation]:
+    """Machine-specific paths in skill prose.
+
+    Scans the whole file so reported line numbers are real, and skips fenced
+    blocks, inline code and URLs: a skill that documents a bad path as an
+    example, or quotes a traceback, is teaching rather than depending on it.
+    """
     found: list[Violation] = []
-    for lineno, line in enumerate(body.splitlines(), 1):
-        match = ABS_PATH_RE.search(line)
+    in_fence = False
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if line.lstrip().startswith(("```", "~~~")):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        cleaned = INLINE_CODE_RE.sub(" ", line)
+        cleaned = URL_RE.sub(" ", cleaned)
+        match = ABS_PATH_RE.search(cleaned)
         if match is None:
             continue
         found.append(Violation(
@@ -146,8 +169,10 @@ def check_codex_link(root: Path) -> tuple[list[Violation], list[Violation]]:
 
     claude_names = {p.name for p in claude_dir.iterdir() if p.is_dir()}
     codex_names = {p.name for p in codex_dir.iterdir() if p.is_dir()}
-    if claude_names != codex_names:
-        missing = ", ".join(sorted(claude_names ^ codex_names)) or "unknown"
+    # Only skills MISSING on the Codex side matter. Extra Codex-only skills are a
+    # deliberate layout, not drift.
+    if claude_names - codex_names:
+        missing = ", ".join(sorted(claude_names - codex_names))
         return [finding(
             HSKILL_003,
             f".agents/skills is a copy that has drifted from .claude/skills ({missing})",
@@ -182,8 +207,7 @@ class SkillPortabilityCheck:
 
     def _scan_file(self, path: Path, file: str) -> tuple[list[Violation], list[Violation]]:
         text = path.read_text(encoding="utf-8")
-        body = FRONTMATTER_RE.sub("", text, count=1)
-        violations = check_portability(body, file)
+        violations = check_portability(text, file)
         frontmatter = parse_frontmatter(text)
         if frontmatter is None:
             return violations, []  # unparseable frontmatter is lanorme's SKILL-006

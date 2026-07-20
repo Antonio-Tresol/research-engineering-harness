@@ -163,5 +163,47 @@ def test_tree_log_cross_reference_must_resolve(tmp_path: Path) -> None:
     assert "no such entry" in result.stdout
 
 
+# --- Regression tests from adversarial review ---------------------------
+
+def test_bolded_log_bullets_are_accepted(tmp_path: Path) -> None:
+    """`* **What I did**: ...` is the natural markdown and used to fail."""
+    log = ("# P\n\n## Project summary\n\nA sentence.\n\n### 2026-07-19\n\n"
+           "* **What I did**: ran the pilot.\n"
+           "* **What I expected vs what happened**: expected a gap; saw one.\n"
+           "* **What this changes about my thinking**: cue-sensitive.\n"
+           "* **What I will do next**: paraphrase.\n")
+    assert run(project(tmp_path, "- Q1: q [open]\n", log)).returncode == 0
+
+
+def test_descriptive_log_header_is_recognised(tmp_path: Path) -> None:
+    """A trailing note made the whole entry invisible, not merely unlabelled."""
+    log = ("# P\n\n## Project summary\n\nA sentence.\n\n### 2026-07-19 — pilot day\n\n"
+           "* What I did: ran it.\n* What I expected vs what happened: fine.\n"
+           "* What this changes about my thinking: none.\n* What I will do next: more.\n")
+    root = project(tmp_path, "- Q1: q [open] | log: 2026-07-19\n", log)
+    result = run(root)
+    assert result.returncode == 0, result.stdout
+
+
+def test_fenced_grammar_example_is_not_parsed(tmp_path: Path) -> None:
+    """A TREE.md that documents its own grammar is not a duplicate id."""
+    tree = ("# Research tree\n\nGrammar reminder:\n\n```markdown\n"
+            "- Q1: <the project's research question> [open]\n```\n\n"
+            "- Q1: Does the detector fire? [open]\n")
+    result = run(project(tmp_path, tree))
+    assert result.returncode == 0, result.stdout
+
+
+def test_duplicate_log_dates_are_reported(tmp_path: Path) -> None:
+    """Two entries for one date silently discarded a day's content."""
+    entry = ("* What I did: x\n* What I expected vs what happened: x\n"
+             "* What this changes about my thinking: x\n* What I will do next: x\n")
+    log = (f"# P\n\n## Project summary\n\nS.\n\n### 2026-07-19\n\n{entry}\n"
+           f"### 2026-07-19\n\n{entry}")
+    result = run(project(tmp_path, "- Q1: q [open]\n", log))
+    assert result.returncode == 1
+    assert "duplicate entry" in result.stdout
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))

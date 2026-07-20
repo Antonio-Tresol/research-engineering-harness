@@ -84,10 +84,50 @@ def test_reminds_to_bump_a_stale_updated_date(repo: Path) -> None:
     assert "updated:" in out and date.today().isoformat() in out
 
 
-def test_reminds_to_rerun_gates_when_code_and_results_move_together(repo: Path) -> None:
+def test_reminds_to_rerun_gates_when_cited_evidence_is_rewritten(repo: Path) -> None:
+    """Only when a result already cited by the tree is being changed."""
+    (repo / "TREE.md").write_text(
+        "- Q1: q [open]\n  - Q1.H1: h [open]\n"
+        "    - Q1.H1.E1: e [done] | evidence: results/run.json\n")
+    (repo / "results").mkdir()
+    (repo / "results/run.json").write_text('{"v": 1}')
+    run_git(repo, "add", "-A")
+    run_git(repo, "commit", "-q", "-m", "cite")
+    stage(repo, "scripts/run.py", "x = 2\n")
+    stage(repo, "results/run.json", '{"v": 2}')   # a rewrite of cited evidence
+    assert "already backs a claim" in hook(repo).stdout
+
+
+def test_quiet_on_the_textbook_perfect_commit(repo: Path) -> None:
+    """Script, its results, the tree, and the log all staged together.
+
+    This is the commit the whole workflow exists to produce. An earlier version
+    nagged on it unconditionally, which is the purest form of crying wolf: the
+    reminder could not be satisfied, so the sensible response was to ignore the
+    entire block.
+    """
+    stage(repo, "scripts/exp.py", "x = 1\n")
+    stage(repo, "results/exp.json", "{}")
+    stage(repo, "TREE.md", "- Q1: q [open]\n  - Q1.H1: h [open]\n"
+                           "    - Q1.H1.E1: e [done] | evidence: results/exp.json\n")
+    stage(repo, "RESEARCH_LOG.md", "# log\n\n### 2026-07-20\n\n* What I did: ran it.\n")
+    out = hook(repo).stdout
+    assert "worth checking" not in out, out
+
+
+def test_quiet_when_uncited_results_change_with_code(repo: Path) -> None:
+    """Scratch results moving with their script is ordinary work, not a risk."""
     stage(repo, "scripts/run.py", "x = 1\n")
-    stage(repo, "results/run.json", "{}")
-    assert "re-run falsify or validate-claims" in hook(repo).stdout
+    stage(repo, "results/scratch.json", "{}")
+    stage(repo, "TREE.md", "- Q1: q [open]\n")
+    assert "Re-run falsify" not in hook(repo).stdout
+
+
+def test_quiet_on_updated_inside_a_code_fence(repo: Path) -> None:
+    """A doc that documents the convention is not claiming a date."""
+    stage(repo, "docs/conventions.md",
+          "# Conventions\n\nDate your reports:\n\n```yaml\nupdated: 2026-01-15\n```\n")
+    assert "updated:" not in hook(repo).stdout
 
 
 # --- Reminders stay quiet ------------------------------------------------

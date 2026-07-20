@@ -15,8 +15,15 @@ every number in it stays anchored.
 
     PROV-001  the claim's source file or key path does not resolve
     PROV-002  the value on disk does not match the value claimed
-    PROV-003  a claim-bearing file contains statistics with no claim marker
-              (opt-in; off unless `claim_bearing` globs are configured)
+    PROV-003  a claim-bearing file reports statistics but carries no claim
+              marker at all (opt-in; off unless `claim_bearing` is configured)
+
+PROV-003 deliberately reports once per FILE, not once per number. Deciding
+line-by-line whether a figure is a reported result or a hyperparameter, a
+convention, a quotation or a threshold is a judgement a regex cannot make: an
+earlier per-line version flagged "learning rate to 0.001", "the top 5% of
+prompts" and "p < 0.05" in a methods section. Once a document adopts the
+convention at all, the author is trusted with the rest.
 
 Matching is rounding-aware: a claim of `0.37` accepts a stored `0.3712`, because
 it agrees to the precision actually written down. An explicit `tol=` overrides.
@@ -45,8 +52,8 @@ from ._common import is_glob_match, scan_tree
 
 # <!-- claim: 0.37 from results/pilot.json#detector.false_alarm_rate tol=0.01 -->
 CLAIM_RE: Final[re.Pattern[str]] = re.compile(
-    r"<!--\s*claim:\s*(?P<value>-?[\d.eE+]+)\s+from\s+(?P<path>[^\s#]+)"
-    r"(?:#(?P<key>[^\s]+))?(?:\s+tol=(?P<tol>[\d.eE+-]+))?\s*-->"
+    r"<!--\s*claim:\s*(?P<value>-?[\d.]+(?:[eE][-+]?\d+)?)\s+from\s+(?P<path>[^\s#]+)"
+    r"(?:#(?P<key>[^\s]+))?(?:\s+tol=(?P<tol>[-+\d.eE]+))?\s*-->"
 )
 # Numbers that look like reported statistics rather than incidental counts.
 STAT_RE: Final[re.Pattern[str]] = re.compile(
@@ -56,7 +63,7 @@ DOC_SUFFIXES: Final[frozenset[str]] = frozenset({".md"})
 
 PROV_001: Final[str] = "PROV-001: claim source resolves to a file and key on disk"
 PROV_002: Final[str] = "PROV-002: claimed value matches the value on disk"
-PROV_003: Final[str] = "PROV-003: statistics in a claim-bearing file carry a claim marker"
+PROV_003: Final[str] = "PROV-003: a claim-bearing file anchors its figures"
 
 
 @dataclass(frozen=True)
@@ -68,29 +75,75 @@ class Claim:
     path: str
     key: str | None
     tol: float | None
+    literal: str = ""
 
     @property
     def decimals(self) -> int:
-        """Digits after the point in the value as written."""
-        text = f"{self.value}"
-        return len(text.split(".", 1)[1]) if "." in text else 0
+        """Digits after the point in the value AS WRITTEN.
+
+        Derived from the source text, never from the parsed float: repr of
+        1.23e-05 splits to "23e-05" and would report six places for a number
+        the author wrote to seven.
+        """
+        mantissa = self.literal.split("e")[0].split("E")[0]
+        places = len(mantissa.split(".", 1)[1]) if "." in mantissa else 0
+        exponent = re.search(r"[eE]([-+]?\d+)", self.literal)
+        return places - int(exponent.group(1)) if exponent else places
+
+
+FENCE_RE: Final[re.Pattern[str]] = re.compile(r"^\s*(?:```|~~~)")
+INLINE_CODE_RE: Final[re.Pattern[str]] = re.compile(r"`[^`]*`")
+# A number introduced by `=` or `:` is a setting, not a reported result.
+CONFIG_SHAPE_RE: Final[re.Pattern[str]] = re.compile(r"[=:]\s*-?[\d.]")
+URL_RE: Final[re.Pattern[str]] = re.compile(r"https?://\S+|\]\([^)]*\)")
+FOOTNOTE_RE: Final[re.Pattern[str]] = re.compile(r"^\s*\[\^")
 
 
 def iter_prose_lines(text: str) -> "list[tuple[int, str]]":
-    """Numbered lines outside fenced code blocks.
+    """Numbered lines outside fenced code blocks and YAML frontmatter.
 
     Markers inside a fence are documentation showing the syntax, not claims
     about this project's results, so validating them would flag every example.
+    Both ``` and ~~~ fences count.
     """
     lines: list[tuple[int, str]] = []
+    raw = text.splitlines()
     in_fence = False
-    for lineno, line in enumerate(text.splitlines(), 1):
-        if line.lstrip().startswith("```"):
+    start = 0
+    # Skip YAML frontmatter: `threshold: 0.75` there is configuration.
+    if raw and raw[0].strip() == "---":
+        for index in range(1, len(raw)):
+            if raw[index].strip() == "---":
+                start = index + 1
+                break
+    for offset, line in enumerate(raw[start:]):
+        lineno = start + offset + 1
+        if FENCE_RE.match(line):
             in_fence = not in_fence
             continue
         if not in_fence:
             lines.append((lineno, line))
     return lines
+
+
+def is_prose_statistic(line: str) -> bool:
+    """True when a line reports a figure, rather than merely containing digits.
+
+    Every exclusion here corresponds to a false positive found by adversarial
+    testing: hyperparameters (`learning rate to 0.001`), conventions written as
+    settings, digits inside URLs, quoted figures from other papers, table rows,
+    footnote definitions, and numbers inside inline code spans.
+    """
+    stripped = line.strip()
+    if not stripped or stripped.startswith(">") or FOOTNOTE_RE.match(stripped):
+        return False
+    if stripped.count("|") >= 2:          # a table row, with or without a leading pipe
+        return False
+    cleaned = INLINE_CODE_RE.sub(" ", line)
+    cleaned = URL_RE.sub(" ", cleaned)
+    if CONFIG_SHAPE_RE.search(cleaned):   # `alpha = 0.05`, `threshold: 0.75`
+        return False
+    return bool(STAT_RE.search(cleaned))
 
 
 def parse_claims(text: str) -> list[Claim]:
@@ -102,7 +155,7 @@ def parse_claims(text: str) -> list[Claim]:
             except ValueError:
                 continue
             tol = float(match["tol"]) if match["tol"] else None
-            claims.append(Claim(lineno, value, match["path"], match["key"], tol))
+            claims.append(Claim(lineno, value, match["path"], match["key"], tol, match["value"]))
     return claims
 
 
@@ -186,23 +239,20 @@ def check_claim(claim: Claim, root: Path, file: str) -> Violation | None:
     return None
 
 
-def find_unmarked_stats(text: str) -> list[int]:
-    """Line numbers holding a statistic with no claim marker nearby.
+def first_unanchored_statistic(text: str) -> int | None:
+    """Line of the first reported statistic, when the file has NO marker at all.
 
-    A marker counts when it sits on the statistic's own line or immediately
-    above or below it, since the readable convention puts the comment on the
-    line after the sentence it anchors.
+    Returns None as soon as any claim marker is present: a document that has
+    adopted the convention is trusted with the rest, because distinguishing a
+    result from a hyperparameter line by line is not something a regex can do.
     """
     prose = iter_prose_lines(text)
-    marked = {lineno for lineno, line in prose if CLAIM_RE.search(line)}
-    nearby = marked | {i - 1 for i in marked} | {i + 1 for i in marked}
-    return [
-        lineno
-        for lineno, line in prose
-        if lineno not in nearby
-        and not line.lstrip().startswith(("|", "    "))
-        and STAT_RE.search(line)
-    ]
+    if any(CLAIM_RE.search(line) for _, line in prose):
+        return None
+    for lineno, line in prose:
+        if not line.startswith("    ") and is_prose_statistic(line):
+            return lineno
+    return None
 
 
 @dataclass
@@ -217,7 +267,7 @@ class ProvenanceCheck:
         default_factory=lambda: [
             "PROV-001: claim source resolves to a file and key on disk",
             "PROV-002: claimed value matches the value on disk",
-            "PROV-003: statistics in a claim-bearing file carry a claim marker (warning)",
+            "PROV-003: a claim-bearing file anchors its figures (warning)",
         ]
     )
 
@@ -244,14 +294,14 @@ class ProvenanceCheck:
         ]
         warnings: list[Violation] = []
         if self.is_claim_bearing(file):
-            warnings = [
-                Violation(
+            lineno = first_unanchored_statistic(text)
+            if lineno is not None:
+                warnings.append(Violation(
                     file=file, line=lineno, rule=PROV_003,
-                    message="Statistic in a claim-bearing file has no claim marker",
-                    fix="Add `<!-- claim: <value> from results/<file>.json#<key> -->` on this line",
-                )
-                for lineno in find_unmarked_stats(text)
-            ]
+                    message="This file reports figures but carries no claim markers",
+                    fix=("Anchor its numbers to their source, e.g. "
+                         "`<!-- claim: 0.37 from results/pilot.json#rate -->`"),
+                ))
         return violations, warnings
 
     def run(self, *, src_root: str) -> CheckResult:

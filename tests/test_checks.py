@@ -115,20 +115,47 @@ def test_provenance_resolves_list_indices(tmp_path: Path) -> None:
     assert codes(ProvenanceCheck().run(src_root=str(tmp_path))) == []
 
 
-def test_prov003_quiet_when_marker_on_adjacent_line(tmp_path: Path) -> None:
-    """The documented convention puts the marker on the line after the prose."""
+def test_prov003_quiet_once_the_file_has_any_marker(tmp_path: Path) -> None:
+    """One marker adopts the convention for the whole file. Distinguishing a
+    result from a hyperparameter per line is judgement a regex cannot make."""
     write(tmp_path, "results/r.json", json.dumps({"rate": 0.43}))
-    write(tmp_path, "reports/f.md", "Rate was 43%.\n<!-- claim: 0.43 from results/r.json#rate -->\n")
+    write(tmp_path, "reports/f.md",
+          "We set the learning rate to 0.001.\n\n"
+          "Rate was 43%.\n<!-- claim: 0.43 from results/r.json#rate -->\n\n"
+          "The threshold p < 0.05 is conventional.\n")
     check = ProvenanceCheck()
     check.configure(settings={"claim_bearing": ["reports/**/*.md"]})
     assert codes(check.run(src_root=str(tmp_path))) == []
 
 
-def test_prov003_fires_on_unmarked_statistic(tmp_path: Path) -> None:
-    write(tmp_path, "reports/f.md", "An unmarked rate of 22.5% appears here.\n")
+def test_prov003_caps_at_one_warning_per_file(tmp_path: Path) -> None:
+    """The per-file cap is the design: a regex cannot tell a result from a
+    hyperparameter, so a markerless file gets one nudge, never a wall. An
+    earlier per-line version produced five warnings on this exact file."""
+    write(tmp_path, "reports/methods.md",
+          "We use the conventional threshold of p < 0.05 throughout.\n"
+          "We set the learning rate to 0.001 and dropout to 0.15.\n\n"
+          "> The largest model agrees on 78% of items.\n\n"
+          "See https://example.org/page?v=0.99 and `alpha = 0.05`.\n"
+          "The detector fired on 41% of prompts overall.\n")
     check = ProvenanceCheck()
     check.configure(settings={"claim_bearing": ["reports/**/*.md"]})
-    assert "PROV-003" in codes(check.run(src_root=str(tmp_path)))
+    assert codes(check.run(src_root=str(tmp_path))).count("PROV-003") <= 1
+
+
+def test_provenance_parses_scientific_notation(tmp_path: Path) -> None:
+    """3e-05 was unparseable: reported unmarked AND never validated."""
+    write(tmp_path, "results/r.json", json.dumps({"pval": 3e-05}))
+    write(tmp_path, "doc.md", "p was tiny.\n<!-- claim: 3e-05 from results/r.json#pval -->\n")
+    assert codes(ProvenanceCheck().run(src_root=str(tmp_path))) == []
+
+
+def test_prov003_fires_on_a_report_with_no_markers_at_all(tmp_path: Path) -> None:
+    write(tmp_path, "reports/f.md", "The detector fired on 41% of prompts overall.\n")
+    check = ProvenanceCheck()
+    check.configure(settings={"claim_bearing": ["reports/**/*.md"]})
+    found = codes(check.run(src_root=str(tmp_path)))
+    assert found.count("PROV-003") == 1
 
 
 def test_prov003_off_by_default(tmp_path: Path) -> None:
@@ -156,8 +183,70 @@ def test_tensors_fires_on_bare_annotations_including_vectors(tmp_path: Path) -> 
 
 
 def test_tensors_fires_on_raw_shape_ops(tmp_path: Path) -> None:
-    write(tmp_path, "m.py", "def f(x):\n    return x.view(1, -1).permute(1, 0)\n")
+    write(tmp_path, "m.py", "import torch\n\ndef f(x):\n    return x.view(1, -1).permute(1, 0)\n")
     assert codes(TensorsCheck().run(src_root=str(tmp_path))).count("TENSOR-002") == 2
+
+
+# --- Regression tests from adversarial review ---------------------------
+# Each pins a false positive an adversarial pass actually produced.
+
+def test_tensors_quiet_on_pandas(tmp_path: Path) -> None:
+    """DataFrame.transpose and .squeeze are not tensor reshapes."""
+    write(tmp_path, "m.py",
+          "import pandas as pd\n\n"
+          "def summarise(frame: pd.DataFrame) -> pd.DataFrame:\n"
+          "    return frame.transpose().squeeze()\n")
+    assert codes(TensorsCheck().run(src_root=str(tmp_path))) == []
+
+
+def test_tensors_quiet_on_unrelated_class_named_tensor(tmp_path: Path) -> None:
+    """A symbolic `Tensor` with no shape cannot satisfy a jaxtyping annotation."""
+    write(tmp_path, "m.py",
+          "from dataclasses import dataclass\n\n@dataclass\nclass Tensor:\n"
+          "    symbol: str\n\ndef negate(t: Tensor) -> Tensor:\n    return t\n")
+    assert codes(TensorsCheck().run(src_root=str(tmp_path))) == []
+
+
+def test_tensors_quiet_on_orm_and_list_helpers(tmp_path: Path) -> None:
+    write(tmp_path, "m.py",
+          "import sqlalchemy\n\ndef go(table, rows):\n"
+          "    table.view('active')\n    return rows.flatten()\n")
+    assert codes(TensorsCheck().run(src_root=str(tmp_path))) == []
+
+
+def test_hskill001_quiet_on_paths_in_code_fences_and_urls(tmp_path: Path) -> None:
+    """A skill documenting a bad path, or quoting a traceback, is teaching."""
+    make_skill(tmp_path, "a", "name: a\ndescription: Use when testing.",
+               "## What NOT to do\n\n```\n/Users/alice/Documents/thing.md\n```\n\n"
+               "See https://example.com/home/getting-started for background.\n"
+               "The Docker workdir is always /home/app which is fine.\n"
+               "More body text to satisfy length.\n")
+    assert "HSKILL-001" not in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
+
+
+def test_hskill001_reports_the_true_line_number(tmp_path: Path) -> None:
+    """Line numbers were short by the frontmatter length."""
+    make_skill(tmp_path, "a", "name: a\ndescription: Use when testing.",
+               "line one\nline two\nsee /Users/bob/secret/notes.md here\nline four\nline five\n")
+    result = SkillPortabilityCheck().run(src_root=str(tmp_path))
+    hits = [v for v in [*result.violations, *result.warnings] if v.code == "HSKILL-001"]
+    assert hits and hits[0].line == 8, [(v.line, v.message) for v in hits]
+
+
+def test_hskill002_accepts_documented_spec_fields(tmp_path: Path) -> None:
+    """`model`, `argument-hint` and `context` are in the published spec."""
+    make_skill(tmp_path, "a",
+               "name: a\ndescription: Use when testing.\nmodel: opus\n"
+               'argument-hint: "[file-path]"\ncontext: fresh')
+    assert "HSKILL-002" not in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
+
+
+def test_hskill003_allows_a_codex_only_superset(tmp_path: Path) -> None:
+    """Extra Codex-side skills are a deliberate layout, not drift."""
+    make_skill(tmp_path, "shared", "name: shared\ndescription: Use when testing.")
+    (tmp_path / ".agents/skills/shared").mkdir(parents=True)
+    (tmp_path / ".agents/skills/codex-only").mkdir(parents=True)
+    assert "HSKILL-003" not in codes(SkillPortabilityCheck().run(src_root=str(tmp_path)))
 
 
 def test_tensors_quiet_on_jaxtyping_and_einops(tmp_path: Path) -> None:

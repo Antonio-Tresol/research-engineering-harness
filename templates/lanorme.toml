@@ -85,7 +85,7 @@ check_codex_skills = true
 # STALE-002 needs dated_docs set: it compares a document's `updated:`
 # frontmatter against the date git last saw the file change.
 [staleness]
-watch = ["results", "scripts", "src"]
-artefacts = ["TREE.md"]
+watch = ["results"]
+artefacts = ["TREE.md", "RESEARCH_LOG.md"]
 max_commits_behind = 8
 dated_docs = ["reports/**/*.md", "findings/**/*.md"]

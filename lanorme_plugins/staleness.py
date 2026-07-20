@@ -5,8 +5,8 @@ that statuses are legal, that numbers resolve. None of them notice when the
 research tree simply stopped being updated. A project can run twenty experiments
 against a placeholder `Q1` and pass everything.
 
-    STALE-001  the research tree has not changed for N commits, while the
-               watched paths (results, scripts, src) have.  [warning]
+    STALE-001  no bookkeeping artefact has changed while N commits ADDED or
+               MODIFIED files under `results/`.  [warning]
     STALE-002  a document declares `updated:` in its frontmatter, and git shows
                the file changed after that date.  [warning]
 
@@ -17,10 +17,14 @@ a belief worth recording, and a gate that blocks on that judgement gets bypassed
 Configure:
 
     [staleness]
-    watch = ["results/**", "scripts/**", "src/**"]
-    artefacts = ["TREE.md"]
+    watch = ["results"]                       # only results imply a finding
+    artefacts = ["TREE.md", "RESEARCH_LOG.md"]  # either one clears the count
     max_commits_behind = 8
-    dated_docs = ["reports/**/*.md"]     # enables STALE-002
+    dated_docs = ["reports/**/*.md"]          # enables STALE-002
+
+Deliberately narrow. Counting every commit that touched `scripts/` treated
+tooling syncs and refactors as evidence that experiments had run, and anchoring
+only on TREE.md made the advice "note it in the log" impossible to satisfy.
 
 Run:
     lanorme check . --check=staleness
@@ -69,14 +73,34 @@ def last_commit_for(root: Path, path: str) -> str | None:
     return out or None
 
 
-def commits_touching_since(root: Path, since: str, patterns: list[str]) -> int:
-    """How many commits since `since` touched any watched path."""
-    out = git(root, "rev-list", "--count", f"{since}..HEAD", "--", *patterns)
-    return int(out) if out and out.isdigit() else 0
+def commits_adding_results_since(root: Path, since: str, patterns: list[str]) -> int:
+    """Commits since `since` that ADDED or MODIFIED a watched file.
+
+    Deliberately not a plain path count. Deletions, renames and pure refactors
+    move files without producing findings, and vendored tooling syncs touch
+    `scripts/` without any experiment having run. Counting those told projects
+    their bookkeeping had fallen behind when no work had happened.
+    """
+    out = git(
+        root, "log", "--format=%H", "--diff-filter=AM",
+        f"{since}..HEAD", "--", *patterns,
+    )
+    return len(out.splitlines()) if out else 0
+
+
+def latest_artefact_commit(root: Path, artefacts: list[str]) -> str | None:
+    """The most recent commit touching ANY bookkeeping artefact.
+
+    Anchoring on TREE.md alone made the advice "note in the log why nothing
+    changed" impossible to satisfy: a log-only commit moved nothing.
+    """
+    out = git(root, "log", "-1", "--format=%h", "--", *artefacts)
+    return out or None
 
 
 def last_commit_date(root: Path, path: str) -> date | None:
-    out = git(root, "log", "-1", "--format=%cs", "--", path)
+    # %as (author date) survives rebase, amend and cherry-pick; %cs does not.
+    out = git(root, "log", "-1", "--follow", "--format=%as", "--", path)
     try:
         return date.fromisoformat(out) if out else None
     except ValueError:
@@ -105,8 +129,8 @@ class StalenessCheck:
     description: str = "Research bookkeeping keeps pace with the code and results"
     enabled: bool = True
     max_commits_behind: int = 8
-    watch: list[str] = field(default_factory=lambda: ["results", "scripts", "src"])
-    artefacts: list[str] = field(default_factory=lambda: ["TREE.md"])
+    watch: list[str] = field(default_factory=lambda: ["results"])
+    artefacts: list[str] = field(default_factory=lambda: ["TREE.md", "RESEARCH_LOG.md"])
     dated_docs: list[str] = field(default_factory=list)
     rules: list[str] = field(
         default_factory=lambda: [
@@ -129,20 +153,19 @@ class StalenessCheck:
 
     def check_artefacts(self, root: Path) -> list[Violation]:
         found: list[Violation] = []
-        for artefact in self.artefacts:
-            if not (root / artefact).is_file():
-                continue
-            anchor = last_commit_for(root, artefact)
+        present = [a for a in self.artefacts if (root / a).is_file()]
+        for artefact in present[:1]:   # one anchor, one warning
+            anchor = latest_artefact_commit(root, self.artefacts)
             if anchor is None:
                 continue  # never committed; nothing to measure against
-            behind = commits_touching_since(root, anchor, self.watch)
+            behind = commits_adding_results_since(root, anchor, self.watch)
             if behind <= self.max_commits_behind:
                 continue
             found.append(Violation(
                 file=artefact, line=1, rule=STALE_001,
                 message=(
-                    f"{artefact} has not changed while {behind} commits touched "
-                    f"{', '.join(self.watch)}"
+                    f"No bookkeeping artefact has changed while {behind} commits "
+                    f"added or modified files under {', '.join(self.watch)}"
                 ),
                 fix=(
                     "Record what those runs established: move an experiment to [done], "

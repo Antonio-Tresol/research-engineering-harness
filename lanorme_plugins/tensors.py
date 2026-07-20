@@ -60,6 +60,29 @@ EINOPS_FIX: Final[str] = (
 )
 
 
+TENSOR_LIBRARIES: Final[frozenset[str]] = frozenset({
+    "torch", "numpy", "jax", "jaxtyping", "einops", "tensorflow", "flax", "equinox",
+})
+
+
+def imports_a_tensor_library(tree: ast.AST) -> bool:
+    """True when the file imports a tensor library.
+
+    Without this gate the rules fire on any object that happens to expose a
+    method called `.transpose` or `.squeeze`: pandas DataFrames, ORM tables,
+    list helpers, permutation-test utilities. None of them can be rewritten with
+    einops, so every such finding was unfixable noise.
+    """
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if any(alias.name.split(".")[0] in TENSOR_LIBRARIES for alias in node.names):
+                return True
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            if node.module.split(".")[0] in TENSOR_LIBRARIES:
+                return True
+    return False
+
+
 def annotation_text(node: ast.expr | None) -> str:
     """Source text of an annotation node, or '' when absent."""
     return "" if node is None else ast.unparse(node)
@@ -146,6 +169,8 @@ class TensorsCheck:
         try:
             tree = ast.parse(path.read_text(encoding="utf-8"))
         except (SyntaxError, UnicodeDecodeError, ValueError):
+            return [], []
+        if not imports_a_tensor_library(tree):
             return [], []
         violations: list[Violation] = []
         for node in ast.walk(tree):
