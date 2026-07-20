@@ -15,8 +15,9 @@ only to record what is true.
   append-only history. Never encode state only here or history only in the tree.
 - `uv run scripts/validate_research.py` — mechanical validator for both. Must exit
   0 before ending any session and before any deliverable.
-- `uv run scripts/lint_skills.py` — lints `.claude/skills/` against the Agent
-  Skills spec. Run after editing any skill.
+- `uvx lanorme check .` — Python quality and Agent Skills spec compliance.
+- `uv run scripts/lint_skills.py` — harness-specific skill checks (portability,
+  trigger phrasing). Run both after editing any skill or script.
 
 All scripts are self-contained PEP 723 uv scripts (inline dependencies, no venv
 to manage) and use type hints throughout. New scripts in this project should

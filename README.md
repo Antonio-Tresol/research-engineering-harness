@@ -37,7 +37,8 @@ each new research project; maintain it here.
 | `.claude/skills/validate-claims/` | Traceability protocol: every number → data file, every method sentence → code, every citation → real paper; loop to zero mismatches |
 | `.claude/skills/research-log/` | The tree/log conventions and session ritual |
 | `scripts/validate_research.py` | Mechanical validator for TREE.md + RESEARCH_LOG.md (structure, statuses, evidence existence, scorecard-gated claim graduation, tree↔log cross-refs) |
-| `scripts/lint_skills.py` | Linter for `SKILL.md` files: YAML frontmatter validity, required fields, name/directory agreement, kebab-case, description budget and trigger phrasing, machine-specific paths, size |
+| `scripts/lint_skills.py` | Harness-specific `SKILL.md` checks that complement lanorme: portability (no machine-specific absolute paths), trigger phrasing, frontmatter typos |
+| `lanorme.toml` | Config for [lanorme](https://github.com/lanorme/lanorme), the authority on Python quality and Agent Skills spec compliance (`SKILL-001..006`) |
 | `templates/` | Seed files for a new project: `CLAUDE.md`, `TREE.md`, `RESEARCH_LOG.md`, `mcp.json` |
 | `references/harness.bib` | BibTeX for every source underpinning the harness design, with unequivocal identifiers |
 | `research/ai-scientist-pitfalls/` | The literature survey the harness design answers to: pitfall taxonomy, per-source notes with read-depth tags, gap analysis |
@@ -85,10 +86,16 @@ to create and no requirements file to install.
 
 ```bash
 uv run scripts/validate_research.py     # tree + log structural validation
-uv run scripts/lint_skills.py           # skills against the Agent Skills spec
-uv run scripts/lint_skills.py --strict  # warnings become errors (use in CI)
+uvx lanorme check .                     # Python quality + Agent Skills spec
+uv run scripts/lint_skills.py           # harness-specific skill checks
 uv run install.py TARGET --name "..."   # install into a project
 ```
+
+The harness holds AI agents to mechanical checks, so it applies the same to
+itself: `uvx lanorme check .` must pass on this repo. lanorme owns Python
+quality (complexity, size, typing, security) and Agent Skills spec compliance;
+`lint_skills.py` adds only what lanorme does not cover — portability, trigger
+phrasing, and frontmatter typos. Run both; they do not overlap.
 
 They are also executable directly (`./scripts/lint_skills.py`) via a
 `#!/usr/bin/env -S uv run --script` shebang. Requires `uv` on PATH.

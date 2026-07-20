@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 import sys
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Final
@@ -27,6 +28,9 @@ STATUS_VOCAB: Final[dict[str, set[str]]] = {
     "E": {"planned", "running", "done", "abandoned"},
     "C": {"unvalidated", "survived", "weakened", "failed"},
 }
+GRADUATED_CLAIM_STATUSES: Final[frozenset[str]] = frozenset({"survived", "weakened", "failed"})
+VALIDATED_CLAIM_STATUSES: Final[frozenset[str]] = frozenset({"survived", "weakened"})
+BELIEF_HYPOTHESIS_STATUSES: Final[frozenset[str]] = frozenset({"supported", "refuted"})
 
 NODE_RE: Final[re.Pattern[str]] = re.compile(
     r"^(?P<indent>\s*)-\s+(?P<id>[QHEC0-9.]+):\s+(?P<text>.*?)"
@@ -34,149 +38,222 @@ NODE_RE: Final[re.Pattern[str]] = re.compile(
     r"(?:\s*\|\s*evidence:\s*(?P<evidence>[^|]+?))?"
     r"(?:\s*\|\s*log:\s*(?P<log>\d{4}-\d{2}-\d{2}))?\s*$"
 )
+NODE_ID_RE: Final[re.Pattern[str]] = re.compile(r"^[QHEC]\d+(\.[QHEC]\d+)*$")
+NODE_TYPE_RE: Final[re.Pattern[str]] = re.compile(r"([QHEC])\d+$")
+SCORECARD_RE: Final[re.Pattern[str]] = re.compile(r"falsif|scorecard|validat", re.IGNORECASE)
 
 LOG_HEADER_RE: Final[re.Pattern[str]] = re.compile(r"^### (\d{4}-\d{2}-\d{2})\s*$")
-LOG_BULLETS: Final[list[str]] = [
+LOG_BULLETS: Final[tuple[str, ...]] = (
     "What I did:",
     "What I expected vs what happened:",
     "What this changes about my thinking:",
     "What I will do next:",
-]
+)
 
 
-def node_type(node_id: str) -> str | None:
+@dataclass(frozen=True)
+class Node:
+    """One parsed TREE.md node line."""
+
+    lineno: int
+    node_id: str
+    node_type: str
+    status: str
+    evidence: tuple[str, ...]
+    log_date: str | None
+
+    @property
+    def parent_id(self) -> str | None:
+        return self.node_id.rsplit(".", 1)[0] if "." in self.node_id else None
+
+    @property
+    def needs_evidence(self) -> bool:
+        if self.node_type == "E":
+            return self.status == "done"
+        return self.node_type == "C" and self.status != "unvalidated"
+
+    @property
+    def needs_scorecard(self) -> bool:
+        return self.node_type == "C" and self.status in GRADUATED_CLAIM_STATUSES
+
+
+@dataclass
+class Report:
+    """Accumulated validation errors."""
+
+    errors: list[str] = field(default_factory=list)
+
+    def add(self, message: str) -> None:
+        self.errors.append(message)
+
+    def add_tree(self, lineno: int, message: str) -> None:
+        self.errors.append(f"TREE.md:{lineno}: {message}")
+
+
+def node_type_of(node_id: str) -> str | None:
     """Last letter-prefixed segment determines type: Q1.H2.E1 -> E."""
-    seg = node_id.split(".")[-1]
-    m = re.match(r"([QHEC])\d+$", seg)
-    return m.group(1) if m else None
+    match = NODE_TYPE_RE.match(node_id.split(".")[-1])
+    return match.group(1) if match else None
 
 
-def validate_tree(errors: list[str]) -> dict[str, str | None]:
-    """Returns {node_id: log_date} for cross-checking against the log."""
-    if not TREE.exists():
-        errors.append("TREE.md missing")
-        return {}
-    seen: dict[str, str | None] = {}
-    lines = TREE.read_text().splitlines()
-    for lineno, line in enumerate(lines, 1):
-        stripped = line.strip()
-        if not stripped.startswith("- ") or ":" not in stripped:
-            continue
-        # Heuristic: list items whose first token looks like a node ID
-        first = stripped[2:].split(":", 1)[0]
-        if not re.match(r"^[QHEC]\d+(\.[QHEC]\d+)*$", first):
-            continue
-        m = NODE_RE.match(line)
-        if not m:
-            errors.append(f"TREE.md:{lineno}: node line does not match grammar: {stripped[:80]}")
-            continue
-        nid, status = m["id"], m["status"]
-        ntype = node_type(nid)
-        if ntype is None:
-            errors.append(f"TREE.md:{lineno}: bad node id {nid!r}")
-            continue
-        if nid in seen:
-            errors.append(f"TREE.md:{lineno}: duplicate id {nid}")
-        seen[nid] = m["log"]
-        # Parent must exist and be a prefix
-        if "." in nid:
-            parent = nid.rsplit(".", 1)[0]
-            if parent not in seen:
-                errors.append(f"TREE.md:{lineno}: {nid} has no parent {parent} defined above it")
-        elif ntype != "Q":
-            errors.append(f"TREE.md:{lineno}: top-level node {nid} must be a question (Q)")
-        # Status vocabulary
-        if status not in STATUS_VOCAB[ntype]:
-            errors.append(
-                f"TREE.md:{lineno}: {nid} status {status!r} not in {sorted(STATUS_VOCAB[ntype])}"
-            )
-        # Evidence requirements
-        needs_evidence = (ntype == "E" and status == "done") or (
-            ntype == "C" and status != "unvalidated"
+def is_node_line(stripped: str) -> bool:
+    """True when a list item's first token is shaped like a node ID."""
+    if not stripped.startswith("- ") or ":" not in stripped:
+        return False
+    return bool(NODE_ID_RE.match(stripped[2:].split(":", 1)[0]))
+
+
+def parse_node(line: str, lineno: int, report: Report) -> Node | None:
+    """Parse one node line, reporting grammar and id errors."""
+    match = NODE_RE.match(line)
+    if match is None:
+        report.add_tree(lineno, f"node line does not match grammar: {line.strip()[:80]}")
+        return None
+    node_id = match["id"]
+    ntype = node_type_of(node_id)
+    if ntype is None:
+        report.add_tree(lineno, f"bad node id {node_id!r}")
+        return None
+    evidence = tuple(e.strip() for e in (match["evidence"] or "").split(",") if e.strip())
+    return Node(lineno, node_id, ntype, match["status"], evidence, match["log"])
+
+
+def check_lineage(node: Node, seen: set[str], report: Report) -> None:
+    """IDs are unique, and every child's parent is defined above it."""
+    if node.node_id in seen:
+        report.add_tree(node.lineno, f"duplicate id {node.node_id}")
+    parent = node.parent_id
+    if parent is None:
+        if node.node_type != "Q":
+            report.add_tree(node.lineno, f"top-level node {node.node_id} must be a question (Q)")
+    elif parent not in seen:
+        report.add_tree(node.lineno, f"{node.node_id} has no parent {parent} defined above it")
+
+
+def check_status(node: Node, report: Report) -> None:
+    allowed = STATUS_VOCAB[node.node_type]
+    if node.status not in allowed:
+        report.add_tree(node.lineno, f"{node.node_id} status {node.status!r} not in {sorted(allowed)}")
+
+
+def check_evidence(node: Node, report: Report) -> None:
+    """Evidence must be present where required, exist on disk, and — for a
+    graduated claim — include a falsification/validation scorecard."""
+    if node.needs_evidence and not node.evidence:
+        report.add_tree(node.lineno, f"{node.node_id} [{node.status}] requires evidence: <path>")
+    for ev in node.evidence:
+        if not (ROOT / ev).exists():
+            report.add_tree(node.lineno, f"{node.node_id} evidence path does not exist: {ev}")
+    if node.needs_scorecard and not any(SCORECARD_RE.search(Path(ev).name) for ev in node.evidence):
+        report.add_tree(
+            node.lineno,
+            f"{node.node_id} [{node.status}] needs a scorecard evidence file "
+            "(name containing 'falsify', 'scorecard', or 'validation')",
         )
-        evidence = [e.strip() for e in (m["evidence"] or "").split(",") if e.strip()]
-        if needs_evidence and not evidence:
-            errors.append(f"TREE.md:{lineno}: {nid} [{status}] requires evidence: <path>")
-        for ev in evidence:
-            if not (ROOT / ev).exists():
-                errors.append(f"TREE.md:{lineno}: {nid} evidence path does not exist: {ev}")
-        # Claims graduate only via a falsify/validation scorecard artifact
-        if ntype == "C" and status in {"survived", "weakened", "failed"}:
-            if not any(
-                re.search(r"falsif|scorecard|validat", Path(ev).name, re.IGNORECASE)
-                for ev in evidence
-            ):
-                errors.append(
-                    f"TREE.md:{lineno}: {nid} [{status}] needs a scorecard evidence file "
-                    "(name containing 'falsify', 'scorecard', or 'validation')"
-                )
-    # Rule 4: supported/refuted hypotheses need a validated child claim.
-    statuses: dict[str, str] = {}
-    for line in lines:
-        m = NODE_RE.match(line)
-        if m and node_type(m["id"]):
-            statuses[m["id"]] = m["status"]
-    for nid, status in statuses.items():
-        if node_type(nid) == "H" and status in {"supported", "refuted"}:
-            kids = [
-                k for k, s in statuses.items()
-                if k.startswith(nid + ".") and node_type(k) == "C" and s in {"survived", "weakened"}
-            ]
-            if not kids:
-                errors.append(
-                    f"TREE.md: hypothesis {nid} is [{status}] but has no survived/weakened claim"
-                )
-    return seen
 
 
-def validate_log(errors: list[str]) -> set[str]:
+def check_hypothesis_support(nodes: list[Node], report: Report) -> None:
+    """A belief change requires at least one validated child claim."""
+    statuses = {n.node_id: n.status for n in nodes}
+    for node in nodes:
+        if node.node_type != "H" or node.status not in BELIEF_HYPOTHESIS_STATUSES:
+            continue
+        prefix = f"{node.node_id}."
+        has_validated_claim = any(
+            nid.startswith(prefix) and node_type_of(nid) == "C" and status in VALIDATED_CLAIM_STATUSES
+            for nid, status in statuses.items()
+        )
+        if not has_validated_claim:
+            report.add(
+                f"TREE.md: hypothesis {node.node_id} is [{node.status}] but has no survived/weakened claim"
+            )
+
+
+def validate_tree(report: Report) -> list[Node]:
+    if not TREE.exists():
+        report.add("TREE.md missing")
+        return []
+    nodes: list[Node] = []
+    seen: set[str] = set()
+    for lineno, line in enumerate(TREE.read_text().splitlines(), 1):
+        if not is_node_line(line.strip()):
+            continue
+        node = parse_node(line, lineno, report)
+        if node is None:
+            continue
+        check_lineage(node, seen, report)
+        check_status(node, report)
+        check_evidence(node, report)
+        seen.add(node.node_id)
+        nodes.append(node)
+    check_hypothesis_support(nodes, report)
+    return nodes
+
+
+def split_log_entries(text: str) -> dict[str, str]:
+    """Split the log into {ISO date: entry body}, preserving file order."""
+    entries: dict[str, str] = {}
+    current: str | None = None
+    for line in text.splitlines():
+        header = LOG_HEADER_RE.match(line)
+        if header:
+            current = header.group(1)
+            entries[current] = ""
+        elif current is not None:
+            entries[current] += line + "\n"
+    return entries
+
+
+def check_log_dates(dates: list[str], report: Report) -> None:
+    for value in dates:
+        try:
+            date.fromisoformat(value)
+        except ValueError:
+            report.add(f"RESEARCH_LOG.md: bad date {value}")
+    for earlier, later in zip(dates, dates[1:]):
+        if earlier <= later:
+            report.add(f"RESEARCH_LOG.md: entries not newest-first ({earlier} then {later})")
+
+
+def check_log_bullets(entries: dict[str, str], report: Report) -> None:
+    for entry_date, body in entries.items():
+        for bullet in LOG_BULLETS:
+            if not re.search(re.escape(bullet) + r"\s*(\S.*)", body):
+                report.add(f"RESEARCH_LOG.md {entry_date}: missing or empty bullet '{bullet}'")
+
+
+def validate_log(report: Report) -> set[str]:
     """Returns the set of entry dates (ISO strings)."""
     if not LOG.exists():
-        errors.append("RESEARCH_LOG.md missing")
+        report.add("RESEARCH_LOG.md missing")
         return set()
     text = LOG.read_text()
     if "## Project summary" not in text and "## **Project summary**" not in text:
-        errors.append("RESEARCH_LOG.md: missing '## Project summary' section")
-    dates: list[str] = []
-    entries: dict[str, str] = {}
-    current = None
-    for line in text.splitlines():
-        m = LOG_HEADER_RE.match(line)
-        if m:
-            current = m.group(1)
-            dates.append(current)
-            entries[current] = ""
-        elif current:
-            entries[current] += line + "\n"
-    for d in dates:
-        try:
-            date.fromisoformat(d)
-        except ValueError:
-            errors.append(f"RESEARCH_LOG.md: bad date {d}")
-    for a, b in zip(dates, dates[1:]):
-        if a <= b:
-            errors.append(f"RESEARCH_LOG.md: entries not newest-first ({a} then {b})")
-    for d, body in entries.items():
-        for bullet in LOG_BULLETS:
-            pat = re.compile(re.escape(bullet) + r"\s*(\S.*)")
-            if not pat.search(body):
-                errors.append(f"RESEARCH_LOG.md {d}: missing or empty bullet '{bullet}'")
+        report.add("RESEARCH_LOG.md: missing '## Project summary' section")
+    entries = split_log_entries(text)
+    dates = list(entries)
+    check_log_dates(dates, report)
+    check_log_bullets(entries, report)
     return set(dates)
 
 
+def check_cross_references(nodes: list[Node], log_dates: set[str], report: Report) -> None:
+    for node in nodes:
+        if node.log_date and node.log_date not in log_dates:
+            report.add(f"TREE.md: {node.node_id} references log {node.log_date}, no such entry")
+
+
 def main() -> int:
-    errors: list[str] = []
-    tree_nodes = validate_tree(errors)
-    log_dates = validate_log(errors)
-    for nid, log_ref in tree_nodes.items():
-        if log_ref and log_ref not in log_dates:
-            errors.append(f"TREE.md: {nid} references log {log_ref}, no such entry")
-    if errors:
-        print(f"FAIL — {len(errors)} violation(s):")
-        for e in errors:
-            print(f"  - {e}")
+    report = Report()
+    nodes = validate_tree(report)
+    log_dates = validate_log(report)
+    check_cross_references(nodes, log_dates, report)
+    if report.errors:
+        print(f"FAIL — {len(report.errors)} violation(s):")
+        for error in report.errors:
+            print(f"  - {error}")
         return 1
-    print(f"OK — TREE.md ({len(tree_nodes)} nodes) and RESEARCH_LOG.md ({len(log_dates)} entries) valid.")
+    print(f"OK — TREE.md ({len(nodes)} nodes) and RESEARCH_LOG.md ({len(log_dates)} entries) valid.")
     return 0
 
 

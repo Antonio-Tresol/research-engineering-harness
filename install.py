@@ -34,8 +34,10 @@ from __future__ import annotations
 import argparse
 import shutil
 import sys
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Final
 
 HARNESS = Path(__file__).resolve().parent
 
@@ -84,6 +86,17 @@ def render(text: str, values: dict[str, str]) -> str:
     return out
 
 
+def build_context(context: str, name: str, timebox: str) -> str:
+    """One-sentence project context: explicit --context wins, else name + timebox."""
+    if context:
+        return context
+    if not (name or timebox):
+        return ""
+    who = name or "This project"
+    suffix = f" Timebox: {timebox}." if timebox else ""
+    return f"{who}.{suffix}".strip()
+
+
 def prompt_missing(values: dict[str, str], allow_input: bool) -> dict[str, str]:
     fields = [
         ("name", "Project name"),
@@ -105,82 +118,100 @@ def prompt_missing(values: dict[str, str], allow_input: bool) -> dict[str, str]:
     return values
 
 
-def install(target: Path, values: dict[str, str], force: bool,
-            with_reference: bool, today: str) -> list[str]:
-    actions: list[str] = []
-    target.mkdir(parents=True, exist_ok=True)
+LOCAL_POINTERS_TEXT: Final[str] = (
+    "# Machine-local pointers (gitignored — keep your own copy)\n\n"
+    f"- `{HARNESS}` — canonical home of the research-harness. Improvements\n"
+    "  flow harness-first, then re-install here.\n\n"
+    "Add local copies of reference material and related repos on this machine below.\n"
+)
 
-    def guard(dest: Path) -> bool:
-        if dest.exists() and not force:
-            actions.append(f"SKIP (exists, use --force): {dest.relative_to(target)}")
+
+@dataclass(frozen=True)
+class InstallPlan:
+    """Everything an install needs, so helpers take one parameter, not five."""
+
+    target: Path
+    values: dict[str, str]
+    today: str
+    force: bool = False
+    with_reference: bool = True
+
+
+class Installer:
+    """Performs the install, recording one action line per step."""
+
+    def __init__(self, plan: InstallPlan) -> None:
+        self.plan = plan
+        self.actions: list[str] = []
+
+    def can_write(self, dest: Path) -> bool:
+        """False (and records a SKIP) when dest exists and --force was not given."""
+        if dest.exists() and not self.plan.force:
+            self.actions.append(f"SKIP (exists, use --force): {dest.relative_to(self.plan.target)}")
             return False
         return True
 
-    for rel in COPY_TREE:
-        src, dest = HARNESS / rel, target / rel
-        if not guard(dest):
-            continue
+    def copy_dir(self, rel: str, label: str = "") -> None:
+        src, dest = HARNESS / rel, self.plan.target / rel
+        if not src.exists() or not self.can_write(dest):
+            return
         if dest.exists():
             shutil.rmtree(dest)
         shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__"))
-        actions.append(f"copied {rel}/")
+        self.actions.append(f"copied {rel}/{label}")
 
-    if with_reference:
-        for rel in COPY_REFERENCE:
-            src, dest = HARNESS / rel, target / rel
-            if not src.exists() or not guard(dest):
-                continue
-            if dest.exists():
-                shutil.rmtree(dest)
-            shutil.copytree(src, dest)
-            actions.append(f"copied {rel}/ (reference)")
-
-    for src_rel, dest_rel in COPY_AS:
-        dest = target / dest_rel
-        if not guard(dest):
-            continue
+    def copy_file(self, src_rel: str, dest_rel: str) -> None:
+        dest = self.plan.target / dest_rel
+        if not self.can_write(dest):
+            return
         shutil.copyfile(HARNESS / src_rel, dest)
-        actions.append(f"copied {src_rel} -> {dest_rel}")
+        self.actions.append(f"copied {src_rel} -> {dest_rel}")
 
-    for src_rel, dest_rel in RENDER:
-        dest = target / dest_rel
-        if not guard(dest):
-            continue
-        text = (HARNESS / src_rel).read_text()
-        text = render(text, values)
+    def render_file(self, src_rel: str, dest_rel: str) -> None:
+        dest = self.plan.target / dest_rel
+        if not self.can_write(dest):
+            return
+        text = render((HARNESS / src_rel).read_text(), self.plan.values)
         if dest_rel == "RESEARCH_LOG.md":
             # Only the seed entry's header gets a real date; the format block
             # above it keeps its literal YYYY-MM-DD as documentation.
-            text = text.replace("SEED-DATE", today)
+            text = text.replace("SEED-DATE", self.plan.today)
         dest.write_text(text)
-        actions.append(f"rendered {dest_rel}")
+        self.actions.append(f"rendered {dest_rel}")
 
-    for rel in MKDIRS:
-        d = target / rel
-        d.mkdir(parents=True, exist_ok=True)
-        (d / ".gitkeep").touch()
-        actions.append(f"mkdir {rel}/")
+    def write_text_file(self, dest_rel: str, content: str) -> None:
+        dest = self.plan.target / dest_rel
+        if not self.can_write(dest):
+            return
+        dest.write_text(content)
+        self.actions.append(f"wrote {dest_rel}")
 
-    gi = target / ".gitignore"
-    if gi.exists() and not force:
-        actions.append("SKIP (exists, use --force): .gitignore")
-    else:
-        gi.write_text(GITIGNORE)
-        actions.append("wrote .gitignore")
+    def make_dirs(self) -> None:
+        for rel in MKDIRS:
+            directory = self.plan.target / rel
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / ".gitkeep").touch()
+            self.actions.append(f"mkdir {rel}/")
 
-    local = target / "CLAUDE.local.md"
-    if local.exists() and not force:
-        actions.append("SKIP (exists, use --force): CLAUDE.local.md")
-    else:
-        local.write_text(
-            "# Machine-local pointers (gitignored — keep your own copy)\n\n"
-            f"- `{HARNESS}` — canonical home of the research-harness. Improvements\n"
-            "  flow harness-first, then re-install here.\n\n"
-            "Add local copies of reference material and related repos on this machine below.\n"
-        )
-        actions.append("wrote CLAUDE.local.md")
+    def run(self) -> list[str]:
+        self.plan.target.mkdir(parents=True, exist_ok=True)
+        for rel in COPY_TREE:
+            self.copy_dir(rel)
+        if self.plan.with_reference:
+            for rel in COPY_REFERENCE:
+                self.copy_dir(rel, label=" (reference)")
+        for src_rel, dest_rel in COPY_AS:
+            self.copy_file(src_rel, dest_rel)
+        for src_rel, dest_rel in RENDER:
+            self.render_file(src_rel, dest_rel)
+        self.make_dirs()
+        self.write_text_file(".gitignore", GITIGNORE)
+        self.write_text_file("CLAUDE.local.md", LOCAL_POINTERS_TEXT)
+        return self.actions
 
-    return actions
+
+def install(plan: InstallPlan) -> list[str]:
+    return Installer(plan).run()
 
 
 def main() -> int:
@@ -201,21 +232,18 @@ def main() -> int:
         "name": args.name,
         "description": args.description,
         "question": args.question,
+        "summary_context": build_context(args.context, args.name, args.timebox),
     }
-    if args.context:
-        values["summary_context"] = args.context
-    elif args.name or args.timebox:
-        who = args.name or "This project"
-        tb = f" Timebox: {args.timebox}." if args.timebox else ""
-        values["summary_context"] = f"{who}.{tb}".strip()
-    else:
-        values["summary_context"] = ""
-
     values = prompt_missing(values, allow_input=not args.no_input)
 
-    today = args.today or date.today().isoformat()
-    actions = install(args.target, values, force=args.force,
-                      with_reference=not args.no_reference, today=today)
+    plan = InstallPlan(
+        target=args.target,
+        values=values,
+        today=args.today or date.today().isoformat(),
+        force=args.force,
+        with_reference=not args.no_reference,
+    )
+    actions = install(plan)
 
     print(f"\nInstalled research-harness into {args.target}")
     for a in actions:
@@ -228,7 +256,7 @@ def main() -> int:
     print("\nNext:")
     print(f"  cd {args.target} && git init && git add -A && git commit -m 'Scaffold from research-harness'")
     print("  Write your gitignored CLAUDE.local.md pointers, then start on Q1.")
-    print("  Verify: python scripts/validate_research.py")
+    print("  Verify: uv run scripts/validate_research.py")
     return 0
 
 

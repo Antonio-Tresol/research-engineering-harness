@@ -1,0 +1,20 @@
+# Executable standards for the harness's own Python.
+# Run: uvx lanorme check .
+#
+# The harness holds AI agents to mechanical checks; it applies the same to
+# itself. lanorme is the authority on Python quality AND on Agent Skills spec
+# compliance (SKILL-001..006); scripts/lint_skills.py adds only the
+# harness-specific checks lanorme does not cover (portability, triggering).
+
+[tool.lanorme]
+select = ["ALL"]
+
+# Parsed YAML frontmatter is genuinely untyped at the boundary — the mapping
+# comes from an arbitrary user file, so dict[str, object] is the honest type
+# rather than a placeholder for a domain object that does not exist.
+ignore = ["TYPE-001"]
+
+exclude = [
+    "research/**",     # frozen survey records, not maintained code
+    "references/**",
+]
