@@ -158,7 +158,11 @@ frontmatter and warns when git says the file changed after it. Both are warnings
 because only a person can say whether a run produced a belief worth recording.
 
 The optional pre-commit hook (`./hooks/install.sh`) blocks a commit when checks
-fail, and reminds you when experiment code changed but the tree did not.
+fail, then lists what the change implies without blocking: results that arrived
+with no tree update, a skill edited without touching the docs, code and results
+moving together so a graduated claim may need re-checking, an `updated:` date
+that wants bumping. Each reminder names the files that triggered it, because a
+vague reminder gets skimmed and a specific one gets acted on.
 
 ## The skills
 
