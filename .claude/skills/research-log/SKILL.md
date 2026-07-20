@@ -54,6 +54,7 @@ Rules the validator enforces (each one mechanically checked, exit 1 on violation
    validate-claims protocol ran. Mechanically enforced: at least one evidence
    path must be a scorecard artifact whose filename contains `falsify`,
    `scorecard`, or `validation`.
+
 Rules held by convention (the validator cannot judge these; the falsify and
 validate-claims gates check them when a claim graduates):
 
