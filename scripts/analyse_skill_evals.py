@@ -30,10 +30,18 @@ def load(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
+def is_valid_trigger_observation(row: dict[str, Any]) -> bool:
+    """A max-turn-capped run still observed the trigger decision; only a run
+    that produced no turns at all carries no information. Dropping every
+    is_error row silently discarded capped runs — which trigger MORE often
+    (invoking the skill consumes turns) — biasing rates downward."""
+    return not (row.get("is_error") and row.get("num_turns", 0) == 0)
+
+
 def analyse_trigger(rows: list[dict[str, Any]], threshold: float) -> dict[str, Any]:
     by_query: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
-        if not row.get("is_error"):
+        if is_valid_trigger_observation(row):
             by_query[(row["skill"], row["query_idx"])].append(row)
     skills: dict[str, Any] = {}
     for (skill, query_idx), runs in sorted(by_query.items()):

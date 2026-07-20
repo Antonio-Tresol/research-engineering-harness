@@ -36,6 +36,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -68,9 +69,11 @@ class RunResult:
     cost_usd: float
     is_error: bool
     error: str | None = None
+    subtype: str = ""
 
 
-def run_claude(prompt: str, cwd: Path, model: str, max_turns: int, timeout: int) -> RunResult:
+def run_claude(prompt: str, cwd: Path, model: str, max_turns: int, timeout: int,
+               transcript: Path | None = None) -> RunResult:
     cmd = [
         "claude", "-p", prompt,
         "--output-format", "stream-json", "--verbose",
@@ -80,10 +83,18 @@ def run_claude(prompt: str, cwd: Path, model: str, max_turns: int, timeout: int)
     ]
     try:
         done = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout, check=False)
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        if transcript is not None and exc.stdout:
+            out = exc.stdout if isinstance(exc.stdout, str) else exc.stdout.decode(errors="replace")
+            transcript.write_text(out)
         return RunResult([], "", 0, timeout * 1000, 0.0, True, f"timeout after {timeout}s")
+    if transcript is not None:
+        # The transcript is the only way to diagnose WHY a run behaved as it
+        # did; discarding it made every failure analysis a re-run.
+        transcript.write_text(done.stdout)
     skills: list[str] = []
     result_text, turns, dur, cost, is_err = "", 0, 0, 0.0, done.returncode != 0
+    subtype = ""
     for line in done.stdout.splitlines():
         try:
             event = json.loads(line)
@@ -99,11 +110,30 @@ def run_claude(prompt: str, cwd: Path, model: str, max_turns: int, timeout: int)
             dur = int(event.get("duration_ms", 0))
             cost = float(event.get("total_cost_usd") or 0.0)
             is_err = bool(event.get("is_error", False))
+            subtype = str(event.get("subtype", ""))
     error = done.stderr.strip()[:500] if is_err else None
-    return RunResult(skills, result_text, turns, dur, cost, is_err, error)
+    return RunResult(skills, result_text, turns, dur, cost, is_err, error, subtype)
 
 
 # --------------------------------------------------------------------------- workspaces
+def make_workspace(key: str) -> Path:
+    """A fenced workspace OUTSIDE any git repository.
+
+    The original layout nested workspaces inside the host project. Eval agents
+    given research-flavoured prompts ("fix statuses before I commit") walked up
+    to the enclosing repo and wrote fabricated research state into the real
+    TREE.md — the containment incident of 2026-07-20. Two fences now: the
+    workspace lives under the OS temp dir, and it is its own git repo so any
+    upward repo discovery stops at the workspace boundary.
+    """
+    workspace = Path(tempfile.gettempdir()) / "skill-eval-workspaces" / key
+    if workspace.exists():
+        shutil.rmtree(workspace)
+    workspace.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=workspace, capture_output=True, check=False, timeout=15)
+    return workspace
+
+
 def install_skill(workspace: Path, name: str, arm: str) -> None:
     """Install the real skill or the placebo under the same name; none installs nothing."""
     if arm == "none":
@@ -123,11 +153,8 @@ def install_skill(workspace: Path, name: str, arm: str) -> None:
     (dest / "SKILL.md").write_text(f"---\nname: {name}\n{description.group(0).strip()}\n---\n\n{body}")
 
 
-def build_behaviour_workspace(root: Path, task: dict[str, Any], arm: str, key: str) -> Path:
-    workspace = root / "workspaces" / key
-    if workspace.exists():
-        shutil.rmtree(workspace)
-    workspace.mkdir(parents=True)
+def build_behaviour_workspace(task: dict[str, Any], arm: str, key: str) -> Path:
+    workspace = make_workspace(key)
     for dest_rel, src_rel in task.get("fixtures", {}).items():
         dest = workspace / dest_rel
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -155,11 +182,16 @@ def build_behaviour_workspace(root: Path, task: dict[str, Any], arm: str, key: s
     return workspace
 
 
-def build_trigger_workspace(root: Path, skill: str, key: str) -> Path:
-    workspace = root / "workspaces" / key
-    if workspace.exists():
-        shutil.rmtree(workspace)
-    workspace.mkdir(parents=True)
+def build_trigger_workspace(skill: str, key: str,
+                            workspace_files: dict[str, str]) -> Path:
+    """Trigger workspaces contain the files the queries mention: a query about a
+    missing file makes the agent stop and ask, which reads as a non-trigger and
+    confounds the measurement."""
+    workspace = make_workspace(key)
+    for rel, content in workspace_files.items():
+        target = workspace / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
     install_skill(workspace, skill, "skill")
     return workspace
 
@@ -353,9 +385,11 @@ def cmd_trigger(args: argparse.Namespace) -> None:
     out_file = args.out / "trigger.jsonl"
     done_keys = load_done_keys(out_file)
     jobs = []
+    files_by_skill: dict[str, dict[str, str]] = {}
     for skill in args.skills:
-        queries = json.loads((SKILLS_DIR / skill / "evals" / "trigger_queries.json").read_text())["queries"]
-        for query_idx, query in enumerate(queries):
+        spec = json.loads((SKILLS_DIR / skill / "evals" / "trigger_queries.json").read_text())
+        files_by_skill[skill] = spec.get("workspace_files", {})
+        for query_idx, query in enumerate(spec["queries"]):
             for run_idx in range(args.runs):
                 jobs.append((skill, query_idx, query, run_idx))
     jobs = [j for j in jobs if f"trigger|{j[0]}|q{j[1]:02d}|r{j[3]}" not in done_keys]
@@ -363,15 +397,18 @@ def cmd_trigger(args: argparse.Namespace) -> None:
     log.info("trigger: %d runs to do (%d already recorded)", len(jobs), len(done_keys))
     for skill, query_idx, query, run_idx in jobs:
         key = f"trigger|{skill}|q{query_idx:02d}|r{run_idx}"
-        workspace = build_trigger_workspace(args.out, skill, key.replace("|", "_"))
-        result = run_claude(query["query"], workspace, args.model, max_turns=4, timeout=300)
+        workspace = build_trigger_workspace(skill, key.replace("|", "_"),
+                                            files_by_skill[skill])
+        result = run_claude(query["query"], workspace, args.model, max_turns=4, timeout=300,
+                            transcript=workspace / ".transcript.jsonl")
         total_cost += result.cost_usd
         append_row(out_file, {
             "key": key, "family": "trigger", "skill": skill, "query_idx": query_idx,
             "query": query["query"], "should_trigger": query["should_trigger"], "run": run_idx,
             "triggered": skill in result.skills_invoked, "skills_invoked": result.skills_invoked,
             "num_turns": result.num_turns, "cost_usd": result.cost_usd,
-            "is_error": result.is_error, "error": result.error, "ts": time.strftime("%FT%T"),
+            "is_error": result.is_error, "error": result.error, "subtype": result.subtype,
+            "workspace": str(workspace), "ts": time.strftime("%FT%T"),
         })
         progress.tick(key, total_cost)
 
@@ -387,11 +424,12 @@ def cmd_behaviour(args: argparse.Namespace) -> None:
     log.info("behaviour: %d runs to do (%d already recorded)", len(jobs), len(done_keys))
     for task, arm, run_idx in jobs:
         key = f"behaviour|{task['id']}|{arm}|r{run_idx}"
-        workspace = build_behaviour_workspace(args.out, task, arm, key.replace("|", "_"))
+        workspace = build_behaviour_workspace(task, arm, key.replace("|", "_"))
         prompt = task["prompt"] if arm == "none" else (
             f"{task['prompt']}\n\nBefore starting, read .claude/skills/{task['skill']}/SKILL.md "
             "and follow its instructions.")
-        result = run_claude(prompt, workspace, args.model, task["max_turns"], timeout=args.timeout)
+        result = run_claude(prompt, workspace, args.model, task["max_turns"], timeout=args.timeout,
+                            transcript=workspace / ".transcript.jsonl")
         total_cost += result.cost_usd
         grades: Grade = {}
         for grader_name in task["graders"]:
@@ -405,7 +443,7 @@ def cmd_behaviour(args: argparse.Namespace) -> None:
             "pass_rate": round(sum(g["passed"] for g in grades.values()) / max(1, len(grades)), 3),
             "num_turns": result.num_turns, "duration_ms": result.duration_ms,
             "cost_usd": result.cost_usd, "is_error": result.is_error, "error": result.error,
-            "workspace": str(workspace), "ts": time.strftime("%FT%T"),
+            "subtype": result.subtype, "workspace": str(workspace), "ts": time.strftime("%FT%T"),
         })
         progress.tick(key, total_cost)
 
