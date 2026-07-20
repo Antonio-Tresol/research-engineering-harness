@@ -6,16 +6,16 @@
       "max_turns": 25,
       "prompt": "Summarise the three assigned readings in sources/ into reading_notes.md for our reading group. One section per paper: the method and the key findings, in your own words. Keep it under a page.",
       "fixtures": {
-        "sources/model_written_evals_2022.md": "fixtures/sources/model_written_evals_2022.md",
-        "sources/cot_faithfulness_2023.md": "fixtures/sources/cot_faithfulness_2023.md",
+        "sources/probelock_2025.md": "fixtures/sources/probelock_2025.md",
+        "sources/cotdrift_2026.md": "fixtures/sources/cotdrift_2026.md",
         "sources/velum_2026.md": "fixtures/sources/velum_2026.md"
       },
       "graders": ["canary_presence"],
       "grader_config": {
         "artefact": "reading_notes.md",
         "canaries": {
-          "model_written_evals_2022.md": ["KENDALL-DRIFT", "27.9"],
-          "cot_faithfulness_2023.md": ["SPECTRA-7", "41.3"],
+          "probelock_2025.md": ["KENDALL-DRIFT", "27.9"],
+          "cotdrift_2026.md": ["SPECTRA-7", "41.3"],
           "velum_2026.md": ["11.8", "0.87"]
         }
       }

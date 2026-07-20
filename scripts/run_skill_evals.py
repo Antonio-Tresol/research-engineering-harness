@@ -323,6 +323,23 @@ def grade_observability(workspace: Path, config: dict[str, Any], judge_model: st
     }
 
 
+def resolve_source_key(source: Any, key: str) -> Any:
+    """Dotted lookup into the source JSON; `ci_delta.0` indexes into a list.
+
+    Agents naturally write `#bootstrap_ci_delta.0` for the lower CI bound; the
+    flat .get() treated that as an unknown key and false-failed a correct report.
+    """
+    value = source
+    for part in key.split("."):
+        if isinstance(value, dict):
+            value = value.get(part)
+        elif isinstance(value, list) and part.isdigit() and int(part) < len(value):
+            value = value[int(part)]
+        else:
+            return None
+    return None if isinstance(value, (dict, list)) else value
+
+
 def grade_provenance_markers(workspace: Path, config: dict[str, Any], judge_model: str) -> Grade:
     artefact = workspace / config["artefact"]
     if not artefact.is_file():
@@ -332,7 +349,7 @@ def grade_provenance_markers(workspace: Path, config: dict[str, Any], judge_mode
     markers = list(CLAIM_RE.finditer(text))
     resolved = 0
     for marker in markers:
-        expected = source.get(marker["key"] or "")
+        expected = resolve_source_key(source, marker["key"] or "")
         if expected is None:
             continue
         tolerance = float(marker["tol"] or 0.005)
