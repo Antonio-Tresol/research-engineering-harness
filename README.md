@@ -150,6 +150,13 @@ The rules are also measured against real repositories rather than only against
 fixtures. One rule was deleted on that evidence: it produced 43 findings across
 four existing skill collections and not one of them was a real problem.
 
+Two of the checks answer a different question: not "is this consistent" but "has
+the bookkeeping kept up". `STALE-001` compares, in git, how many commits have
+touched `results/` or `scripts/` since the research tree last changed, and warns
+past a threshold. `STALE-002` reads an `updated:` date from a document's
+frontmatter and warns when git says the file changed after it. Both are warnings,
+because only a person can say whether a run produced a belief worth recording.
+
 The optional pre-commit hook (`./hooks/install.sh`) blocks a commit when checks
 fail, and reminds you when experiment code changed but the tree did not.
 

@@ -30,6 +30,7 @@ plugins = [
     "lanorme_plugins.tensors",
     "lanorme_plugins.skill_portability",
     "lanorme_plugins.provenance",
+    "lanorme_plugins.staleness",
 ]
 
 select = ["ALL"]
@@ -79,3 +80,12 @@ claim_bearing = ["reports/**/*.md", "findings/**/*.md"]
 # Set false if this project targets Claude Code only.
 [skill_portability]
 check_codex_skills = true
+
+# STALE-001 warns when the research tree stops keeping pace with the work.
+# STALE-002 needs dated_docs set: it compares a document's `updated:`
+# frontmatter against the date git last saw the file change.
+[staleness]
+watch = ["results", "scripts", "src"]
+artefacts = ["TREE.md"]
+max_commits_behind = 8
+dated_docs = ["reports/**/*.md", "findings/**/*.md"]

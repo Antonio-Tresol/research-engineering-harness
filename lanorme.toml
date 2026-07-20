@@ -13,6 +13,7 @@ plugins = [
     "lanorme_plugins.tensors",
     "lanorme_plugins.skill_portability",
     "lanorme_plugins.provenance",
+    "lanorme_plugins.staleness",
 ]
 
 select = ["ALL"]
