@@ -5,13 +5,13 @@ An AI-assisted project has to hold both itself and its agents to them.
 
 The aim is research that stays auditable, reproducible, open, and grounded in the
 literature, where mistakes are easy to catch and easy to resume from. Underneath
-that sits falsification: science is not the business of proving a hypothesis, it
-is the sustained effort to break your hypotheses until the ones left standing are
-worth believing. Working that way makes two artefacts central. A **tree** records
-what you have explored and what you currently believe. A **log** records how you
-got there, so the state of the project has a history and not just a snapshot.
-Around both sits ordinary good engineering, because an experiment you cannot
-rerun is not evidence.
+sits falsification: science is not the process of proving a hypothesis, it is the
+sustained effort to break your hypotheses until the ones left standing are worth
+believing. Working that way makes two artefacts central. A **tree** holds what
+you have explored and what you have come to believe. A **log** holds the
+phenology of the project, the seasons of the work and when each turn came, so its
+state carries a history rather than only a snapshot. Around both sits ordinary
+good engineering, because an experiment you cannot rerun is not evidence.
 
 Every principle here is enforced mechanically where that is possible. What a
 script cannot check is written where an agent will actually pick it up: the
