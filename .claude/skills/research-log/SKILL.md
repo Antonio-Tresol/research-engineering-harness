@@ -40,9 +40,10 @@ Status vocabulary (exact strings, nothing else):
 avoid: they mean the process caught something. A tree containing only `supported`
 and `survived` nodes is a red flag (nothing was genuinely tested), not a success.
 
-Rules the validator enforces:
+Rules the validator enforces (each one mechanically checked, exit 1 on violation):
 
-1. IDs unique; every child's ID extends its parent's ID; nesting depth matches ID depth.
+1. IDs unique; every child's ID extends its parent's ID and is defined above it.
+   (Indentation is cosmetic: hierarchy lives in the ID prefixes.)
 2. Statuses come from the vocabulary for that node type.
 3. Every `done` experiment and every claim not `unvalidated` has at least one
    `evidence:` path, and every evidence path exists on disk.
@@ -53,6 +54,9 @@ Rules the validator enforces:
    validate-claims protocol ran. Mechanically enforced: at least one evidence
    path must be a scorecard artifact whose filename contains `falsify`,
    `scorecard`, or `validation`.
+Rules held by convention (the validator cannot judge these; the falsify and
+validate-claims gates check them when a claim graduates):
+
 7. **Claims carry their distribution.** State `n` and the aggregation rule (mean
    over seeds, best-of-k, union over variants) in the claim text. Agent-benchmark
    results have been shown to *reverse* depending on budget and aggregation, and a

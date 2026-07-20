@@ -6,11 +6,11 @@ description: Methodology for designing and building a scientifically sound LLM e
 # Eval design — the science of evals
 
 Distilled from ARENA 3.0 `chapter3_llm_evals` (3.1 intro/threat-modeling, 3.2
-dataset generation, 3.3 Inspect; see CLAUDE.md for the path of any local copy —
+dataset generation, 3.3 Inspect; see CLAUDE.local.md for the path of any local copy —
 read the source when depth is needed). Method basis: Perez et al. 2022
 (arXiv 2212.09251), Apollo Research's "A starter guide for evals" and
 "We need a Science of Evals". The convergent/specificity/discriminant validity
-reads below come from convergent-validity methodology (see CLAUDE.md for related
+reads below come from convergent-validity methodology (see CLAUDE.local.md for related
 prior work applying it).
 
 ## The pipeline (in order; stages iterate on each other)
@@ -76,7 +76,7 @@ Eval-level:
 
 ## Reusable code (copy, don't rewrite)
 
-In the ARENA 3.0 `chapter3_llm_evals/exercises/` directory (see CLAUDE.md for the
+In the ARENA 3.0 `chapter3_llm_evals/exercises/` directory (see CLAUDE.local.md for the
 local copy's path; also on GitHub under `callummcdougall/ARENA_3.0`):
 
 - `part2_dataset_generation/solutions.py` — `generate_structured_response(s_with_threadpool)`
