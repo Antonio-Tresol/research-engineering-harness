@@ -93,6 +93,11 @@ def run_claude(prompt: str, cwd: Path, model: str, max_turns: int, timeout: int,
         # did; discarding it made every failure analysis a re-run.
         transcript.write_text(done.stdout)
     skills, final = parse_stream(done.stdout)
+    if "hit your session limit" in done.stdout or "usage limit" in done.stdout.lower():
+        # The CLI reports a usage-limit kill as an ordinary assistant message
+        # with subtype=success; 41 such runs were once recorded as real data.
+        return RunResult(skills, "", int(final.get("num_turns", 0)), 0, 0.0,
+                         True, "usage limit hit", "usage_limit")
     is_err = bool(final.get("is_error", done.returncode != 0))
     return RunResult(
         skills_invoked=skills,
@@ -427,6 +432,9 @@ def cmd_trigger(args: argparse.Namespace) -> None:
                                             files_by_skill[skill])
         result = run_claude(query["query"], workspace, args.model, max_turns=4, timeout=300,
                             transcript=workspace / ".transcript.jsonl")
+        if result.subtype == "usage_limit":
+            log.warning("usage limit hit at %s — aborting sweep; re-run to resume after reset", key)
+            return
         total_cost += result.cost_usd
         append_row(out_file, {
             "key": key, "family": "trigger", "skill": skill, "query_idx": query_idx,
@@ -456,6 +464,9 @@ def cmd_behaviour(args: argparse.Namespace) -> None:
             "and follow its instructions.")
         result = run_claude(prompt, workspace, args.model, task["max_turns"], timeout=args.timeout,
                             transcript=workspace / ".transcript.jsonl")
+        if result.subtype == "usage_limit":
+            log.warning("usage limit hit at %s — aborting sweep; re-run to resume after reset", key)
+            return
         total_cost += result.cost_usd
         grades: Grade = {}
         for grader_name in task["graders"]:

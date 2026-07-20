@@ -22,6 +22,16 @@ If the user names sources and asks for a derived artefact, **read every source b
 
 Confirm what counts as a source: URLs, paper IDs, video links, gists, internal docs, pasted text. Treat everything in the user's brief as a required source unless they say otherwise. If you are unsure whether a reference counts as a source, ask once before fetching anything.
 
+**In a non-interactive session** (headless run, no user to answer), never end
+the session to ask a question — an ended session is an abandoned deliverable.
+Make the reasonable call, record the concern in the artefact itself
+("unverified", "unattributed", "flagged: contradicts the published version"),
+and complete the derivation. An honest, flagged artefact beats an absent one;
+the one thing that stays non-negotiable is never presenting unread or invented
+content as a reading. The task is complete only when the requested artefact
+exists on disk — the notes file is scaffolding, not the deliverable, so do not
+end the session at the notes stage.
+
 ### 2. Fetch each one
 
 - For URLs, prefer `WebFetch` (or an MCP-provided fetch tool if the host has one — Slack, GitHub, Google Drive, etc.).
