@@ -1,7 +1,17 @@
 ---
 name: derive-from-sources
-description: Workflow for producing slides, decks, summaries, briefs, literature reviews, syntheses, or any derived artefact from a set of named sources (URLs, papers, talks, gists, internal docs). Use whenever the user names specific sources and asks for something built from them. The rule: read every source before drafting; never paraphrase from training-data priors and never invent attributed quotes.
-when_to_use: "build slides from these readings", "summarise these papers", "synthesise these talks", "make a brief from these sources", "literature review of these articles", "deck about [topic] from [sources]", any request that names specific URLs or citations and asks for a derived artefact.
+description: >-
+  Workflow for producing slides, decks, summaries, briefs, literature reviews,
+  syntheses, or any derived artefact from a set of named sources (URLs, papers,
+  talks, gists, internal docs). Use whenever the user names specific sources and
+  asks for something built from them. The rule — read every source before
+  drafting; never paraphrase from training-data priors and never invent
+  attributed quotes.
+when_to_use: >-
+  "build slides from these readings", "summarise these papers", "synthesise
+  these talks", "make a brief from these sources", "literature review of these
+  articles", "deck about [topic] from [sources]", any request that names
+  specific URLs or citations and asks for a derived artefact.
 ---
 
 # Derive-from-sources workflow

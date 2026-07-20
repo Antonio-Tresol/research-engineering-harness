@@ -37,6 +37,7 @@ each new research project; maintain it here.
 | `.claude/skills/validate-claims/` | Traceability protocol: every number → data file, every method sentence → code, every citation → real paper; loop to zero mismatches |
 | `.claude/skills/research-log/` | The tree/log conventions and session ritual |
 | `scripts/validate_research.py` | Mechanical validator for TREE.md + RESEARCH_LOG.md (structure, statuses, evidence existence, scorecard-gated claim graduation, tree↔log cross-refs) |
+| `scripts/lint_skills.py` | Linter for `SKILL.md` files: YAML frontmatter validity, required fields, name/directory agreement, kebab-case, description budget and trigger phrasing, machine-specific paths, size |
 | `templates/` | Seed files for a new project: `CLAUDE.md`, `TREE.md`, `RESEARCH_LOG.md`, `mcp.json` |
 | `references/harness.bib` | BibTeX for every source underpinning the harness design, with unequivocal identifiers |
 | `research/ai-scientist-pitfalls/` | The literature survey the harness design answers to: pitfall taxonomy, per-source notes with read-depth tags, gap analysis |
@@ -75,6 +76,22 @@ Afterwards:
 3. Requirements: `arxiv-mcp-server` and `uv` on PATH (see `templates/mcp.json`);
    Python 3.10+ for the validator. After your first paper download, verify papers
    land in `data/papers/` — if not, make the storage path in `.mcp.json` absolute.
+
+## Scripts
+
+Every script is a self-contained [PEP 723](https://peps.python.org/pep-0723/) uv
+script: dependencies are declared inline at the top, so there is no environment
+to create and no requirements file to install.
+
+```bash
+uv run scripts/validate_research.py     # tree + log structural validation
+uv run scripts/lint_skills.py           # skills against the Agent Skills spec
+uv run scripts/lint_skills.py --strict  # warnings become errors (use in CI)
+uv run install.py TARGET --name "..."   # install into a project
+```
+
+They are also executable directly (`./scripts/lint_skills.py`) via a
+`#!/usr/bin/env -S uv run --script` shebang. Requires `uv` on PATH.
 
 ## Maintaining the harness
 

@@ -1,8 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Mechanical validator for TREE.md and RESEARCH_LOG.md.
 
 Exit 0 = both documents structurally valid; nonzero = violations (printed).
-Run from the project root: python scripts/validate_research.py
+Run from the project root: uv run scripts/validate_research.py
 """
 
 from __future__ import annotations
@@ -11,27 +15,28 @@ import re
 import sys
 from datetime import date
 from pathlib import Path
+from typing import Final
 
-ROOT = Path(__file__).resolve().parent.parent
-TREE = ROOT / "TREE.md"
-LOG = ROOT / "RESEARCH_LOG.md"
+ROOT: Final[Path] = Path(__file__).resolve().parent.parent
+TREE: Final[Path] = ROOT / "TREE.md"
+LOG: Final[Path] = ROOT / "RESEARCH_LOG.md"
 
-STATUS_VOCAB = {
+STATUS_VOCAB: Final[dict[str, set[str]]] = {
     "Q": {"open", "answered", "abandoned"},
     "H": {"open", "supported", "refuted", "abandoned"},
     "E": {"planned", "running", "done", "abandoned"},
     "C": {"unvalidated", "survived", "weakened", "failed"},
 }
 
-NODE_RE = re.compile(
+NODE_RE: Final[re.Pattern[str]] = re.compile(
     r"^(?P<indent>\s*)-\s+(?P<id>[QHEC0-9.]+):\s+(?P<text>.*?)"
     r"\s+\[(?P<status>[a-z-]+)\]"
     r"(?:\s*\|\s*evidence:\s*(?P<evidence>[^|]+?))?"
     r"(?:\s*\|\s*log:\s*(?P<log>\d{4}-\d{2}-\d{2}))?\s*$"
 )
 
-LOG_HEADER_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2})\s*$")
-LOG_BULLETS = [
+LOG_HEADER_RE: Final[re.Pattern[str]] = re.compile(r"^### (\d{4}-\d{2}-\d{2})\s*$")
+LOG_BULLETS: Final[list[str]] = [
     "What I did:",
     "What I expected vs what happened:",
     "What this changes about my thinking:",
@@ -105,13 +110,7 @@ def validate_tree(errors: list[str]) -> dict[str, str | None]:
                     f"TREE.md:{lineno}: {nid} [{status}] needs a scorecard evidence file "
                     "(name containing 'falsify', 'scorecard', or 'validation')"
                 )
-    # Rule 4: supported/refuted hypotheses need a validated child claim
-    ids = set(seen)
-    for nid in ids:
-        if node_type(nid) != "H":
-            continue
-        # Re-scan status from file is overkill; re-parse quickly
-    # (statuses were validated above; re-derive them for rule 4)
+    # Rule 4: supported/refuted hypotheses need a validated child claim.
     statuses: dict[str, str] = {}
     for line in lines:
         m = NODE_RE.match(line)
