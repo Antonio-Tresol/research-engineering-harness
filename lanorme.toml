@@ -1,18 +1,24 @@
-# Executable standards for the harness's own Python.
-# Run: uvx lanorme check .
+# Executable standards for the harness's own Python.  Run: uvx lanorme check .
+#
+# NOTE ON FORMAT: in a standalone lanorme.toml the keys are TOP-LEVEL. The
+# [tool.lanorme] table form is only for pyproject.toml — using it here parses
+# fine and silently applies nothing, which looks like a working config.
 #
 # The harness holds AI agents to mechanical checks; it applies the same to
 # itself. lanorme is the authority on Python quality AND on Agent Skills spec
 # compliance (SKILL-001..006); scripts/lint_skills.py adds only the
 # harness-specific checks lanorme does not cover (portability, triggering).
 
-[tool.lanorme]
 select = ["ALL"]
 
-# Parsed YAML frontmatter is genuinely untyped at the boundary — the mapping
-# comes from an arbitrary user file, so dict[str, object] is the honest type
-# rather than a placeholder for a domain object that does not exist.
-ignore = ["TYPE-001"]
+ignore = [
+    # Parsed YAML/JSON at an I/O boundary is genuinely untyped — dict[str, object]
+    # is the honest annotation, not a placeholder for a domain type that does not exist.
+    "TYPE-001",
+    # The skills' reference implementations import torch lazily on purpose, so the
+    # files stay readable, lintable, and runnable on a machine with no GPU.
+    "IMPORT-001",
+]
 
 exclude = [
     "research/**",     # frozen survey records, not maintained code

@@ -48,12 +48,53 @@ un-observable work has to be re-run, and re-running is slower than logging was.
    `error` field, and continue. Never swallow an exception silently, and never let
    a partial failure masquerade as a complete run — the results file must make the
    difference visible.
-5. **Logging to a file, not just stdout.** Timestamped, with the run's config
-   echoed at start. A terminal that scrolled away or an SSH session that dropped is
-   not a record. Log the model identifier and date, the seed, and the git commit.
+5. **Logging to a file, not just stdout — with an ETA.** Timestamped, config
+   echoed at start, model identifier and date, seed, git commit. A terminal that
+   scrolled away or an SSH session that dropped is not a record. **Every long
+   loop reports progress and an ETA** — completed/total, rate, elapsed, estimated
+   remaining — through the *logger*, not only a progress bar: a `tqdm` bar on
+   stderr is invisible in a `nohup` log, which is exactly where you need it. You
+   should be able to answer "will this finish before I go home?" by tailing a file.
 6. **Seeds and shuffling.** Fix and record seeds. Always shuffle datasets yourself —
    it is free, and do not rely on someone else having done it. Sample subsets
    randomly rather than taking the first *n*.
+
+## Calling an API at volume
+
+Runnable reference: `reference/api_runner.py` (dependency-free; adapt `call_one`).
+
+- **Bounded concurrency, never an unbounded `gather`.** A semaphore sized to your
+  rate limit. Serial calls waste hours; unbounded calls get you rate-limited or
+  billed for retries of work that was going to fail anyway.
+- **Exponential backoff with FULL jitter**, honouring `Retry-After` when present.
+  Jitter is not a detail: without it, every worker that got a 429 retries in
+  lockstep and re-triggers the limit — a thundering herd of your own making.
+- **Retry only transient failures** (429, 5xx, timeouts). A 400 will fail
+  identically forever; retrying it burns your attempt budget and hides the bug.
+- **Cache every response to disk, keyed by a hash of the request.** This is what
+  makes a run resumable and what makes the cost of a re-run zero.
+- **Cap total attempts** and record permanent failures as rows with an `error`
+  field. A run that quietly dropped 3% of items is worse than one that failed.
+
+## Using a GPU without OOMing at hour three
+
+Runnable reference: `reference/gpu_batching.py` (torch imported lazily).
+
+- **Measure peak, not final, memory.** `reset_peak_memory_stats()` then
+  `max_memory_allocated()` around each phase, logged. Peak is what OOMs you, and
+  it is always higher than what you observe afterwards.
+- **Know allocated vs reserved.** Reserved far above allocated is *fragmentation*,
+  not a leak — logging them separately saves you from debugging the wrong thing.
+- **Choose batch size against your longest sequence, not your average.** Attention
+  memory grows with the *square* of sequence length; a batch size tuned on typical
+  input will OOM on the tail.
+- **Sort by length, longest first.** Padding waste collapses, and — the real win —
+  if the run is going to OOM it does so in the first minute, not an hour in.
+- **Halve and retry on OOM** rather than dying, persisting each completed batch so
+  a failure costs one batch, not the run.
+- **Binary-search the max batch size once** against the worst case, then hardcode
+  it with a safety margin. Re-probing every run is wasted time.
+- `empty_cache()` between phases, never inside a hot loop — it synchronizes.
 
 ## Before you run it
 

@@ -19,17 +19,22 @@
 #                   results quietly become one.
 #   JUNK-001/002    keeps results/ and notes/ readable as an evidence trail.
 #
+# FORMAT: keys are TOP-LEVEL here. The [tool.lanorme] table form is only for
+# pyproject.toml — using it in this file parses fine and applies nothing.
+#
 # If a rule starts fighting the work rather than catching mistakes, add its ID
 # to `ignore` with a one-line reason — the way this file documents its own
 # choice. Silent suppression is the thing to avoid, not suppression itself.
 
-[tool.lanorme]
 select = ["ALL"]
 
 ignore = [
     # Parsed YAML/JSON at an I/O boundary is genuinely untyped — dict[str, object]
     # is the honest annotation, not a placeholder for a missing domain type.
     "TYPE-001",
+    # Reference implementations import torch lazily so they stay runnable and
+    # lintable on a machine with no GPU.
+    "IMPORT-001",
 ]
 
 exclude = [
