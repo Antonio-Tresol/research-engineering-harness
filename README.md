@@ -140,6 +140,12 @@ The integrity gate is a zero-dependency script, so a project that never installs
 [lanorme](https://github.com/lanorme/lanorme) still gets every guarantee about
 evidence and claim graduation.
 
+`./check.sh` also runs the checks' own test suite. Roughly half of those tests
+assert that a rule stays **quiet**: on rounded values, on documentation examples
+inside code fences, on ordinary Python with no tensors, on folded YAML. Each one
+encodes a false positive that was genuinely shipped at some point. A checker that
+cries wolf gets bypassed, and then its true positives go unread too.
+
 The optional pre-commit hook (`./hooks/install.sh`) blocks a commit when checks
 fail, and reminds you when experiment code changed but the tree did not.
 

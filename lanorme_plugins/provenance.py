@@ -36,13 +36,12 @@ import json
 import math
 import re
 from dataclasses import dataclass, field
-from fnmatch import fnmatch
 from pathlib import Path
 from typing import Final
 
 from lanorme import CheckResult, Status, Violation, register
 
-from ._common import scan_tree
+from ._common import is_glob_match, scan_tree
 
 # <!-- claim: 0.37 from results/pilot.json#detector.false_alarm_rate tol=0.01 -->
 CLAIM_RE: Final[re.Pattern[str]] = re.compile(
@@ -231,7 +230,7 @@ class ProvenanceCheck:
             self.claim_bearing = [str(g) for g in globs]
 
     def is_claim_bearing(self, file: str) -> bool:
-        return any(fnmatch(file, pattern) for pattern in self.claim_bearing)
+        return is_glob_match(file, self.claim_bearing)
 
     def _scan_file(self, path: Path, file: str) -> tuple[list[Violation], list[Violation]]:
         if path.suffix not in DOC_SUFFIXES:

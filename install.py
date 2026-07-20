@@ -46,7 +46,7 @@ from typing import Final
 HARNESS = Path(__file__).resolve().parent
 
 # Files/dirs copied verbatim (portable, no placeholders).
-COPY_TREE = [".claude", "scripts", "lanorme_plugins", "hooks"]
+COPY_TREE = [".claude", "scripts", "lanorme_plugins", "hooks", "tests"]
 # Reference material worth having in every project (read-only evidence base).
 COPY_REFERENCE = ["references", "research"]
 # Templates rendered with placeholder substitution: (template_src, dest_in_project).
