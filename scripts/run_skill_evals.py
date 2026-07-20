@@ -92,10 +92,25 @@ def run_claude(prompt: str, cwd: Path, model: str, max_turns: int, timeout: int,
         # The transcript is the only way to diagnose WHY a run behaved as it
         # did; discarding it made every failure analysis a re-run.
         transcript.write_text(done.stdout)
+    skills, final = parse_stream(done.stdout)
+    is_err = bool(final.get("is_error", done.returncode != 0))
+    return RunResult(
+        skills_invoked=skills,
+        result_text=str(final.get("result", "")),
+        num_turns=int(final.get("num_turns", 0)),
+        duration_ms=int(final.get("duration_ms", 0)),
+        cost_usd=float(final.get("total_cost_usd") or 0.0),
+        is_error=is_err,
+        error=done.stderr.strip()[:500] if is_err else None,
+        subtype=str(final.get("subtype", "")),
+    )
+
+
+def parse_stream(stdout: str) -> tuple[list[str], dict[str, Any]]:
+    """Skill invocations and the final result event from a stream-json transcript."""
     skills: list[str] = []
-    result_text, turns, dur, cost, is_err = "", 0, 0, 0.0, done.returncode != 0
-    subtype = ""
-    for line in done.stdout.splitlines():
+    final: dict[str, Any] = {}
+    for line in stdout.splitlines():
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
@@ -105,14 +120,8 @@ def run_claude(prompt: str, cwd: Path, model: str, max_turns: int, timeout: int,
                 if block.get("type") == "tool_use" and block.get("name") == "Skill":
                     skills.append(str(block.get("input", {}).get("skill", "")))
         elif event.get("type") == "result":
-            result_text = str(event.get("result", ""))
-            turns = int(event.get("num_turns", 0))
-            dur = int(event.get("duration_ms", 0))
-            cost = float(event.get("total_cost_usd") or 0.0)
-            is_err = bool(event.get("is_error", False))
-            subtype = str(event.get("subtype", ""))
-    error = done.stderr.strip()[:500] if is_err else None
-    return RunResult(skills, result_text, turns, dur, cost, is_err, error, subtype)
+            final = event
+    return skills, final
 
 
 # --------------------------------------------------------------------------- workspaces
