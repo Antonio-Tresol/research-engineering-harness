@@ -1,0 +1,25 @@
+{
+  "skill_name": "research-log",
+  "queries": [
+    { "query": "ok I'm done for today, wrap up the session", "should_trigger": true },
+    { "query": "the experiment finished, results landed in results/probe_scores.json — record what we found", "should_trigger": true },
+    { "query": "starting work — where did we leave off yesterday?", "should_trigger": true },
+    { "query": "mark H2 as refuted, the random-direction control destroyed it", "should_trigger": true },
+    { "query": "add a new hypothesis under Q1 about paraphrase sensitivity", "should_trigger": true },
+    { "query": "we're pivoting away from the detector idea — note that properly so it isn't lost", "should_trigger": true },
+    { "query": "does the tree still validate? fix statuses before I commit", "should_trigger": true },
+    { "query": "log today: ran the pilot, the effect vanished under permutation", "should_trigger": true },
+    { "query": "the layer-12 claim survived falsification, update its status with the scorecard", "should_trigger": true },
+    { "query": "tomorrow's experiment is paraphrase robustness — put it in the tree as planned", "should_trigger": true },
+    { "query": "show me the git log for the last week", "should_trigger": false },
+    { "query": "write a logging wrapper for the api client with rotation", "should_trigger": false },
+    { "query": "add a changelog entry for v0.2", "should_trigger": false },
+    { "query": "how do I make loguru write to a file and stdout at once", "should_trigger": false },
+    { "query": "record a screen capture of the demo for the slide deck", "should_trigger": false },
+    { "query": "track my hours for this sprint in a spreadsheet", "should_trigger": false },
+    { "query": "append these three bibtex entries to references.bib", "should_trigger": false },
+    { "query": "tail the training log and tell me the current loss", "should_trigger": false },
+    { "query": "set up log rotation for the server", "should_trigger": false },
+    { "query": "diff TREE.md against the version two commits ago", "should_trigger": false }
+  ]
+}

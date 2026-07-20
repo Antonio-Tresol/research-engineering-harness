@@ -1,0 +1,25 @@
+{
+  "skill_name": "experiment-engineering",
+  "queries": [
+    { "query": "write a script that runs our probe prompts — all 10k of them — against the anthropic api and saves the scores", "should_trigger": true },
+    { "query": "this training loop keeps OOMing on the A100 about an hour in, can you fix it", "should_trigger": true },
+    { "query": "can u look over scripts/run_sweep.py before I launch it on 8 gpus overnight", "should_trigger": true },
+    { "query": "I need completions for every row of data/items.csv from claude — write the pipeline", "should_trigger": true },
+    { "query": "turn the scoring cell in explore.ipynb into a proper script we can rerun on monday", "should_trigger": true },
+    { "query": "the generation run died at 80% and we lost everything. restructure it so that never happens again", "should_trigger": true },
+    { "query": "batch these 5000 embedding computations on the gpu without blowing memory", "should_trigger": true },
+    { "query": "add logging to the finetuning script so I can tell whether it'll finish before tomorrow", "should_trigger": true },
+    { "query": "build the harness that sends our question set to two different model APIs and stores responses", "should_trigger": true },
+    { "query": "promote the notebook prototype into src/ as a reusable pipeline with CLI args", "should_trigger": true },
+    { "query": "write a bash alias that activates my venv", "should_trigger": false },
+    { "query": "why does python say list index out of range in this snippet", "should_trigger": false },
+    { "query": "make a matplotlib bar chart from results/scores.jsonl", "should_trigger": false },
+    { "query": "which gpu should I rent for llama-70b inference?", "should_trigger": false },
+    { "query": "clean up the imports in utils.py", "should_trigger": false },
+    { "query": "write unit tests for the markdown parser module", "should_trigger": false },
+    { "query": "explain what einops rearrange does with an example", "should_trigger": false },
+    { "query": "update the README with installation instructions", "should_trigger": false },
+    { "query": "git shows a merge conflict in TREE.md — help me resolve it", "should_trigger": false },
+    { "query": "rename the variables in this function so it reads better", "should_trigger": false }
+  ]
+}

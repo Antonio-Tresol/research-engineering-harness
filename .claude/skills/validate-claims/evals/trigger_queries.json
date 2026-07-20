@@ -1,0 +1,25 @@
+{
+  "skill_name": "validate-claims",
+  "queries": [
+    { "query": "the findings report is ready — check it before I send it to the team", "should_trigger": true },
+    { "query": "make sure every number in report.md actually matches the results files", "should_trigger": true },
+    { "query": "we're sharing writeup.md externally tomorrow, do the final pass", "should_trigger": true },
+    { "query": "did we ever verify the 34% claim in the abstract against the data?", "should_trigger": true },
+    { "query": "audit findings.md for unsupported claims please", "should_trigger": true },
+    { "query": "add provenance markers to the statistics in the report", "should_trigger": true },
+    { "query": "the deck cites three papers — confirm they're real and say what we claim they say", "should_trigger": true },
+    { "query": "before this goes into the deliverable, trace the accuracy numbers back to their runs", "should_trigger": true },
+    { "query": "can you sanity check the numbers section of our submission draft", "should_trigger": true },
+    { "query": "verify the results table in the README against results/", "should_trigger": true },
+    { "query": "run the test suite and tell me if it passes", "should_trigger": false },
+    { "query": "validate config.yaml against the schema", "should_trigger": false },
+    { "query": "check that the markdown links in the docs aren't broken", "should_trigger": false },
+    { "query": "compute accuracy from results/preds.jsonl and print it", "should_trigger": false },
+    { "query": "review this PR for code quality", "should_trigger": false },
+    { "query": "should I use a bootstrap CI or a t-test for this comparison?", "should_trigger": false },
+    { "query": "spellcheck the report before I print it", "should_trigger": false },
+    { "query": "lint the repo and fix what's autofixable", "should_trigger": false },
+    { "query": "double-check my derivation of the KL bound in the appendix", "should_trigger": false },
+    { "query": "make the claims in the intro punchier", "should_trigger": false }
+  ]
+}
