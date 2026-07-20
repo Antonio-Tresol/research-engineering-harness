@@ -38,7 +38,7 @@ each new research project; maintain it here.
 | `.claude/skills/research-log/` | The tree/log conventions and session ritual |
 | `scripts/validate_research.py` | Mechanical validator for TREE.md + RESEARCH_LOG.md (structure, statuses, evidence existence, scorecard-gated claim graduation, tree↔log cross-refs) |
 | `scripts/lint_skills.py` | Harness-specific `SKILL.md` checks that complement lanorme: portability (no machine-specific absolute paths), trigger phrasing, frontmatter typos |
-| `lanorme.toml` | Config for [lanorme](https://github.com/lanorme/lanorme), the authority on Python quality and Agent Skills spec compliance (`SKILL-001..006`) |
+| `lanorme.toml` | Config for [lanorme](https://github.com/lanorme/lanorme), the authority on Python quality and Agent Skills spec compliance (`SKILL-001..006`). `templates/lanorme.toml` ships to installed projects |
 | `templates/` | Seed files for a new project: `CLAUDE.md`, `TREE.md`, `RESEARCH_LOG.md`, `mcp.json` |
 | `references/harness.bib` | BibTeX for every source underpinning the harness design, with unequivocal identifiers |
 | `research/ai-scientist-pitfalls/` | The literature survey the harness design answers to: pitfall taxonomy, per-source notes with read-depth tags, gap analysis |
@@ -96,6 +96,16 @@ itself: `uvx lanorme check .` must pass on this repo. lanorme owns Python
 quality (complexity, size, typing, security) and Agent Skills spec compliance;
 `lint_skills.py` adds only what lanorme does not cover — portability, trigger
 phrasing, and frontmatter typos. Run both; they do not overlap.
+
+**Is lanorme required downstream?** No. Installed projects get a
+`lanorme.toml`, but lanorme is an optional external tool: the harness's own
+integrity gates (`validate_research.py`, `lint_skills.py`) are self-contained
+uv scripts with no dependency on it, and a project that never runs lanorme
+still has every research-integrity guarantee. Adopt it when a project writes
+substantial analysis code — the failure it catches (long, high-complexity
+functions producing plausible but wrong numbers) is a documented AI-scientist
+failure mode, not a style preference. Skip it for a project that is mostly
+prose and notebooks.
 
 They are also executable directly (`./scripts/lint_skills.py`) via a
 `#!/usr/bin/env -S uv run --script` shebang. Requires `uv` on PATH.

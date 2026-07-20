@@ -52,7 +52,10 @@ RENDER = [
     ("templates/RESEARCH_LOG.md", "RESEARCH_LOG.md"),
 ]
 # Copied but renamed, no placeholder rendering.
-COPY_AS = [("templates/mcp.json", ".mcp.json")]
+COPY_AS = [
+    ("templates/mcp.json", ".mcp.json"),
+    ("templates/lanorme.toml", "lanorme.toml"),
+]
 # Directories to create empty.
 MKDIRS = ["data/papers", "results", "notes"]
 

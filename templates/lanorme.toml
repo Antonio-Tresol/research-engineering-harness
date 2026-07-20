@@ -1,0 +1,41 @@
+# Executable standards for a research project.  Run: uvx lanorme check .
+#
+# All rules are enabled. In practice the production-application rules (hexagonal
+# layers, auth on mutation endpoints, a test partner per module, AAA-structured
+# tests) do not fire on a research layout — they need directories and patterns a
+# research project does not have — so there is nothing to disable up front. A
+# fresh install reports only the TYPE-001 warning ignored below.
+#
+# The rules that DO earn their place here:
+#
+#   SKILL-001..006  a malformed SKILL.md silently fails to load, and skills are
+#                   shared between teammates and machines.
+#   COMPLEXITY/SIZE the documented AI-scientist failure mode "false performance
+#                   gains from buggy code" (see research/ai-scientist-pitfalls/)
+#                   lives in exactly the long, high-complexity analysis function
+#                   nobody can review.
+#   secrets         model-provider API keys in a research script are a common leak.
+#   DRY-001         copy-pasted analysis that drifts is how two "independent"
+#                   results quietly become one.
+#   JUNK-001/002    keeps results/ and notes/ readable as an evidence trail.
+#
+# If a rule starts fighting the work rather than catching mistakes, add its ID
+# to `ignore` with a one-line reason — the way this file documents its own
+# choice. Silent suppression is the thing to avoid, not suppression itself.
+
+[tool.lanorme]
+select = ["ALL"]
+
+ignore = [
+    # Parsed YAML/JSON at an I/O boundary is genuinely untyped — dict[str, object]
+    # is the honest annotation, not a placeholder for a missing domain type.
+    "TYPE-001",
+]
+
+exclude = [
+    "data/**",         # downloaded papers and inputs
+    "results/**",      # experiment outputs are evidence, not source
+    "notes/**",        # working notes and source records
+    "references/**",
+    "research/**",
+]
