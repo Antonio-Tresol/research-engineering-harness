@@ -6,6 +6,8 @@ agents honest. It is the canonical home of a set of skills, templates, a
 mechanical validator, and the evidence base behind their design. Copy it into
 each new research project; maintain it here.
 
+Licensed MIT.
+
 ## Design principles
 
 1. **Norms remove the reasons to deceive; mechanisms catch the ways you can be
@@ -38,6 +40,7 @@ each new research project; maintain it here.
 | `.claude/skills/research-log/` | The tree/log conventions and session ritual |
 | `scripts/validate_research.py` | Mechanical validator for TREE.md + RESEARCH_LOG.md (structure, statuses, evidence existence, scorecard-gated claim graduation, tree↔log cross-refs) |
 | `scripts/lint_skills.py` | Harness-specific `SKILL.md` checks that complement lanorme: portability (no machine-specific absolute paths), trigger phrasing, frontmatter typos |
+| `scripts/lint_tensors.py` | Tensor-shape discipline: jaxtyping annotations on every tensor (vectors included) and einops instead of raw `.view`/`.permute` |
 | `lanorme.toml` | Config for [lanorme](https://github.com/lanorme/lanorme), the authority on Python quality and Agent Skills spec compliance (`SKILL-001..006`). `templates/lanorme.toml` ships to installed projects |
 | `templates/` | Seed files for a new project: `CLAUDE.md`, `TREE.md`, `RESEARCH_LOG.md`, `mcp.json` |
 | `references/harness.bib` | BibTeX for every source underpinning the harness design, with unequivocal identifiers |
@@ -88,6 +91,7 @@ to create and no requirements file to install.
 uv run scripts/validate_research.py     # tree + log structural validation
 uvx lanorme check .                     # Python quality + Agent Skills spec
 uv run scripts/lint_skills.py           # harness-specific skill checks
+uv run scripts/lint_tensors.py          # jaxtyping + einops discipline
 uv run install.py TARGET --name "..."   # install into a project
 ```
 

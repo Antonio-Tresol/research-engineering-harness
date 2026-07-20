@@ -96,6 +96,42 @@ Runnable reference: `reference/gpu_batching.py` (torch imported lazily).
   it with a safety margin. Re-probing every run is wasted time.
 - `empty_cache()` between phases, never inside a hot loop — it synchronizes.
 
+## Tensor discipline (required in promoted code)
+
+Runnable reference: `reference/tensor_typing.py`. Checked by
+`uv run scripts/lint_tensors.py`.
+
+**Every tensor carries its shape in its type — vectors included, since a vector
+is a rank-1 tensor.** A bare `Tensor` annotation documents nothing; the shape bug
+it hides usually does not raise, it just broadcasts silently and computes the
+wrong number, which you then debug for an afternoon.
+
+```python
+from jaxtyping import Bool, Float
+from torch import Tensor
+
+def project(
+    activations: Float[Tensor, "batch seq d_model"],
+    direction: Float[Tensor, "d_model"],          # a vector is still annotated
+) -> Float[Tensor, "batch seq"]:
+    return einsum(activations, direction, "b s d, d -> b s")
+```
+
+- **jaxtyping on every tensor parameter, return, and non-obvious intermediate.**
+  Name the axes; keep the names consistent across the project (`b` batch,
+  `s` sequence, `d` d_model, `h` heads, `v` vocab, `l` layers) — they are an
+  interface, not decoration.
+- **einops for every shape operation**: `rearrange`, `reduce`, `repeat`,
+  `einsum` instead of `.view`, `.reshape`, `.permute`, `.transpose`,
+  `.squeeze`, `.unsqueeze`. `rearrange(x, "b s (h d) -> b h s d", h=heads)`
+  states the intent and fails loudly if it does not hold;
+  `x.view(b, s, h, -1).permute(0, 2, 1, 3)` is a puzzle with an off-by-one trap.
+- **Prefer explicit `repeat` over implicit broadcasting** when materializing a
+  vector across batch or sequence — implicit broadcast is where a wrong-axis bug
+  hides without ever raising.
+- Enable jaxtyping's runtime checking (a typechecker decorator) during
+  development; the annotations then verify shapes rather than merely asserting them.
+
 ## Before you run it
 
 Ask, in order: What is the motivation? Have I de-risked this (is there a cheaper

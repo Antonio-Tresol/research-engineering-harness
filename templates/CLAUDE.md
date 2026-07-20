@@ -17,7 +17,10 @@ only to record what is true.
   0 before ending any session and before any deliverable.
 - `uvx lanorme check .` — Python quality and Agent Skills spec compliance.
 - `uv run scripts/lint_skills.py` — harness-specific skill checks (portability,
-  trigger phrasing). Run both after editing any skill or script.
+  trigger phrasing).
+- `uv run scripts/lint_tensors.py` — jaxtyping annotations on every tensor
+  (vectors included) and einops instead of raw shape ops, in promoted code.
+  Run these after editing any skill, script, or pipeline.
 
 All scripts are self-contained PEP 723 uv scripts (inline dependencies, no venv
 to manage) and use type hints throughout. New scripts in this project should
