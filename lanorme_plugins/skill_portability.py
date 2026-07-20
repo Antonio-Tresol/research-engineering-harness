@@ -10,6 +10,10 @@ compliance. These are the harness's own concerns and do not overlap:
                 is — descriptions are the only text always in context, and
                 vague ones hurt triggering.  [warning]
     HSKILL-003  no unrecognized frontmatter key (typo catcher).  [warning]
+    HSKILL-004  `.agents/skills` (where Codex looks) resolves to the same files
+                as `.claude/skills` (where Claude Code looks). Catches the
+                Windows case where git checks a symlink out as a text file, and
+                the case where the two directories have drifted apart.
 
 Frontmatter is read with a minimal top-level key scanner rather than a YAML
 parser, so the check stays dependency-free inside lanorme's environment. Any
@@ -47,6 +51,10 @@ TRIGGER_HINTS: Final[tuple[str, ...]] = (
 HSKILL_001: Final[str] = "HSKILL-001: skills contain no machine-specific absolute paths"
 HSKILL_002: Final[str] = "HSKILL-002: description states when to use the skill (warning)"
 HSKILL_003: Final[str] = "HSKILL-003: frontmatter keys are recognized (warning)"
+HSKILL_004: Final[str] = "HSKILL-004: .agents/skills and .claude/skills serve the same files"
+
+CLAUDE_SKILLS: Final[str] = ".claude/skills"
+CODEX_SKILLS: Final[str] = ".agents/skills"
 
 
 @dataclass(frozen=True)
@@ -116,6 +124,52 @@ def check_field_names(frontmatter: Frontmatter, file: str) -> list[Violation]:
     ]
 
 
+def check_codex_link(root: Path) -> tuple[list[Violation], list[Violation]]:
+    """Codex reads .agents/skills; Claude Code reads .claude/skills.
+
+    A symlink normally makes one directory serve both. It fails in two ways worth
+    catching loudly, because both fail silently otherwise: git on Windows without
+    `core.symlinks` writes the link out as a text file, and a copied directory
+    drifts once someone edits one side.
+    """
+    claude_dir = root / CLAUDE_SKILLS
+    codex_dir = root / CODEX_SKILLS
+    if not claude_dir.is_dir():
+        return [], []
+
+    def finding(rule: str, message: str, fix: str) -> Violation:
+        return Violation(file=CODEX_SKILLS, line=1, rule=rule, message=message, fix=fix)
+
+    if not codex_dir.exists():
+        return [], [finding(
+            HSKILL_004,
+            "No .agents/skills, so Codex will not find this project's skills",
+            f"Run: mkdir -p .agents && ln -s ../{CLAUDE_SKILLS} {CODEX_SKILLS}",
+        )]
+    if codex_dir.is_file():
+        return [finding(
+            HSKILL_004,
+            ".agents/skills is a file, not a directory. A symlink was checked out "
+            "as text, so Codex silently loads no skills (usual cause: git on Windows "
+            "without core.symlinks)",
+            "Enable symlinks (`git config core.symlinks true`, Developer Mode on "
+            "Windows) and re-checkout, or replace it with a copy of .claude/skills",
+        )], []
+    if codex_dir.is_symlink():
+        return [], []  # resolves to the same files by construction
+
+    claude_names = {p.name for p in claude_dir.iterdir() if p.is_dir()}
+    codex_names = {p.name for p in codex_dir.iterdir() if p.is_dir()}
+    if claude_names != codex_names:
+        missing = ", ".join(sorted(claude_names ^ codex_names)) or "unknown"
+        return [finding(
+            HSKILL_004,
+            f".agents/skills is a copy that has drifted from .claude/skills ({missing})",
+            "Re-copy, or replace the copy with a symlink so one set of files serves both",
+        )], []
+    return [], []
+
+
 @dataclass
 class SkillPortabilityCheck:
     """Harness-specific SKILL.md checks that complement lanorme's spec rules."""
@@ -128,6 +182,7 @@ class SkillPortabilityCheck:
             "HSKILL-001: skills contain no machine-specific absolute paths",
             "HSKILL-002: description states when to use the skill (warning)",
             "HSKILL-003: frontmatter keys are recognized (warning)",
+            "HSKILL-004: .agents/skills and .claude/skills serve the same files",
         ]
     )
 
@@ -149,7 +204,15 @@ class SkillPortabilityCheck:
     def run(self, *, src_root: str) -> CheckResult:
         if not self.enabled:
             return CheckResult(check=self.name, status=Status.PASS)
-        return scan_tree(name=self.name, src_root=src_root, pattern="SKILL.md", scan=self._scan_file)
+        result = scan_tree(name=self.name, src_root=src_root, pattern="SKILL.md", scan=self._scan_file)
+        link_violations, link_warnings = check_codex_link(Path(src_root))
+        result.violations.extend(link_violations)
+        result.warnings.extend(link_warnings)
+        if result.violations:
+            result.status = Status.FAIL
+        elif result.warnings:
+            result.status = Status.WARN
+        return result
 
 
 register(SkillPortabilityCheck())

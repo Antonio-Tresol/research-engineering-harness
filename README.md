@@ -17,6 +17,10 @@ Works with Codex and Claude Code out of the box, and with anything else reading
 same files automatically and neither can drift. The checks are plain scripts and
 care about none of this.
 
+On Windows, git needs `core.symlinks=true` (and Developer Mode) or it checks the
+link out as a text file and Codex silently finds no skills. `HSKILL-004` catches
+that, and the installer falls back to a copy where symlinks are unavailable.
+
 **Requires** [`uv`](https://docs.astral.sh/uv/) and Python 3.10+. MIT licensed.
 
 ## Quick start

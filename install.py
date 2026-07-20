@@ -209,7 +209,16 @@ class Installer:
             self.actions.append("SKIP (exists): .agents/skills")
             return
         agents_dir.mkdir(parents=True, exist_ok=True)
-        link.symlink_to(Path("..") / ".claude" / "skills", target_is_directory=True)
+        try:
+            link.symlink_to(Path("..") / ".claude" / "skills", target_is_directory=True)
+        except OSError:
+            # Windows without Developer Mode cannot create symlinks. Copy instead
+            # and say so: the copy can drift, and HSKILL-004 is what catches it.
+            shutil.copytree(self.plan.target / ".claude" / "skills", link)
+            self.actions.append(
+                "COPIED .agents/skills (symlinks unavailable) — re-copy after editing skills"
+            )
+            return
         self.actions.append("linked .agents/skills -> ../.claude/skills")
 
     def make_dirs(self) -> None:
