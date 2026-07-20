@@ -61,7 +61,7 @@ un-observable work has to be re-run, and re-running is slower than logging was.
 
 ## Calling an API at volume
 
-Runnable reference: `reference/api_runner.py` (dependency-free; adapt `call_one`).
+Runnable reference: `references/api_runner.py` (dependency-free; adapt `call_one`).
 
 - **Bounded concurrency, never an unbounded `gather`.** A semaphore sized to your
   rate limit. Serial calls waste hours; unbounded calls get you rate-limited or
@@ -78,7 +78,7 @@ Runnable reference: `reference/api_runner.py` (dependency-free; adapt `call_one`
 
 ## Using a GPU without OOMing at hour three
 
-Runnable reference: `reference/gpu_batching.py` (torch imported lazily).
+Runnable reference: `references/gpu_batching.py` (torch imported lazily).
 
 - **Measure peak, not final, memory.** `reset_peak_memory_stats()` then
   `max_memory_allocated()` around each phase, logged. Peak is what OOMs you, and
@@ -98,7 +98,7 @@ Runnable reference: `reference/gpu_batching.py` (torch imported lazily).
 
 ## Tensor discipline (required in promoted code)
 
-Runnable reference: `reference/tensor_typing.py`. Checked by `TENSOR-001/002`,
+Runnable reference: `references/tensor_typing.py`. Checked by `TENSOR-001/002`,
 reported by `./check.sh`.
 
 **Every tensor carries its shape in its type, vectors included, since a vector is

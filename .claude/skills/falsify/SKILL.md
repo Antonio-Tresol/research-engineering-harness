@@ -1,6 +1,6 @@
 ---
 name: falsify
-description: Plan and execute scientific falsification tests for claims. Creates a falsification plan, implements tests, runs them, and reports which claims survived.
+description: Plan and execute scientific falsification tests for claims — permutation nulls, bootstrap CIs, random-direction controls, distractor discrimination. Use before any claim graduates to survived/weakened/failed and before findings ship in a deliverable; produces the scorecard the research tree links as evidence.
 disable-model-invocation: true
 effort: max
 ---
