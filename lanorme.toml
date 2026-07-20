@@ -9,7 +9,11 @@
 # (SKILL-001..006); the plugins below add the harness's own rules, so one
 # command covers everything.
 
-plugins = ["lanorme_plugins.tensors", "lanorme_plugins.skill_portability"]
+plugins = [
+    "lanorme_plugins.tensors",
+    "lanorme_plugins.skill_portability",
+    "lanorme_plugins.provenance",
+]
 
 select = ["ALL"]
 

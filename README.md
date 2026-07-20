@@ -91,6 +91,16 @@ anyway. All of it runs from one command, `./check.sh`.
 - **Evidence must exist on disk before a claim graduates.** *(Hallucinated
   numbers are plausible by construction, so the check has to be existence rather
   than plausibility.)*
+- **Numbers in documents resolve against the results files they came from.**
+  A claim marker names the value and its source, and the check re-resolves it on
+  every run. *(False gains from a batch-normalisation bug looked exactly like a
+  real improvement, and a text-only reviewer cannot tell the difference. Prose
+  also drifts quietly from correct data after a re-run, which no amount of
+  careful reading reliably catches.)*
+- **Commits remind you what the change implies.** The pre-commit hook blocks on
+  failing checks and reminds when experiment code moved but the tree did not.
+  *(Bookkeeping is what slips under time pressure, which is exactly when the
+  audit trail matters most.)*
 - **Claims cannot leave `unvalidated` without a linked scorecard.** *(Otherwise
   the falsification gate is honour-system, and honour-system gates are the ones
   skipped under time pressure.)*
@@ -130,6 +140,8 @@ anyway. All of it runs from one command, `./check.sh`.
 | `check.sh` | Runs every mechanical check in one command |
 | `scripts/validate_research.py` | The research-integrity gate: tree and log structure, evidence existence, scorecard-gated claim graduation, tree-to-log cross-references |
 | `lanorme_plugins/tensors.py` | `TENSOR-001/002`: jaxtyping annotations on every tensor, vectors included, and einops instead of raw reshaping |
+| `lanorme_plugins/provenance.py` | `PROV-001/002/003`: numbers in documents resolve against the results files they cite |
+| `hooks/pre-commit` | Blocks on failing checks; reminds about tree, log, and docs updates. Install with `hooks/install.sh` |
 | `lanorme_plugins/skill_portability.py` | `HSKILL-001/002/003`: no machine-specific paths in skills, trigger phrasing, frontmatter typos |
 | `lanorme.toml` | Config for [lanorme](https://github.com/lanorme/lanorme), which owns Python quality and Agent Skills spec compliance |
 | `install.py` | Installs the harness into a project and fills in the template placeholders |
@@ -185,8 +197,9 @@ output rather than silently blanked.
 Afterwards:
 
 1. `git init && git add -A && git commit -m 'Scaffold from research-harness'`
-2. Extend the generated `CLAUDE.local.md` with your machine-local pointers.
-3. Check the requirements: `arxiv-mcp-server` and `uv` on PATH, and Python 3.10
+2. `./hooks/install.sh` to enable the pre-commit hook.
+3. Extend the generated `CLAUDE.local.md` with your machine-local pointers.
+4. Check the requirements: `arxiv-mcp-server` and `uv` on PATH, and Python 3.10
    or newer. After your first paper download, confirm papers land in
    `data/papers/`; if they do not, make the storage path in `.mcp.json` absolute.
 

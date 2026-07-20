@@ -26,7 +26,11 @@
 # to `ignore` with a one-line reason — the way this file documents its own
 # choice. Silent suppression is the thing to avoid, not suppression itself.
 
-plugins = ["lanorme_plugins.tensors", "lanorme_plugins.skill_portability"]
+plugins = [
+    "lanorme_plugins.tensors",
+    "lanorme_plugins.skill_portability",
+    "lanorme_plugins.provenance",
+]
 
 select = ["ALL"]
 
@@ -63,3 +67,8 @@ exclude = [
     "references/**",
     "research/**",
 ]
+
+# PROV-003 (statistics must carry a claim marker) is opt-in and applies only
+# to files matched here. Point it at whatever holds your deliverables.
+[provenance]
+claim_bearing = ["reports/**/*.md", "findings/**/*.md"]

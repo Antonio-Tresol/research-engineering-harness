@@ -23,6 +23,23 @@ Every deliverable with quantitative claims MUST pass this validation before reac
 
 5. **Repeat until convergence**: zero mismatches across all validators in the same round.
 
+## Make it machine-checkable
+
+Verification by agent is repeatable only if the result is written down where a
+script can re-check it. Anchor each number to its source with a claim marker,
+invisible in rendered Markdown:
+
+```markdown
+The detector fired on 37% of cued prompts.
+<!-- claim: 0.37 from results/pilot.json#detector.false_alarm_rate -->
+```
+
+`PROV-001/002` then resolve every marker against the file on disk on each run, so
+a number that drifts after a re-run fails the build rather than waiting for the
+next human read. Matching is rounding-aware; add `tol=0.01` when you need a
+looser comparison. Point `claim_bearing` in `lanorme.toml` at your deliverables
+to have `PROV-003` warn about statistics that carry no marker at all.
+
 ## What to check
 
 - Every number (p-values, CIs, effect sizes, percentages, counts)

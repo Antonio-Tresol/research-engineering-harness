@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Research-project pre-commit hook.
+#
+# Blocks on mechanical failures; reminds on bookkeeping. The split matters: a
+# hook that blocks for judgement calls gets bypassed with --no-verify and then
+# ignored entirely, so only objective failures stop a commit.
+#
+# Install:  ./hooks/install.sh     Bypass once:  git commit --no-verify
+set -uo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+# --- Hard gate: every mechanical check must pass -------------------------
+if [[ -x ./check.sh ]]; then
+    if ! ./check.sh; then
+        echo
+        echo "pre-commit: checks failed. Fix them, or commit with --no-verify if"
+        echo "you are deliberately committing work in progress."
+        exit 1
+    fi
+fi
+
+# --- Soft reminders: bookkeeping the hook cannot judge for you ------------
+staged="$(git diff --cached --name-only)"
+remind() { echo "pre-commit reminder: $1"; }
+
+has() { grep -qE "$1" <<<"$staged"; }
+
+if has '^(results|scripts|src)/' && ! has '^TREE\.md$'; then
+    remind "experiment code or results changed, but TREE.md did not."
+    remind "  Does an experiment node move to [done], or a claim need adding?"
+fi
+
+if [[ -n "$staged" ]] && ! has '^RESEARCH_LOG\.md$'; then
+    remind "nothing staged for RESEARCH_LOG.md."
+    remind "  The log is appended once per session, not per commit, so this is"
+    remind "  only worth acting on if this commit ends your session."
+fi
+
+if has '^\.claude/skills/' && ! has '^(CLAUDE\.md|README\.md)$'; then
+    remind "a skill changed. Does CLAUDE.md or the README still describe it correctly?"
+fi
+
+if has '^(scripts|src)/' && has '^(results)/'; then
+    remind "code and results are changing together. If any of these results already"
+    remind "  back a graduated claim, re-run the falsify or validate-claims gate."
+fi
+
+exit 0
