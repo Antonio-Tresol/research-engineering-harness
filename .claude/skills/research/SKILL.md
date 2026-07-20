@@ -1,6 +1,6 @@
 ---
 name: research
-description: Search, retrieve, and analyze academic papers. Use when surveying literature, looking up specific papers, tracing citations, or building a research summary.
+description: Search, retrieve, and analyse academic papers. Use when surveying literature, looking up specific papers, tracing citations, or building a research summary.
 ---
 
 # Research
@@ -14,7 +14,7 @@ MCP servers + one HTTP endpoint for academic literature research. Use the right 
 | Broad topic search (many sources) | `paper-search` MCP | Searches 18+ sources simultaneously (arXiv, Semantic Scholar, OpenAlex, PubMed, DBLP, etc.) |
 | ArXiv-specific search or download | `arxiv` MCP | Direct arXiv API -- search, list, read, download papers |
 | Citation graph traversal | `semantic-scholar` MCP (optional — often not configured) | Follow who-cites-whom, find related work, author profiles. If absent: `paper-search`'s Semantic Scholar source, or the Semantic Scholar API via curl/WebSearch |
-| Structured paper overview | AlphaXiv HTTP | AI-generated analysis of any arXiv paper, optimized for LLM consumption |
+| Structured paper overview | AlphaXiv HTTP | AI-generated analysis of any arXiv paper, optimised for LLM consumption |
 | Full paper text | AlphaXiv HTTP (fallback) | Complete extracted text when overview lacks detail |
 
 ## Workflows

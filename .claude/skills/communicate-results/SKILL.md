@@ -35,7 +35,7 @@ not occupying the main line.
 - **Show the full prompts** alongside results. A result without its prompt is not
   interpretable.
 - **Show real model outputs** — put actual transcripts in backup slides. Aggregate
-  numbers hide the behavior that produced them.
+  numbers hide the behaviour that produced them.
 - **Error bars on every proportion.** For a rate over *N* items, standard error is
   `SE = sqrt(p(1-p)/N)`. A bar without an interval invites over-reading.
 - **State *n* and the aggregation rule** with any headline number — best-of-*k*,

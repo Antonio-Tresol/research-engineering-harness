@@ -168,7 +168,8 @@ class Installer:
         dest = self.plan.target / dest_rel
         if not self.can_write(dest):
             return
-        shutil.copyfile(HARNESS / src_rel, dest)
+        # copy2, not copyfile: the executable bit on check.sh must survive.
+        shutil.copy2(HARNESS / src_rel, dest)
         self.actions.append(f"copied {src_rel} -> {dest_rel}")
 
     def render_file(self, src_rel: str, dest_rel: str) -> None:

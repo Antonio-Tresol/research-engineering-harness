@@ -56,7 +56,7 @@ Per-question:
 - [ ] Still traceable to the specification and threat model?
 
 Eval-level:
-- [ ] **Capability floor**: can the model recognize the target behavior at all?
+- [ ] **Capability floor**: can the model recognise the target behaviour at all?
       Run the capability eval before interpreting the alignment eval.
 - [ ] **Position bias**: shuffle answer order (and the target) at load time.
 - [ ] **Yes-bias / category-bias**: does `answer_matching_behavior` skew to one

@@ -17,7 +17,7 @@ part was never going to work.
 ## The core framing
 
 Research is a multi-round game: each round you take an action that yields
-stochastic information. You are optimizing two things at once — the probability
+stochastic information. You are optimising two things at once — the probability
 the project succeeds, and the time it takes. The operating principle:
 
 > **Reduce uncertainty at the fastest possible rate.**
