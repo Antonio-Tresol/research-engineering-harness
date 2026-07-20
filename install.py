@@ -10,6 +10,10 @@ utility copies the portable parts (skills, validator, templates) into a target
 project, renders the template placeholders from the values you pass, seeds the
 project layout, and writes a starter gitignored CLAUDE.local.md.
 
+Agent instructions land in AGENTS.md, the cross-tool standard read by Codex,
+Cursor, Aider and others. CLAUDE.md is a one-line @import of it, so Claude Code
+and every other agent follow the same file.
+
 Idempotent-ish: it refuses to clobber existing project files unless --force is
 given, and always prints exactly what it did.
 
@@ -47,12 +51,13 @@ COPY_TREE = [".claude", "scripts", "lanorme_plugins", "hooks"]
 COPY_REFERENCE = ["references", "research"]
 # Templates rendered with placeholder substitution: (template_src, dest_in_project).
 RENDER = [
-    ("templates/CLAUDE.md", "CLAUDE.md"),
+    ("templates/AGENTS.md", "AGENTS.md"),
     ("templates/TREE.md", "TREE.md"),
     ("templates/RESEARCH_LOG.md", "RESEARCH_LOG.md"),
 ]
 # Copied but renamed, no placeholder rendering.
 COPY_AS = [
+    ("templates/CLAUDE.md", "CLAUDE.md"),   # one-line @import of AGENTS.md
     ("templates/mcp.json", ".mcp.json"),
     ("templates/lanorme.toml", "lanorme.toml"),
     ("check.sh", "check.sh"),
@@ -255,7 +260,7 @@ def main() -> int:
         print(f"  {a}")
     unfilled = [ph for k, ph in PLACEHOLDERS.items() if not values.get(k)]
     if unfilled:
-        print("\nUnfilled placeholders still in CLAUDE.md / TREE.md / RESEARCH_LOG.md:")
+        print("\nUnfilled placeholders still in AGENTS.md / TREE.md / RESEARCH_LOG.md:")
         for ph in unfilled:
             print(f"  {ph}")
     print("\nNext:")

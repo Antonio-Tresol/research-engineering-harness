@@ -1,14 +1,20 @@
 # research-engineering-harness
 
 Scaffolding that keeps an AI-assisted research project honest. You get nine
-[Claude Code](https://claude.com/claude-code) skills, two structured project
-files, and a set of checks that fail your build when the audit trail breaks:
-when a claim cites evidence that does not exist, when a number in a write-up
-disagrees with the results file it came from, or when a claim is marked
-"survived" without a falsification scorecard behind it.
+agent skills, two structured project files, and a set of checks that fail your
+build when the audit trail breaks: when a claim cites evidence that does not
+exist, when a number in a write-up disagrees with the results file it came from,
+or when a claim is marked "survived" without a falsification scorecard behind
+it.
 
 Built for AI safety research, useful for any empirical work where an agent is
 writing the code and the write-up.
+
+Works with any agent that reads [`AGENTS.md`](https://agents.md/) — Codex,
+Cursor, Aider, and others — and with Claude Code, where `CLAUDE.md` is a
+one-line import of the same file. Claude Code loads the skills automatically;
+other agents are told in `AGENTS.md` which skill file to read for which task.
+The checks are plain scripts and care about none of this.
 
 **Requires** [`uv`](https://docs.astral.sh/uv/) and Python 3.10+. MIT licensed.
 
@@ -28,8 +34,8 @@ git init && ./hooks/install.sh    # optional: check on every commit
 ```
 
 The installer copies the skills, seeds `TREE.md` and `RESEARCH_LOG.md`, and
-writes a project `CLAUDE.md` your agent reads at the start of every session. A
-fresh project passes `./check.sh` immediately.
+writes the `AGENTS.md` your agent reads at the start of every session. A fresh
+project passes `./check.sh` immediately.
 
 ## What it looks like in use
 
@@ -82,10 +88,11 @@ now *and* what you believed last Tuesday before the result came in.
 produced a scorecard file, which the checker requires by name. `failed` is a
 normal outcome: retracting a claim before it ships is the system working.
 
-**Skills** are Markdown files under `.claude/skills/` that Claude Code loads when
-relevant. They carry the method — how to run a literature search, how to design
-an eval, how to attack a claim — so the agent follows a documented procedure
-instead of improvising one per session.
+**Skills** are Markdown files under `.claude/skills/` carrying the method: how to
+run a literature search, how to design an eval, how to attack a claim. The agent
+follows a documented procedure instead of improvising one per session. Claude
+Code loads them automatically; `AGENTS.md` carries a table telling other agents
+which file to read for which situation.
 
 **Two modes for code.** Exploratory work in notebooks and scratch scripts is
 exempt from linting on purpose; most research is de-risking and gating it just

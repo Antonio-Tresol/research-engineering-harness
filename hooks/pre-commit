@@ -38,8 +38,8 @@ if [[ -n "$staged" ]] && ! has '^RESEARCH_LOG\.md$'; then
     remind "  only worth acting on if this commit ends your session."
 fi
 
-if has '^\.claude/skills/' && ! has '^(CLAUDE\.md|README\.md)$'; then
-    remind "a skill changed. Does CLAUDE.md or the README still describe it correctly?"
+if has '^\.claude/skills/' && ! has '^(AGENTS\.md|README\.md)$'; then
+    remind "a skill changed. Does AGENTS.md or the README still describe it correctly?"
 fi
 
 if has '^(scripts|src)/' && has '^(results)/'; then

@@ -1,0 +1,106 @@
+# <PROJECT NAME> — <one-line description>
+
+Instructions for any coding agent working in this repository (Codex, Claude
+Code, Cursor, Aider, and anything else reading `AGENTS.md`). `CLAUDE.md` imports
+this file, so there is one source of truth rather than two that drift.
+
+<What this project is, who is working on it, and its timebox if any.>
+Everything here is optimised for one thing: ending the project with **answers we
+can trust**, with an audit trail proving it. A well-evidenced null, a refuted
+hypothesis, or an honest "infeasible in the time available" is exactly as much a
+success as a positive finding. There is no pressure to produce positive results,
+only to record what is true.
+
+## State and history (read these first, every session)
+
+- `TREE.md`: the research tree, questions → hypotheses → experiments → claims,
+  with statuses and evidence links. This is the current state of belief.
+- `RESEARCH_LOG.md`: the daily log (4-question format, newest first). This is the
+  append-only history. Never encode state only here or history only in the tree.
+- `uv run scripts/validate_research.py`: mechanical validator for both. Must exit
+  0 before ending any session and before any deliverable.
+- `./check.sh`: every mechanical check. `lanorme` (code quality, Agent Skills
+  spec, plus the harness plugins `tensors` for jaxtyping/einops discipline and
+  `skill_portability`) followed by the research-integrity gate. Run after
+  editing any skill, script, or pipeline.
+
+All scripts are self-contained PEP 723 uv scripts (inline dependencies, no venv
+to manage) and use type hints throughout. New scripts in this project should
+follow the same convention.
+
+## The workflow
+
+Phases iterate; the gates do not.
+
+0. **Speed is a first-class constraint.** Most work is exploratory de-risking in
+   notebooks and throwaway scripts, and that code is deliberately exempt from
+   polish and linting (`experiment-engineering` has the two-mode table). Gates
+   apply at *promotion*, when code produces evidence a claim rests on. What is
+   never deferred, even in explore mode, is the observability contract: structured
+   incremental logs, resumable checkpoints, fail-fast ordering, seeds. Unlogged
+   fast work has to be re-run, and re-running is slower than logging was.
+1. **Scope**. One narrow question answerable within the project's budget of
+   data, models, and time. Use `research-ideation`: de-risk load-bearing
+   components with cheap probes before executing, ordering by information gained
+   per unit time. Write the question as `Q1` in TREE.md before anything else.
+2. **Literature** (timebox it). Use the `research` skill for search and retrieval; papers
+   land in `data/papers/`. Any synthesis document follows `derive-from-sources`:
+   read every source, notes file with verbatim quotes first, draft only from notes.
+3. **Design**. For eval work, follow the `eval-design` skill: threat model →
+   specification → operational definitions → question design → QC, with the
+   construct-validity checklist. Name the confound-of-concern explicitly and
+   design at least one read that separates construct from confound.
+4. **Experiment**. Follow `experiment-engineering`. Explore freely in notebooks;
+   promoted pipelines live under `scripts/` or `src/`, results as `.jsonl` under
+   `results/` written incrementally (these paths are the evidence the tree links).
+   Any run costing real time or money must be resumable: kill it halfway and
+   re-running should pick up where it left off. Fixed seeds; a result that can't
+   be re-produced by re-running a script doesn't count as evidence.
+5. **Falsify** (gate). Before any claim graduates, run the `falsify` skill:
+   design tests that could destroy each claim. Update claim statuses in TREE.md:
+   `survived` / `weakened` / `failed`, scorecard linked as evidence.
+6. **Validate** (gate). Before any document with numbers leaves the project, run
+   `validate-claims`: every number traced to a results file, every methodology
+   sentence to code, every citation to a real paper, looped to zero mismatches.
+7. **Log**. End every session by appending the day's RESEARCH_LOG.md entry and
+   running the validator (`research-log` skill has the full ritual).
+8. **Communicate**. Use `communicate-results` for decks and write-ups: strongest
+   message first, failed setups in backup, error bars and *n* on every number,
+   full prompts and real outputs shown.
+
+## Non-negotiables
+
+- No claim in any deliverable that is not a node in TREE.md with linked evidence.
+- No quoted text that is not verbatim from a source read in-session.
+- Honest nulls: an effect that doesn't appear is reported as such, never dressed
+  up. A null or infeasible result recorded with evidence is a completed
+  experiment, not a failure to complete one.
+- Pivots are recorded, not erased: nodes become `abandoned`, never deleted.
+
+## Tooling
+
+- MCP: `arxiv-mcp-server` (paper storage: `data/papers/`, path relative to the
+  project root; after your first download, verify papers actually land there and
+  switch to an absolute path in `.mcp.json` if they don't), `paper-search-mcp`
+  (multi-source search). Configured in `.mcp.json`.
+- Skills live in `.claude/skills/<name>/SKILL.md`. Claude Code loads them
+  automatically; **other agents should read the file when its situation
+  applies.** Read the one that matches before starting that kind of work:
+
+  | Read this | When |
+  |---|---|
+  | `research-ideation` | choosing what to run next, scoping, or stuck |
+  | `research` | searching or retrieving literature |
+  | `derive-from-sources` | writing anything derived from named sources |
+  | `eval-design` | designing an eval or writing eval questions |
+  | `experiment-engineering` | writing any script that costs GPU time or API budget |
+  | `falsify` | before any claim graduates from `unvalidated` |
+  | `validate-claims` | before any document with numbers leaves the project |
+  | `research-log` | at the start and end of every session |
+  | `communicate-results` | preparing an update, figures, or a write-up |
+
+  All are generic and portable, with no machine-specific paths.
+- Machine-specific pointers (local copies of reference material, related repos)
+  live in `CLAUDE.local.md`, which is gitignored, so each team member keeps their
+  own. All sources the skills cite are public; unequivocal identifiers (arXiv
+  ID / DOI / URL) are in the harness repo's `references/harness.bib`.
