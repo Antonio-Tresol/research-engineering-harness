@@ -43,25 +43,38 @@ each new research project; maintain it here.
 
 ## Installing into a new project
 
+`install.py` copies the portable parts, renders the template placeholders, seeds
+the project layout, and writes a starter gitignored `CLAUDE.local.md`.
+
 ```bash
-PROJECT=/path/to/new-project
-mkdir -p "$PROJECT"/{data/papers,results,notes}
-cp -R .claude "$PROJECT"/
-cp -R scripts "$PROJECT"/
-cp templates/CLAUDE.md templates/TREE.md templates/RESEARCH_LOG.md "$PROJECT"/
-cp templates/mcp.json "$PROJECT"/.mcp.json
-cd "$PROJECT" && git init
-printf 'data/papers/\n__pycache__/\n.venv/\n.DS_Store\nCLAUDE.local.md\n' > .gitignore
+# Interactive — prompts for anything not passed
+python install.py ~/path/to/new-project
+
+# Fully specified, non-interactive
+python install.py ~/path/to/new-project \
+    --name "Refusal Probe Transfer" \
+    --description "do refusal directions transfer across model families" \
+    --question "Does the Gemma refusal direction steer Llama refusals?" \
+    --timebox "one week, solo" \
+    --no-input
 ```
 
-Then, in the project:
-1. Fill in the `<PLACEHOLDERS>` in `CLAUDE.md` and `RESEARCH_LOG.md`.
-2. Write your own gitignored `CLAUDE.local.md` with machine-local pointers
-   (local copies of reference material, related repos on your machine).
+Options: `--context` (explicit project context, overrides `--timebox`),
+`--no-reference` (skip copying `references/` and `research/`), `--force`
+(overwrite existing files — without it, existing files are reported as SKIP and
+left untouched), `--today ISO-DATE` (date for the seed log entry).
+
+A fresh install passes `python scripts/validate_research.py` immediately: the
+research log is seeded with a complete scaffolding entry and `TREE.md` with your
+`Q1`. Anything you didn't supply stays visible as a `<PLACEHOLDER>` and is listed
+in the installer's output rather than silently blanked.
+
+Afterwards:
+1. `git init && git add -A && git commit -m 'Scaffold from research-harness'`.
+2. Extend the generated `CLAUDE.local.md` with your machine-local pointers.
 3. Requirements: `arxiv-mcp-server` and `uv` on PATH (see `templates/mcp.json`);
    Python 3.10+ for the validator. After your first paper download, verify papers
    land in `data/papers/` — if not, make the storage path in `.mcp.json` absolute.
-4. Write `Q1` in `TREE.md`, and start.
 
 ## Maintaining the harness
 
