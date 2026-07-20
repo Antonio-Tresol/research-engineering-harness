@@ -1,25 +1,31 @@
 # research-engineering-harness
 
-Scaffolding that keeps an AI-assisted research project honest. You get nine
-agent skills, two structured project files, and a set of checks that fail your
-build when the audit trail breaks: when a claim cites evidence that does not
-exist, when a number in a write-up disagrees with the results file it came from,
-or when a claim is marked "survived" without a falsification scorecard behind
-it.
+Doing good, honest, trustworthy science takes the right mindset and practices.
+An AI-assisted project has to hold both itself and its agents to them.
+
+The aim is research that stays auditable, reproducible, open, and grounded in the
+literature, where mistakes are easy to catch and easy to resume from. Underneath
+that sits falsification: science is not the business of proving a hypothesis, it
+is the sustained effort to break your hypotheses until the ones left standing are
+worth believing. Working that way makes two artefacts central. A **tree** records
+what you have explored and what you currently believe. A **log** records how you
+got there, so the state of the project has a history and not just a snapshot.
+Around both sits ordinary good engineering, because an experiment you cannot
+rerun is not evidence.
+
+Every principle here is enforced mechanically where that is possible. What a
+script cannot check is written where an agent will actually pick it up: the
+skills, the MCP config, and `AGENTS.md`.
+
+In practice you get nine agent skills, two structured project files, and a set of
+checks that fail your build when the audit trail breaks: when a claim cites
+evidence that does not exist, when a number in a write-up disagrees with the
+results file it came from, or when a claim is marked "survived" without a
+falsification scorecard behind it.
 
 Built for AI safety research, useful for any empirical work where an agent is
-writing the code and the write-up.
-
-Works with Codex and Claude Code out of the box, and with anything else reading
-[`AGENTS.md`](https://agents.md/). Instructions live in `AGENTS.md`, which
-`CLAUDE.md` imports in one line. Skills are the shared `SKILL.md` format, kept in
-`.claude/skills/` with `.agents/skills` symlinked to it, so both tools load the
-same files automatically and neither can drift. The checks are plain scripts and
-care about none of this.
-
-On Windows, git needs `core.symlinks=true` (and Developer Mode) or it checks the
-link out as a text file and Codex silently finds no skills. `HSKILL-004` catches
-that, and the installer falls back to a copy where symlinks are unavailable.
+writing the code and the write-up. Works with Codex, Claude Code, and anything
+else reading [`AGENTS.md`](https://agents.md/).
 
 **Requires** [`uv`](https://docs.astral.sh/uv/) and Python 3.10+. MIT licensed.
 
@@ -103,6 +109,19 @@ Codex both load them automatically based on the `description` field, and
 exempt from linting on purpose; most research is de-risking and gating it just
 slows you down. The checks apply to *promoted* code, meaning anything a claim
 now rests on.
+
+## Agent compatibility
+
+Instructions live in `AGENTS.md`, the cross-tool standard; `CLAUDE.md` imports it
+in one line so the two cannot drift. Skills use the shared `SKILL.md` format and
+live in `.claude/skills/`, with `.agents/skills` symlinked to the same directory,
+so Claude Code and Codex both load them automatically and neither sees a stale
+copy. The checks are plain scripts and care about none of this.
+
+On Windows, git needs `core.symlinks=true` and Developer Mode. Without them it
+checks the symlink out as a text file and Codex silently finds no skills.
+`HSKILL-004` catches exactly that, and the installer falls back to copying where
+symlinks are unavailable.
 
 ## The checks
 
