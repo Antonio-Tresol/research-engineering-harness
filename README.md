@@ -1,38 +1,113 @@
-# research-harness
+# research-engineering-harness
 
-A portable harness for AI-assisted technical research, aimed at AI safety work in
-particular, with the discipline needed to keep both the human and the AI agents
-honest. It holds the skills, templates, mechanical checks, and the evidence base
-behind their design. Install it into each new research project and maintain it
-here.
+Eliciting good research work from agents takes deliberate work, and doing good
+science takes the right mindset and practices. Neither comes free from a capable
+model. This repository is what those practices look like once they are written
+down, made portable, and enforced mechanically wherever enforcement is possible.
+
+Every rule here exists because something specific goes wrong without it. The
+parentheticals throughout say what.
 
 Licensed MIT.
 
-## Design principles
+## The problem
 
-1. **Norms remove the reasons to deceive; mechanisms catch the ways you can be
-   wrong anyway.** Completion pressure is a documented driver of fabrication in
-   research agents: removing it cut undisclosed fabrication from roughly 21% to
-   3% in SciIntegrity-Bench (see `references/harness.bib`). So the harness says
-   everywhere that nulls, refutations, and "infeasible" are first-class outcomes,
-   and separately enforces, mechanically, that claims trace to evidence files
-   that exist.
-2. **Log versus view.** History (the research log) is append-only and never lies
-   about what was believed when. State (the research tree) says what is believed
-   now and on what evidence. A script validates both, so the guarantee does not
-   rest on vigilance.
-3. **Claims graduate through gates.** A claim starts `unvalidated` and can only
-   become `survived`, `weakened`, or `failed` through a falsification or
-   validation protocol whose scorecard is linked as evidence.
-4. **Speed is a first-class constraint.** Exploratory code is exempt from polish
-   and linting by design. Quality gates apply at promotion, when code starts
-   producing evidence a claim rests on.
-5. **Generic and machine-free.** Nothing here references a specific machine,
-   timebox, or person. Per-machine pointers live in each user's gitignored
-   `CLAUDE.local.md`, and every source cited is public, identified by arXiv ID,
-   DOI, or URL.
+Agents doing research fail in characteristic, documented ways. They fabricate
+rather than admit a task is infeasible. They produce plausible numbers from buggy
+code. They judge their own output optimistically. They present a single run as a
+finding, and they cite work that does not exist.
 
-## Contents
+None of this is hypothetical, and none of it is fixed by a better model alone.
+The surveys under `research/` collect the incidents with per-source notes and
+read-depth tags; `references/` holds the citations, each identified by arXiv ID,
+DOI, or URL. Every claim below is checkable against them.
+
+## Mindset
+
+Norms remove the *reasons* to deceive. Nothing here is machine-enforceable, which
+makes it the part that matters most.
+
+- **Nulls, refutations, and "infeasible" are first-class successes.** There is no
+  pressure to produce a positive result, only to record what is true.
+  *(In SciIntegrity-Bench, all seven tested models generated synthetic data
+  rather than acknowledge an impossible task. Removing explicit completion
+  pressure cut undisclosed fabrication from roughly 21% to 3%, while the
+  underlying synthesis rate stayed the same: what the pressure changed was
+  whether the model owned up to it.)*
+- **A failed claim means the protocol worked.** Retracting something before it
+  ships is the entire point. *(A falsification scorecard where everything
+  survives is evidence that nothing was genuinely tested.)*
+- **Pivots are recorded, never erased.** Nodes become `abandoned`, with a log
+  entry saying why. *(An abandoned branch with a reason tells the next person, or
+  the next you, what not to retry.)*
+- **Humans set the direction; the harness structures the choice.** *(Ideas that
+  look novel before execution often do not survive it: when experts actually ran
+  a set of LLM-generated and human-generated research ideas, the LLM ideas fell
+  significantly further on every metric, reversing the ranking seen at the
+  ideation stage.)*
+
+## Practices
+
+How the work gets done, one skill per practice.
+
+- **Sequence by information gained per hour, and de-risk before executing**
+  (`research-ideation`). *(The expensive failure is finishing the easy components
+  of a project whose hard component was never going to work.)*
+- **Read every source before writing a word from it** (`derive-from-sources`).
+  *(Research agents cite irrelevant work and occasionally fabricate BibTeX
+  entries outright. The notes file, written first and quoting verbatim, is what
+  proves the reading actually happened.)*
+- **Threat model before metric, and name the confound** (`eval-design`).
+  *(Otherwise you can build a perfectly valid measurement of a property that no
+  longer connects to the harm you cared about.)*
+- **Explore fast, promote deliberately** (`experiment-engineering`). Exploratory
+  code is exempt from polish and linting by design. *(Most research work is
+  de-risking in notebooks, and gating that phase taxes exactly the part that
+  should be cheapest. Gates belong at promotion, when a claim starts resting on
+  the code.)*
+- **Observability is never deferred, even in explore mode.** Structured
+  incremental logs, resumable checkpoints, fail-fast ordering, fixed seeds.
+  *(Unlogged fast work has to be re-run, and re-running is slower than logging
+  was. The fastest iteration loop is the one you can kill and resume.)*
+- **Try to destroy every claim before believing it** (`falsify`). *(An
+  independent audit of an autonomous scientist found one headline hypothesis
+  statistically indistinguishable from random gene sets, p = 0.76. A permutation
+  null was the only thing that separated it from the finding that was real.)*
+- **Trace every number back to a file before it ships** (`validate-claims`).
+  *(One system's apparent improvement came from incorrect batch-level
+  normalisation. It looked exactly like a real gain, and a text-only reviewer
+  cannot tell the difference between reported results and what the code
+  actually did.)*
+- **Report the distribution, not the anecdote** (`communicate-results`). State
+  *n* and the aggregation rule. *(Agent benchmark results reverse depending on
+  time budget and on whether you report best-of-k, a mean over seeds, or a union
+  over variants. A bare number without its *n* is an anecdote.)*
+
+## Mechanisms
+
+Norms remove the reasons to deceive; mechanisms catch the ways you can be wrong
+anyway. All of it runs from one command, `./check.sh`.
+
+- **Evidence must exist on disk before a claim graduates.** *(Hallucinated
+  numbers are plausible by construction, so the check has to be existence rather
+  than plausibility.)*
+- **Claims cannot leave `unvalidated` without a linked scorecard.** *(Otherwise
+  the falsification gate is honour-system, and honour-system gates are the ones
+  skipped under time pressure.)*
+- **Graders are pinned, and never edited in the same commit as what they grade.**
+  *(At least one agent benchmark was compromised because agents could write to
+  the test files that scored them.)*
+- **Tensors carry their shapes, and einops replaces raw reshaping.** *(A shape
+  bug usually does not raise. It broadcasts silently and computes a wrong number,
+  which you then debug for an afternoon.)*
+- **Skills stay portable and correctly triggered.** *(A machine-specific path
+  breaks the moment a teammate clones the repository, and malformed frontmatter
+  fails silently rather than loudly.)*
+- **Code quality applies to promoted code only.** *(Long, high-complexity
+  analysis functions are where plausible-but-wrong numbers hide. One independent
+  evaluation found 42% of an agent's experiments failed on coding errors alone.)*
+
+## What is in the box
 
 ### Skills (`.claude/skills/`)
 
@@ -70,6 +145,14 @@ Licensed MIT.
 | `research/ai-scientist-pitfalls/` | Pitfall taxonomy, per-source notes with read-depth tags, and a gap analysis against this harness |
 | `research/research-agents/` | The same treatment for domain-specific research agents |
 | `research/fast-research-practice/` | Notes behind the speed, ideation, and communication guidance |
+
+## Two documents, and why they are separate
+
+`TREE.md` is the **state**: questions, hypotheses, experiments, and claims, each
+with a status and links to the evidence. `RESEARCH_LOG.md` is the **history**: an
+append-only daily log answering the same four questions each time. The tree says
+what is believed now; the log never lies about what was believed when. Neither
+state nor history should live only in the other, and a script validates both.
 
 ## Installing into a new project
 
@@ -139,10 +222,8 @@ unskippable would become the easiest to skip. It stays a zero-dependency script.
 
 **Is lanorme required downstream?** No. Installed projects get a `lanorme.toml`,
 but lanorme is an optional external tool and the integrity gate does not depend
-on it. Adopt it when a project writes substantial analysis code, because the
-failure it catches (long, high-complexity functions producing plausible but wrong
-numbers) is a documented AI-scientist failure mode rather than a style
-preference. Skip it for a project that is mostly prose and notebooks.
+on it. Adopt it when a project writes substantial analysis code. Skip it for a
+project that is mostly prose and notebooks.
 
 ## Maintaining the harness
 
