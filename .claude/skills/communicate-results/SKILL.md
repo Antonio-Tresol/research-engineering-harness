@@ -60,6 +60,11 @@ not occupying the main line.
   written from memory is a fabrication risk, not a courtesy. If the source has
   not been read yet, cite the work without a pinpoint and mark the pinpoint as
   pending verification.
+- **No acronym before its definition.** Expand at first use — "principal
+  component analysis (PCA)", "false-positive rate (FPR)" — or maintain a
+  `GLOSSARY.md` in the project whose entries carry a source backing each
+  definition. An undefined acronym is a claim the reader already belongs to
+  the club; documents in this workflow assume the opposite.
 
 ## Chart hygiene
 

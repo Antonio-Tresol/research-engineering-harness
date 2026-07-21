@@ -110,6 +110,13 @@ exempt from linting on purpose; most research is de-risking and gating it just
 slows you down. The checks apply to *promoted* code, meaning anything a claim
 now rests on.
 
+## The harness's own research record
+
+The harness evaluates itself — skill-trigger evals, three-arm behaviour
+probes, and the incidents that shaped its design. That research lives in
+the private companion repo `research-harness-meta` (its own TREE.md,
+RESEARCH_LOG.md, and evidence), keeping this repo purely the tool.
+
 ## Agent compatibility
 
 Instructions live in `AGENTS.md`, the cross-tool standard; `CLAUDE.md` imports it
