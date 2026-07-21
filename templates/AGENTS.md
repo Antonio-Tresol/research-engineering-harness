@@ -133,7 +133,10 @@ Phases iterate; the gates do not.
     (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`; effective on Opus 4.8 and most models,
     documented as having *no effect on Sonnet 5*, unverified on Fable), agent
     teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`), and Opus as the
-    advisor model. Teams and advisor are experimental; advisor needs the
+    advisor model (Fable is the intended advisor once its advisor rollout
+    completes — currently unselectable per docs; revisit cost before flipping,
+    since advisor calls bill at the advisor model's rates). Teams and
+    advisor are experimental; advisor needs the
     Anthropic API. Personal opt-outs go in the gitignored
     `.claude/settings.local.json`, which overrides project settings.
   - `.codex/config.toml` — Codex auto-compaction at ~50% of a 400k window
