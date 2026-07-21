@@ -95,6 +95,10 @@ Runnable reference: `references/gpu_batching.py` (torch imported lazily).
 - **Binary-search the max batch size once** against the worst case, then hardcode
   it with a safety margin. Re-probing every run is wasted time.
 - `empty_cache()` between phases, never inside a hot loop, because it synchronises.
+- **`torch.inference_mode()` over `torch.no_grad()`** for pure inference: it
+  disables autograd *and* tensor version tracking, is faster, and fails loudly
+  if an inference tensor later leaks into a gradient computation. Reserve
+  `no_grad` for the rare case where outputs must feed autograd later.
 
 ## Tensor discipline (required in promoted code)
 
