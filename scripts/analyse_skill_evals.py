@@ -49,19 +49,28 @@ def analyse_trigger(rows: list[dict[str, Any]], threshold: float) -> dict[str, A
         should = runs[0]["should_trigger"]
         passed = rate > threshold if should else rate < threshold
         entry = skills.setdefault(skill, {"queries": [], "n_pass": 0, "n_fail": 0})
-        entry["queries"].append({
-            "query_idx": query_idx, "query": runs[0]["query"][:90],
-            "should_trigger": should, "trigger_rate": round(rate, 2),
-            "runs": len(runs), "passed": passed,
-        })
+        entry["queries"].append(
+            {
+                "query_idx": query_idx,
+                "query": runs[0]["query"][:90],
+                "should_trigger": should,
+                "trigger_rate": round(rate, 2),
+                "runs": len(runs),
+                "passed": passed,
+            }
+        )
         entry["n_pass" if passed else "n_fail"] += 1
     for entry in skills.values():
         total = entry["n_pass"] + entry["n_fail"]
         entry["pass_rate"] = round(entry["n_pass"] / total, 3) if total else None
         entry["failures"] = [q for q in entry["queries"] if not q["passed"]]
     n_errors = sum(bool(r.get("is_error")) for r in rows)
-    return {"skills": skills, "n_runs": len(rows), "n_errored_runs": n_errors,
-            "threshold": threshold}
+    return {
+        "skills": skills,
+        "n_runs": len(rows),
+        "n_errored_runs": n_errors,
+        "threshold": threshold,
+    }
 
 
 def analyse_behaviour(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -80,7 +89,9 @@ def analyse_behaviour(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "mean_pass_rate": round(sum(r["pass_rate"] for r in runs) / len(runs), 3),
             "mean_cost_usd": round(sum(r["cost_usd"] for r in runs) / len(runs), 3),
             "mean_turns": round(sum(r["num_turns"] for r in runs) / len(runs), 1),
-            "assertions": {name: f"{sum(vals)}/{len(vals)}" for name, vals in sorted(assertions.items())},
+            "assertions": {
+                name: f"{sum(vals)}/{len(vals)}" for name, vals in sorted(assertions.items())
+            },
         }
     n_errors = sum(bool(r.get("is_error")) for r in rows)
     return {"tasks": tasks, "n_runs": len(rows), "n_errored_runs": n_errors}
@@ -98,7 +109,9 @@ def main() -> int:
     out = args.results_dir / "summary.json"
     out.write_text(json.dumps(summary, indent=2) + "\n")
     for skill, entry in summary["trigger"]["skills"].items():
-        print(f"trigger  {skill}: {entry['n_pass']}/{entry['n_pass'] + entry['n_fail']} queries pass")
+        print(
+            f"trigger  {skill}: {entry['n_pass']}/{entry['n_pass'] + entry['n_fail']} queries pass"
+        )
         for failure in entry["failures"]:
             kind = "missed" if failure["should_trigger"] else "false-trigger"
             print(f"  {kind}  rate={failure['trigger_rate']}  {failure['query']}")

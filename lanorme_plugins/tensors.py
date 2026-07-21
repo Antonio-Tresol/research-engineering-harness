@@ -33,36 +33,71 @@ from lanorme import CheckResult, Status, Violation, register
 
 from ._common import scan_tree
 
-BARE_TENSOR_TYPES: Final[frozenset[str]] = frozenset({
-    "Tensor", "torch.Tensor", "ndarray", "np.ndarray", "numpy.ndarray",
-    "FloatTensor", "LongTensor", "BoolTensor", "IntTensor",
-})
-JAXTYPING_NAMES: Final[frozenset[str]] = frozenset({
-    "Float", "Int", "Bool", "Complex", "Float32", "Float16", "BFloat16",
-    "Int32", "Int64", "UInt8", "Shaped", "Num", "Key", "PRNGKeyArray",
-})
-RAW_SHAPE_OPS: Final[frozenset[str]] = frozenset({
-    "view", "reshape", "permute", "transpose", "squeeze", "unsqueeze", "flatten",
-})
-TENSOR_001: Final[str] = (
-    "TENSOR-001: tensor annotations name their axes via jaxtyping"
+BARE_TENSOR_TYPES: Final[frozenset[str]] = frozenset(
+    {
+        "Tensor",
+        "torch.Tensor",
+        "ndarray",
+        "np.ndarray",
+        "numpy.ndarray",
+        "FloatTensor",
+        "LongTensor",
+        "BoolTensor",
+        "IntTensor",
+    }
 )
-TENSOR_002: Final[str] = (
-    "TENSOR-002: shape operations use einops rather than raw reshaping"
+JAXTYPING_NAMES: Final[frozenset[str]] = frozenset(
+    {
+        "Float",
+        "Int",
+        "Bool",
+        "Complex",
+        "Float32",
+        "Float16",
+        "BFloat16",
+        "Int32",
+        "Int64",
+        "UInt8",
+        "Shaped",
+        "Num",
+        "Key",
+        "PRNGKeyArray",
+    }
 )
+RAW_SHAPE_OPS: Final[frozenset[str]] = frozenset(
+    {
+        "view",
+        "reshape",
+        "permute",
+        "transpose",
+        "squeeze",
+        "unsqueeze",
+        "flatten",
+    }
+)
+TENSOR_001: Final[str] = "TENSOR-001: tensor annotations name their axes via jaxtyping"
+TENSOR_002: Final[str] = "TENSOR-002: shape operations use einops rather than raw reshaping"
 JAXTYPING_FIX: Final[str] = (
     'Annotate with jaxtyping, e.g. Float[Tensor, "batch seq d_model"] '
     '— vectors too: Float[Tensor, "d_model"]'
 )
 EINOPS_FIX: Final[str] = (
-    'Use einops.rearrange with named axes, e.g. '
-    'rearrange(x, "b s (h d) -> b h s d", h=n_heads)'
+    'Use einops.rearrange with named axes, e.g. rearrange(x, "b s (h d) -> b h s d", h=n_heads)'
 )
 
 
-TENSOR_LIBRARIES: Final[frozenset[str]] = frozenset({
-    "torch", "numpy", "jax", "jaxtyping", "einops", "tensorflow", "flax", "equinox",
-})
+TENSOR_LIBRARIES: Final[frozenset[str]] = frozenset(
+    {
+        "torch",
+        "numpy",
+        "jax",
+        "jaxtyping",
+        "einops",
+        "tensorflow",
+        "flax",
+        "equinox",
+    }
+)
 
 
 def has_tensor_imports(tree: ast.AST) -> bool:
@@ -108,11 +143,15 @@ def check_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef, file: str) -> 
     for arg in args:
         annotation = annotation_text(arg.annotation)
         if is_missing_axis_names(annotation):
-            found.append(Violation(
-                file=file, line=arg.lineno, rule=TENSOR_001,
-                message=f"Parameter '{arg.arg}' annotated `{annotation}` without axis names",
-                fix=JAXTYPING_FIX,
-            ))
+            found.append(
+                Violation(
+                    file=file,
+                    line=arg.lineno,
+                    rule=TENSOR_001,
+                    message=f"Parameter '{arg.arg}' annotated `{annotation}` without axis names",
+                    fix=JAXTYPING_FIX,
+                )
+            )
     return found
 
 
@@ -120,11 +159,15 @@ def check_return(node: ast.FunctionDef | ast.AsyncFunctionDef, file: str) -> lis
     annotation = annotation_text(node.returns)
     if not is_missing_axis_names(annotation):
         return []
-    return [Violation(
-        file=file, line=node.lineno, rule=TENSOR_001,
-        message=f"Return of '{node.name}' annotated `{annotation}` without axis names",
-        fix=JAXTYPING_FIX,
-    )]
+    return [
+        Violation(
+            file=file,
+            line=node.lineno,
+            rule=TENSOR_001,
+            message=f"Return of '{node.name}' annotated `{annotation}` without axis names",
+            fix=JAXTYPING_FIX,
+        )
+    ]
 
 
 def check_shape_ops(tree: ast.AST, file: str) -> list[Violation]:
@@ -134,11 +177,15 @@ def check_shape_ops(tree: ast.AST, file: str) -> list[Violation]:
             continue
         if node.func.attr not in RAW_SHAPE_OPS:
             continue
-        found.append(Violation(
-            file=file, line=node.lineno, rule=TENSOR_002,
-            message=f"`.{node.func.attr}(...)` reshapes without naming axes",
-            fix=EINOPS_FIX,
-        ))
+        found.append(
+            Violation(
+                file=file,
+                line=node.lineno,
+                rule=TENSOR_002,
+                message=f"`.{node.func.attr}(...)` reshapes without naming axes",
+                fix=EINOPS_FIX,
+            )
+        )
     return found
 
 

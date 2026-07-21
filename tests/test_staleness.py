@@ -49,6 +49,7 @@ def warnings_of(check: StalenessCheck, root: Path) -> list[str]:
 
 # --- STALE-001 -----------------------------------------------------------
 
+
 def test_fires_when_tree_falls_behind(tmp_path: Path) -> None:
     new_repo(tmp_path)
     commit(tmp_path, "TREE.md", "- Q1: q [open]\n")

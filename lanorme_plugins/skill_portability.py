@@ -50,13 +50,31 @@ TOP_LEVEL_KEY_RE: Final[re.Pattern[str]] = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*
 # Keep in sync with https://code.claude.com/docs/en/skills (frontmatter table).
 # An earlier, shorter list reported documented fields such as `model` and
 # `argument-hint` as typos, including on Anthropic's own published skills.
-KNOWN_FIELDS: Final[frozenset[str]] = frozenset({
-    "name", "description", "when_to_use", "effort", "user_invocable",
-    "user-invocable", "disable-model-invocation", "allowed-tools",
-    "disallowed-tools", "metadata", "compatibility", "license", "version",
-    "model", "argument-hint", "arguments", "context", "agent", "hooks",
-    "paths", "shell",
-})
+KNOWN_FIELDS: Final[frozenset[str]] = frozenset(
+    {
+        "name",
+        "description",
+        "when_to_use",
+        "effort",
+        "user_invocable",
+        "user-invocable",
+        "disable-model-invocation",
+        "allowed-tools",
+        "disallowed-tools",
+        "metadata",
+        "compatibility",
+        "license",
+        "version",
+        "model",
+        "argument-hint",
+        "arguments",
+        "context",
+        "agent",
+        "hooks",
+        "paths",
+        "shell",
+    }
+)
 HSKILL_001: Final[str] = "HSKILL-001: skills contain no machine-specific absolute paths"
 HSKILL_002: Final[str] = "HSKILL-002: frontmatter keys are recognized (warning)"
 HSKILL_003: Final[str] = "HSKILL-003: .agents/skills and .claude/skills serve the same files"
@@ -78,7 +96,9 @@ class Frontmatter:
 
     def value_of(self, key: str) -> str:
         """Text following `key:` up to the next top-level key. '' when absent."""
-        pattern = re.compile(rf"^{re.escape(key)}:(.*?)(?=^[A-Za-z][A-Za-z0-9_-]*:|\Z)", re.DOTALL | re.MULTILINE)
+        pattern = re.compile(
+            rf"^{re.escape(key)}:(.*?)(?=^[A-Za-z][A-Za-z0-9_-]*:|\Z)", re.DOTALL | re.MULTILINE
+        )
         match = pattern.search(self.text)
         return match.group(1).strip() if match else ""
 
@@ -88,7 +108,9 @@ def parse_frontmatter(text: str) -> Frontmatter | None:
     if match is None:
         return None
     body = match.group(1)
-    keys = tuple(m.group(1) for m in (TOP_LEVEL_KEY_RE.match(line) for line in body.splitlines()) if m)
+    keys = tuple(
+        m.group(1) for m in (TOP_LEVEL_KEY_RE.match(line) for line in body.splitlines()) if m
+    )
     return Frontmatter(keys=keys, text=body)
 
 
@@ -112,19 +134,24 @@ def check_portability(text: str, file: str) -> list[Violation]:
         match = ABS_PATH_RE.search(cleaned)
         if match is None:
             continue
-        found.append(Violation(
-            file=file, line=lineno, rule=HSKILL_001,
-            message=f"Machine-specific absolute path near '{match.group(0)}'",
-            fix="Move the path to a gitignored CLAUDE.local.md and reference it generically",
-        ))
+        found.append(
+            Violation(
+                file=file,
+                line=lineno,
+                rule=HSKILL_001,
+                message=f"Machine-specific absolute path near '{match.group(0)}'",
+                fix="Move the path to a gitignored CLAUDE.local.md and reference it generically",
+            )
+        )
     return found
-
 
 
 def check_field_names(frontmatter: Frontmatter, file: str) -> list[Violation]:
     return [
         Violation(
-            file=file, line=1, rule=HSKILL_002,
+            file=file,
+            line=1,
+            rule=HSKILL_002,
             message=f"Unrecognized frontmatter key '{key}'",
             fix=f"Remove it or correct the spelling; known keys: {', '.join(sorted(KNOWN_FIELDS))}",
         )
@@ -150,20 +177,24 @@ def check_codex_link(root: Path) -> tuple[list[Violation], list[Violation]]:
         return Violation(file=CODEX_SKILLS, line=1, rule=rule, message=message, fix=fix)
 
     if not codex_dir.exists():
-        return [], [finding(
-            HSKILL_003,
-            "No .agents/skills, so Codex will not find this project's skills",
-            f"Run: mkdir -p .agents && ln -s ../{CLAUDE_SKILLS} {CODEX_SKILLS}",
-        )]
+        return [], [
+            finding(
+                HSKILL_003,
+                "No .agents/skills, so Codex will not find this project's skills",
+                f"Run: mkdir -p .agents && ln -s ../{CLAUDE_SKILLS} {CODEX_SKILLS}",
+            )
+        ]
     if codex_dir.is_file():
-        return [finding(
-            HSKILL_003,
-            ".agents/skills is a file, not a directory. A symlink was checked out "
-            "as text, so Codex silently loads no skills (usual cause: git on Windows "
-            "without core.symlinks)",
-            "Enable symlinks (`git config core.symlinks true`, Developer Mode on "
-            "Windows) and re-checkout, or replace it with a copy of .claude/skills",
-        )], []
+        return [
+            finding(
+                HSKILL_003,
+                ".agents/skills is a file, not a directory. A symlink was checked out "
+                "as text, so Codex silently loads no skills (usual cause: git on Windows "
+                "without core.symlinks)",
+                "Enable symlinks (`git config core.symlinks true`, Developer Mode on "
+                "Windows) and re-checkout, or replace it with a copy of .claude/skills",
+            )
+        ], []
     if codex_dir.is_symlink():
         return [], []  # resolves to the same files by construction
 
@@ -173,11 +204,13 @@ def check_codex_link(root: Path) -> tuple[list[Violation], list[Violation]]:
     # deliberate layout, not drift.
     if claude_names - codex_names:
         missing = ", ".join(sorted(claude_names - codex_names))
-        return [finding(
-            HSKILL_003,
-            f".agents/skills is a copy that has drifted from .claude/skills ({missing})",
-            "Re-copy, or replace the copy with a symlink so one set of files serves both",
-        )], []
+        return [
+            finding(
+                HSKILL_003,
+                f".agents/skills is a copy that has drifted from .claude/skills ({missing})",
+                "Re-copy, or replace the copy with a symlink so one set of files serves both",
+            )
+        ], []
     return [], []
 
 
@@ -217,7 +250,9 @@ class SkillPortabilityCheck:
     def run(self, *, src_root: str) -> CheckResult:
         if not self.enabled:
             return CheckResult(check=self.name, status=Status.PASS)
-        result = scan_tree(name=self.name, src_root=src_root, pattern="SKILL.md", scan=self._scan_file)
+        result = scan_tree(
+            name=self.name, src_root=src_root, pattern="SKILL.md", scan=self._scan_file
+        )
         link_violations, link_warnings = (
             check_codex_link(Path(src_root)) if self.check_codex_skills else ([], [])
         )

@@ -14,6 +14,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Formatting and import order are not up for debate: ruff format + isort (rule I).
+uvx ruff format --check . && uvx ruff check --select I .
+
 PYTHONPATH=. uvx lanorme check "${1:-.}"
 
 if [[ -d tests ]]; then

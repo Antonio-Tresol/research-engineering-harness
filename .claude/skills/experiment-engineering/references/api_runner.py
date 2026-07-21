@@ -64,7 +64,7 @@ class RetryPolicy:
     def delay_for(self, attempt: int, retry_after: float | None = None) -> float:
         if retry_after is not None:  # server told us; always obey it
             return min(retry_after, self.max_delay)
-        capped = min(self.base_delay * (2 ** attempt), self.max_delay)
+        capped = min(self.base_delay * (2**attempt), self.max_delay)
         return random.uniform(0.0, capped)
 
 
@@ -169,7 +169,11 @@ async def with_retries(
             delay = policy.delay_for(attempt, exc.retry_after)
             LOGGER.warning(
                 "%s: transient failure (attempt %d/%d), sleeping %.1fs: %s",
-                label, attempt + 1, policy.max_attempts, delay, exc,
+                label,
+                attempt + 1,
+                policy.max_attempts,
+                delay,
+                exc,
             )
             await asyncio.sleep(delay)
     raise RuntimeError(f"{label}: exhausted {policy.max_attempts} attempts") from last_error
@@ -207,7 +211,9 @@ class RunnerConfig:
 class Runner:
     """Drives a list of items through a call function, concurrently and safely."""
 
-    def __init__(self, config: RunnerConfig, call_one: Callable[[object], Awaitable[object]]) -> None:
+    def __init__(
+        self, config: RunnerConfig, call_one: Callable[[object], Awaitable[object]]
+    ) -> None:
         self.config = config
         self.call_one = call_one
         self.cache = DiskCache(config.cache_dir)
@@ -223,7 +229,9 @@ class Runner:
         self.cache.put(key, result)
         return result, False
 
-    async def _process(self, index: int, item: object, writer: JsonlWriter, progress: Progress) -> None:
+    async def _process(
+        self, index: int, item: object, writer: JsonlWriter, progress: Progress
+    ) -> None:
         key = cache_key(item)
         row: dict[str, object] = {"index": index, "key": key, "input": item}
         try:
@@ -288,7 +296,9 @@ async def main_async(count: int, out_dir: Path) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--count", type=int, default=50)
     parser.add_argument("--out-dir", type=Path, default=Path("results/api_demo"))
     args = parser.parse_args()

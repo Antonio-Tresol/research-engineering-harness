@@ -57,11 +57,11 @@ RENDER = [
 ]
 # Copied but renamed, no placeholder rendering.
 COPY_AS = [
-    ("templates/CLAUDE.md", "CLAUDE.md"),   # one-line @import of AGENTS.md
+    ("templates/CLAUDE.md", "CLAUDE.md"),  # one-line @import of AGENTS.md
     ("templates/mcp.json", ".mcp.json"),
     ("templates/lanorme.toml", "lanorme.toml"),
     ("templates/claude-settings.json", ".claude/settings.json"),  # team-shared Claude Code config
-    ("templates/codex-config.toml", ".codex/config.toml"),        # team-shared Codex config
+    ("templates/codex-config.toml", ".codex/config.toml"),  # team-shared Codex config
     ("check.sh", "check.sh"),
 ]
 # Directories to create empty.
@@ -73,9 +73,7 @@ PLACEHOLDERS = {
     "name": "<PROJECT NAME>",
     "description": "<one-line description>",
     "question": "<the project's research question>",
-    "summary_context": (
-        "<What this project is, who is working on it, and its timebox if any.>"
-    ),
+    "summary_context": ("<What this project is, who is working on it, and its timebox if any.>"),
 }
 
 
@@ -259,12 +257,22 @@ def main() -> int:
     p.add_argument("--name", default="")
     p.add_argument("--description", default="")
     p.add_argument("--question", default="", help="the Q1 research question")
-    p.add_argument("--timebox", default="", help="e.g. 'one week, solo' — folded into project context")
-    p.add_argument("--context", default="", help="explicit one-sentence project context (overrides --timebox)")
+    p.add_argument(
+        "--timebox", default="", help="e.g. 'one week, solo' — folded into project context"
+    )
+    p.add_argument(
+        "--context", default="", help="explicit one-sentence project context (overrides --timebox)"
+    )
     p.add_argument("--force", action="store_true", help="overwrite existing project files")
-    p.add_argument("--no-reference", action="store_true", help="do not copy references/ and research/")
-    p.add_argument("--no-input", action="store_true", help="never prompt; leave unfilled placeholders in place")
-    p.add_argument("--today", default="", help="ISO date for the seed log entry (default: system today)")
+    p.add_argument(
+        "--no-reference", action="store_true", help="do not copy references/ and research/"
+    )
+    p.add_argument(
+        "--no-input", action="store_true", help="never prompt; leave unfilled placeholders in place"
+    )
+    p.add_argument(
+        "--today", default="", help="ISO date for the seed log entry (default: system today)"
+    )
     args = p.parse_args()
 
     values = {
@@ -291,17 +299,22 @@ def main() -> int:
     # inferring from missing CLI values wrongly warned on installs that
     # skipped rendering because real project files already existed.
     rendered_files = [args.target / dest for _, dest in RENDER]
-    unfilled = sorted({
-        ph for ph in PLACEHOLDERS.values()
-        for path in rendered_files
-        if path.is_file() and ph in path.read_text()
-    })
+    unfilled = sorted(
+        {
+            ph
+            for ph in PLACEHOLDERS.values()
+            for path in rendered_files
+            if path.is_file() and ph in path.read_text()
+        }
+    )
     if unfilled:
         print("\nUnfilled placeholders still in AGENTS.md / TREE.md / RESEARCH_LOG.md:")
         for ph in unfilled:
             print(f"  {ph}")
     print("\nNext:")
-    print(f"  cd {args.target} && git init && git add -A && git commit -m 'Scaffold from research-harness'")
+    print(
+        f"  cd {args.target} && git init && git add -A && git commit -m 'Scaffold from research-harness'"
+    )
     print("  Write your gitignored CLAUDE.local.md pointers, then start on Q1.")
     print("  Verify: uv run scripts/validate_research.py")
     return 0

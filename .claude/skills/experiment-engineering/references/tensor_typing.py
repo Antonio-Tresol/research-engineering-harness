@@ -130,7 +130,9 @@ def _demo() -> None:
 
     LOGGER.info("activations %s -> pooled %s", activations.shape, pooled.shape)
     LOGGER.info("split into %d heads: %s", heads, heads_split.shape)
-    LOGGER.info("projections %s | broadcast %s | top-k %s", projections.shape, broadcast.shape, top.shape)
+    LOGGER.info(
+        "projections %s | broadcast %s | top-k %s", projections.shape, broadcast.shape, top.shape
+    )
 
 
 if __name__ == "__main__":

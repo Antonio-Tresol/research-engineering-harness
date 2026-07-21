@@ -56,7 +56,12 @@ def git(root: Path, *args: str) -> str | None:
     """Run git, returning stripped stdout, or None when git cannot answer."""
     try:
         done = subprocess.run(
-            ["git", *args], cwd=root, capture_output=True, text=True, check=False, timeout=10,
+            ["git", *args],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -82,8 +87,13 @@ def commits_adding_results_since(root: Path, since: str, patterns: list[str]) ->
     their bookkeeping had fallen behind when no work had happened.
     """
     out = git(
-        root, "log", "--format=%H", "--diff-filter=AM",
-        f"{since}..HEAD", "--", *patterns,
+        root,
+        "log",
+        "--format=%H",
+        "--diff-filter=AM",
+        f"{since}..HEAD",
+        "--",
+        *patterns,
     )
     return len(out.splitlines()) if out else 0
 
@@ -154,24 +164,28 @@ class StalenessCheck:
     def check_artefacts(self, root: Path) -> list[Violation]:
         found: list[Violation] = []
         present = [a for a in self.artefacts if (root / a).is_file()]
-        for artefact in present[:1]:   # one anchor, one warning
+        for artefact in present[:1]:  # one anchor, one warning
             anchor = latest_artefact_commit(root, self.artefacts)
             if anchor is None:
                 continue  # never committed; nothing to measure against
             behind = commits_adding_results_since(root, anchor, self.watch)
             if behind <= self.max_commits_behind:
                 continue
-            found.append(Violation(
-                file=artefact, line=1, rule=STALE_001,
-                message=(
-                    f"No bookkeeping artefact has changed while {behind} commits "
-                    f"added or modified files under {', '.join(self.watch)}"
-                ),
-                fix=(
-                    "Record what those runs established: move an experiment to [done], "
-                    "add the claims it produced, or note in the log why nothing changed"
-                ),
-            ))
+            found.append(
+                Violation(
+                    file=artefact,
+                    line=1,
+                    rule=STALE_001,
+                    message=(
+                        f"No bookkeeping artefact has changed while {behind} commits "
+                        f"added or modified files under {', '.join(self.watch)}"
+                    ),
+                    fix=(
+                        "Record what those runs established: move an experiment to [done], "
+                        "add the claims it produced, or note in the log why nothing changed"
+                    ),
+                )
+            )
         return found
 
     def check_dated_docs(self, root: Path) -> list[Violation]:
@@ -188,11 +202,15 @@ class StalenessCheck:
             changed = last_commit_date(root, relative)
             if changed is None or changed <= declared:
                 continue
-            found.append(Violation(
-                file=relative, line=1, rule=STALE_002,
-                message=f"Frontmatter says updated: {declared}, but the file changed on {changed}",
-                fix=f"Set `updated: {changed}` and confirm the content still reflects the data",
-            ))
+            found.append(
+                Violation(
+                    file=relative,
+                    line=1,
+                    rule=STALE_002,
+                    message=f"Frontmatter says updated: {declared}, but the file changed on {changed}",
+                    fix=f"Set `updated: {changed}` and confirm the content still reflects the data",
+                )
+            )
         return found
 
     def run(self, *, src_root: str) -> CheckResult:

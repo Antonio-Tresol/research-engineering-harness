@@ -54,11 +54,16 @@ def stage(root: Path, relative: str, text: str = "x") -> None:
 def hook(root: Path) -> subprocess.CompletedProcess[str]:
     """Run the real hook against the staged state."""
     return subprocess.run(
-        ["bash", str(HOOK)], cwd=root, capture_output=True, text=True, check=False,
+        ["bash", str(HOOK)],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
 
 # --- Reminders fire ------------------------------------------------------
+
 
 def test_reminds_when_results_change_without_tree(repo: Path) -> None:
     stage(repo, "results/run.json", "{}")
@@ -88,13 +93,14 @@ def test_reminds_to_rerun_gates_when_cited_evidence_is_rewritten(repo: Path) -> 
     """Only when a result already cited by the tree is being changed."""
     (repo / "TREE.md").write_text(
         "- Q1: q [open]\n  - Q1.H1: h [open]\n"
-        "    - Q1.H1.E1: e [done] | evidence: results/run.json\n")
+        "    - Q1.H1.E1: e [done] | evidence: results/run.json\n"
+    )
     (repo / "results").mkdir()
     (repo / "results/run.json").write_text('{"v": 1}')
     run_git(repo, "add", "-A")
     run_git(repo, "commit", "-q", "-m", "cite")
     stage(repo, "scripts/run.py", "x = 2\n")
-    stage(repo, "results/run.json", '{"v": 2}')   # a rewrite of cited evidence
+    stage(repo, "results/run.json", '{"v": 2}')  # a rewrite of cited evidence
     assert "already backs a claim" in hook(repo).stdout
 
 
@@ -108,8 +114,12 @@ def test_quiet_on_the_textbook_perfect_commit(repo: Path) -> None:
     """
     stage(repo, "scripts/exp.py", "x = 1\n")
     stage(repo, "results/exp.json", "{}")
-    stage(repo, "TREE.md", "- Q1: q [open]\n  - Q1.H1: h [open]\n"
-                           "    - Q1.H1.E1: e [done] | evidence: results/exp.json\n")
+    stage(
+        repo,
+        "TREE.md",
+        "- Q1: q [open]\n  - Q1.H1: h [open]\n"
+        "    - Q1.H1.E1: e [done] | evidence: results/exp.json\n",
+    )
     stage(repo, "RESEARCH_LOG.md", "# log\n\n### 2026-07-20\n\n* What I did: ran it.\n")
     out = hook(repo).stdout
     assert "worth checking" not in out, out
@@ -125,12 +135,16 @@ def test_quiet_when_uncited_results_change_with_code(repo: Path) -> None:
 
 def test_quiet_on_updated_inside_a_code_fence(repo: Path) -> None:
     """A doc that documents the convention is not claiming a date."""
-    stage(repo, "docs/conventions.md",
-          "# Conventions\n\nDate your reports:\n\n```yaml\nupdated: 2026-01-15\n```\n")
+    stage(
+        repo,
+        "docs/conventions.md",
+        "# Conventions\n\nDate your reports:\n\n```yaml\nupdated: 2026-01-15\n```\n",
+    )
     assert "updated:" not in hook(repo).stdout
 
 
 # --- Reminders stay quiet ------------------------------------------------
+
 
 def test_quiet_when_tree_updated_alongside_results(repo: Path) -> None:
     stage(repo, "results/run.json", "{}")
@@ -162,6 +176,7 @@ def test_no_output_when_nothing_is_staged(repo: Path) -> None:
 
 
 # --- Blocking behaviour --------------------------------------------------
+
 
 def test_reminders_never_block_the_commit(repo: Path) -> None:
     """The whole design rests on this: judgement calls must not fail a commit."""

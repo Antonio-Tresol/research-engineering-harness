@@ -133,7 +133,9 @@ def check_lineage(node: Node, seen: set[str], report: Report) -> None:
 def check_status(node: Node, report: Report) -> None:
     allowed = STATUS_VOCAB[node.node_type]
     if node.status not in allowed:
-        report.add_tree(node.lineno, f"{node.node_id} status {node.status!r} not in {sorted(allowed)}")
+        report.add_tree(
+            node.lineno, f"{node.node_id} status {node.status!r} not in {sorted(allowed)}"
+        )
 
 
 def check_evidence(node: Node, report: Report) -> None:
@@ -160,7 +162,9 @@ def check_hypothesis_support(nodes: list[Node], report: Report) -> None:
             continue
         prefix = f"{node.node_id}."
         has_validated_claim = any(
-            nid.startswith(prefix) and node_type_of(nid) == "C" and status in VALIDATED_CLAIM_STATUSES
+            nid.startswith(prefix)
+            and node_type_of(nid) == "C"
+            and status in VALIDATED_CLAIM_STATUSES
             for nid, status in statuses.items()
         )
         if not has_validated_claim:
@@ -178,7 +182,7 @@ def validate_tree(report: Report) -> list[Node]:
     in_fence = False
     for lineno, line in enumerate(TREE.read_text().splitlines(), 1):
         if line.lstrip().startswith(("```", "~~~")):
-            in_fence = not in_fence   # fenced examples document the grammar
+            in_fence = not in_fence  # fenced examples document the grammar
             continue
         if in_fence or not is_node_line(line.strip()):
             continue
@@ -275,7 +279,9 @@ def main() -> int:
         for error in report.errors:
             print(f"  - {error}")
         return 1
-    print(f"OK — TREE.md ({len(nodes)} nodes) and RESEARCH_LOG.md ({len(log_dates)} entries) valid.")
+    print(
+        f"OK — TREE.md ({len(nodes)} nodes) and RESEARCH_LOG.md ({len(log_dates)} entries) valid."
+    )
     return 0
 
 

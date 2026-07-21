@@ -9,9 +9,14 @@ from typing import Final
 
 from lanorme import CheckResult, Status, Violation
 
-SKIP_PARTS: Final[frozenset[str]] = frozenset({
-    ".git", ".venv", "__pycache__", "node_modules",
-})
+SKIP_PARTS: Final[frozenset[str]] = frozenset(
+    {
+        ".git",
+        ".venv",
+        "__pycache__",
+        "node_modules",
+    }
+)
 
 # (violations, warnings) produced by scanning one file.
 FileScan = Callable[[Path, str], "tuple[list[Violation], list[Violation]]"]
@@ -57,13 +62,13 @@ def glob_to_regex(pattern: str) -> re.Pattern[str]:
     i = 0
     while i < len(pattern):
         if pattern.startswith("**/", i):
-            out.append("(?:.*/)?")       # zero or more directories
+            out.append("(?:.*/)?")  # zero or more directories
             i += 3
         elif pattern.startswith("**", i):
-            out.append(".*")             # crosses separators
+            out.append(".*")  # crosses separators
             i += 2
         elif pattern[i] == "*":
-            out.append("[^/]*")          # within one segment
+            out.append("[^/]*")  # within one segment
             i += 1
         elif pattern[i] == "?":
             out.append("[^/]")

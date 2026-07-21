@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from typing import Any, Final, TypeVar
 
 LOGGER: Final[logging.Logger] = logging.getLogger("gpu")
-BYTES_PER_GIB: Final[float] = 1024 ** 3
+BYTES_PER_GIB: Final[float] = 1024**3
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -40,6 +40,7 @@ R = TypeVar("R")
 def _torch() -> Any:
     """Import torch on demand so this module is importable without a GPU."""
     import torch  # noqa: PLC0415 — deliberate lazy import
+
     return torch
 
 
@@ -116,7 +117,10 @@ def track_memory(label: str, device: int = 0) -> Iterator[None]:
         if before is not None and after is not None:
             LOGGER.info(
                 "%s: peak %.2fGiB (delta allocated %+.2fGiB) | %s",
-                label, after.peak_allocated, after.allocated - before.allocated, after.render(),
+                label,
+                after.peak_allocated,
+                after.allocated - before.allocated,
+                after.render(),
             )
 
 
@@ -153,7 +157,7 @@ def run_in_batches(
     size = plan.initial_size
     index = 0
     while index < len(items):
-        batch = items[index:index + size]
+        batch = items[index : index + size]
         try:
             produced = process(batch)
         except Exception as exc:
@@ -218,6 +222,7 @@ if __name__ == "__main__":
     LOGGER.info("CUDA available: %s", is_cuda_available())
     if state is not None:
         LOGGER.info("memory: %s", state.render())
+
     # Demonstrates the batching loop with a fake OOM on large batches.
     def fake_process(batch: Sequence[int]) -> list[int]:
         if len(batch) > 4:

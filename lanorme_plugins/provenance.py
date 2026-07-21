@@ -137,11 +137,11 @@ def is_prose_statistic(line: str) -> bool:
     stripped = line.strip()
     if not stripped or stripped.startswith(">") or FOOTNOTE_RE.match(stripped):
         return False
-    if stripped.count("|") >= 2:          # a table row, with or without a leading pipe
+    if stripped.count("|") >= 2:  # a table row, with or without a leading pipe
         return False
     cleaned = INLINE_CODE_RE.sub(" ", line)
     cleaned = URL_RE.sub(" ", cleaned)
-    if CONFIG_SHAPE_RE.search(cleaned):   # `alpha = 0.05`, `threshold: 0.75`
+    if CONFIG_SHAPE_RE.search(cleaned):  # `alpha = 0.05`, `threshold: 0.75`
         return False
     return bool(STAT_RE.search(cleaned))
 
@@ -198,7 +198,9 @@ def check_claim(claim: Claim, root: Path, file: str) -> Violation | None:
     source = root / claim.path
     if not source.is_file():
         return Violation(
-            file=file, line=claim.line, rule=PROV_001,
+            file=file,
+            line=claim.line,
+            rule=PROV_001,
             message=f"Claim cites `{claim.path}`, which does not exist",
             fix="Point the claim at a results file that exists, or re-run the experiment",
         )
@@ -206,33 +208,43 @@ def check_claim(claim: Claim, root: Path, file: str) -> Violation | None:
         data = json.loads(source.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError):
         return Violation(
-            file=file, line=claim.line, rule=PROV_001,
+            file=file,
+            line=claim.line,
+            rule=PROV_001,
             message=f"Claim cites `{claim.path}`, which is not readable JSON",
             fix="Cite a JSON results file, or add a key path the checker can resolve",
         )
     if claim.key is None:
         return Violation(
-            file=file, line=claim.line, rule=PROV_001,
+            file=file,
+            line=claim.line,
+            rule=PROV_001,
             message=f"Claim cites `{claim.path}` with no key path",
             fix="Add the key, e.g. `#detector.false_alarm_rate`",
         )
     found = resolve_key(data, claim.key)
     if found is None:
         return Violation(
-            file=file, line=claim.line, rule=PROV_001,
+            file=file,
+            line=claim.line,
+            rule=PROV_001,
             message=f"Key `{claim.key}` not found in `{claim.path}`",
             fix="Correct the key path; dotted paths and list indices are supported",
         )
     actual = as_number(found)
     if actual is None:
         return Violation(
-            file=file, line=claim.line, rule=PROV_001,
+            file=file,
+            line=claim.line,
+            rule=PROV_001,
             message=f"Key `{claim.key}` in `{claim.path}` is not a number",
             fix="Cite a numeric field",
         )
     if not is_match(claim.value, actual, claim):
         return Violation(
-            file=file, line=claim.line, rule=PROV_002,
+            file=file,
+            line=claim.line,
+            rule=PROV_002,
             message=f"Claim says {claim.value}, but `{claim.path}#{claim.key}` holds {actual}",
             fix="Update the prose and the claim marker to the current value, or re-run the experiment",
         )
@@ -289,19 +301,26 @@ class ProvenanceCheck:
         # scan_tree passes file = path.relative_to(root), so walk back up to root.
         root = path.parents[len(Path(file).parts) - 1]
         violations = [
-            found for found in (check_claim(claim, root, file) for claim in parse_claims(text))
+            found
+            for found in (check_claim(claim, root, file) for claim in parse_claims(text))
             if found is not None
         ]
         warnings: list[Violation] = []
         if self.is_claim_bearing(file):
             lineno = first_unanchored_statistic(text)
             if lineno is not None:
-                warnings.append(Violation(
-                    file=file, line=lineno, rule=PROV_003,
-                    message="This file reports figures but carries no claim markers",
-                    fix=("Anchor its numbers to their source, e.g. "
-                         "`<!-- claim: 0.37 from results/pilot.json#rate -->`"),
-                ))
+                warnings.append(
+                    Violation(
+                        file=file,
+                        line=lineno,
+                        rule=PROV_003,
+                        message="This file reports figures but carries no claim markers",
+                        fix=(
+                            "Anchor its numbers to their source, e.g. "
+                            "`<!-- claim: 0.37 from results/pilot.json#rate -->`"
+                        ),
+                    )
+                )
         return violations, warnings
 
     def run(self, *, src_root: str) -> CheckResult:
