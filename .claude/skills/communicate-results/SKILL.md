@@ -44,6 +44,23 @@ not occupying the main line.
 - **Nulls and negative results are content**, reported plainly. A detector that
   barely fires is reported as barely firing, never rehabilitated with framing.
 
+## Writing for readers who do not know the thing exists
+
+- **Introduce concepts before naming them.** Explain the idea as if the reader
+  has never encountered it — what it is, why it matters here — and only then
+  attach its name and origin. "When you ask humans to rate emotions, they
+  arrange on two axes, pleasantness and activation; this is Russell's
+  circumplex model" teaches; opening with "per Russell's circumplex model"
+  gatekeeps. A named concept the reader cannot reconstruct is jargon, not a
+  citation.
+- **Citations carry locators.** A reference is a claim about where a fact
+  lives, so cite to the finest grain the source allows: page for papers and
+  books, section or figure for web-native publications, file and line for
+  code. Locators are added when the source is read in-session — a page number
+  written from memory is a fabrication risk, not a courtesy. If the source has
+  not been read yet, cite the work without a pinpoint and mark the pinpoint as
+  pending verification.
+
 ## Chart hygiene
 
 - Simple charts beat clever ones: prefer bar charts over heatmaps.
