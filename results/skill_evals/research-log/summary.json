@@ -1,0 +1,215 @@
+{
+  "trigger": {
+    "skills": {
+      "research-log": {
+        "queries": [
+          {
+            "query_idx": 0,
+            "query": "ok I'm done for today, wrap up the session",
+            "should_trigger": true,
+            "trigger_rate": 0.33,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 1,
+            "query": "the experiment finished, results landed in results/probe_scores.json \u2014 record what we foun",
+            "should_trigger": true,
+            "trigger_rate": 1.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 2,
+            "query": "starting work \u2014 where did we leave off yesterday?",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 3,
+            "query": "mark H2 as refuted, the random-direction control destroyed it",
+            "should_trigger": true,
+            "trigger_rate": 0.67,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 4,
+            "query": "add a new hypothesis under Q1 about paraphrase sensitivity",
+            "should_trigger": true,
+            "trigger_rate": 0.33,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 5,
+            "query": "we're pivoting away from the detector idea \u2014 note that properly so it isn't lost",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 6,
+            "query": "does the tree still validate? fix statuses before I commit",
+            "should_trigger": true,
+            "trigger_rate": 0.67,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 7,
+            "query": "log today: ran the pilot, the effect vanished under permutation",
+            "should_trigger": true,
+            "trigger_rate": 1.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 8,
+            "query": "the layer-12 claim survived falsification, update its status with the scorecard",
+            "should_trigger": true,
+            "trigger_rate": 0.67,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 9,
+            "query": "tomorrow's experiment is paraphrase robustness \u2014 put it in the tree as planned",
+            "should_trigger": true,
+            "trigger_rate": 1.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 10,
+            "query": "show me the git log for the last week",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 11,
+            "query": "write a logging wrapper for the api client with rotation",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 12,
+            "query": "add a changelog entry for v0.2",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 13,
+            "query": "how do I make loguru write to a file and stdout at once",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 14,
+            "query": "record a screen capture of the demo for the slide deck",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 15,
+            "query": "track my hours for this sprint in a spreadsheet",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 16,
+            "query": "append these three bibtex entries to references.bib",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 17,
+            "query": "tail the training log and tell me the current loss",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 18,
+            "query": "set up log rotation for the server",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 19,
+            "query": "diff TREE.md against the version two commits ago",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          }
+        ],
+        "n_pass": 16,
+        "n_fail": 4,
+        "pass_rate": 0.8,
+        "failures": [
+          {
+            "query_idx": 0,
+            "query": "ok I'm done for today, wrap up the session",
+            "should_trigger": true,
+            "trigger_rate": 0.33,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 2,
+            "query": "starting work \u2014 where did we leave off yesterday?",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 4,
+            "query": "add a new hypothesis under Q1 about paraphrase sensitivity",
+            "should_trigger": true,
+            "trigger_rate": 0.33,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 5,
+            "query": "we're pivoting away from the detector idea \u2014 note that properly so it isn't lost",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          }
+        ]
+      }
+    },
+    "n_runs": 60,
+    "n_errored_runs": 22,
+    "threshold": 0.5
+  },
+  "behaviour": {
+    "tasks": {},
+    "n_runs": 0,
+    "n_errored_runs": 0
+  }
+}

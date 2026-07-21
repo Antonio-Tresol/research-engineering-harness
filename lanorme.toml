@@ -30,4 +30,5 @@ ignore = [
 exclude = [
     "research/**",     # frozen survey records, not maintained code
     "references/**",
+    "results/**",      # run artifacts and eval evidence: data, not maintained code
 ]

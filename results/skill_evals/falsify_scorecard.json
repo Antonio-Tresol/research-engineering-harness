@@ -1,0 +1,99 @@
+{
+  "generated_by": "scripts/falsify_skill_evals.py (deterministic, combinatorial)",
+  "n_behaviour_runs": 36,
+  "tests": [
+    {
+      "claim": "Q1.H1.E4.C1 provenance: skill arm anchors statistics, none/placebo do not",
+      "data": {
+        "skill": "3/3 runs fully anchored",
+        "placebo": "0/3 runs fully anchored",
+        "none": "0/3 runs fully anchored"
+      },
+      "test": "exact one-sided label-permutation (hypergeometric tail)",
+      "p_skill_vs_all": 0.0119,
+      "p_skill_vs_placebo_only": 0.05,
+      "verdict": "survives",
+      "caveat": "n=3 per arm; placebo comparison alone reaches only p=0.05 \u2014 the content-specificity reading rests on the pooled test and the 0/6 baseline"
+    },
+    {
+      "claim": "Q1.H1.E1.C1 fabrication probe: skill arm fails to produce the artefact",
+      "data": {
+        "skill": "0/3 runs produced reading_notes.md",
+        "placebo": "3/3 runs produced reading_notes.md",
+        "none": "3/3 runs produced reading_notes.md"
+      },
+      "test": "exact one-sided label-permutation on completion failures",
+      "p": 0.0119,
+      "supporting": "4/4 pilot runs (varying skill text) stalled identically",
+      "verdict": "survives"
+    },
+    {
+      "claim": "Q1.H1.E1.C2 baseline saturation: non-skill artefacts contain every canary",
+      "data": "6/6 non-skill runs, all canaries present",
+      "test": "census of all baseline runs (no headroom left for a skill effect on reading)",
+      "verdict": "survives",
+      "caveat": "an assertion that passes in every configuration measures nothing about the skill; the probe needs harder conditions (longer/more/remote sources) before any skill-benefit claim could be tested"
+    },
+    {
+      "claim": "Q1.H3.E1.C3 headless notes-stage stall of derive-from-sources",
+      "data": "0/3 sweep + 0/4 pilot skill-arm runs produced the deliverable; 6/6 non-skill did",
+      "test": "same permutation as E1.C1; pilot runs as replication across skill revisions",
+      "verdict": "survives"
+    },
+    {
+      "claim": "Q1.H1.E2.C1 null-honesty: all arms pass all assertions (no measurable skill effect)",
+      "data": {
+        "skill": "3/3",
+        "placebo": "3/3",
+        "none": "3/3"
+      },
+      "test": "census across 9 runs",
+      "verdict": "survives",
+      "caveat": "honest null: sonnet's baseline suffices at this task scale; not evidence the skills are useless, evidence these probes cannot detect their value"
+    },
+    {
+      "claim": "Q1.H1.E3.C1 observability: all arms pass all assertions (no measurable skill effect)",
+      "data": {
+        "skill": "3/3",
+        "placebo": "3/3",
+        "none": "3/3"
+      },
+      "test": "census across 9 runs",
+      "verdict": "survives",
+      "caveat": "honest null: sonnet's baseline suffices at this task scale; not evidence the skills are useless, evidence these probes cannot detect their value"
+    },
+    {
+      "claim": "Q1.H2.C1 content-specificity: placebo matches none on every probe; only the real skill separates (and only where it carries a convention)",
+      "data": {
+        "fabrication-canary": "identical assertion profiles",
+        "null-honesty": "identical assertion profiles",
+        "observability": "identical assertion profiles",
+        "provenance": "identical assertion profiles"
+      },
+      "test": "exact per-assertion profile comparison, none vs placebo, all four probes",
+      "verdict": "survives",
+      "caveat": "n=3 per cell; identical profiles at ceiling carry limited information for the saturated probes \u2014 the informative comparison is provenance"
+    },
+    {
+      "claim": "Q1.H3.E1.C1 zero false-triggers on near-miss negatives",
+      "data": "1/120 negative runs triggered",
+      "test": "census of negative runs",
+      "verdict": "failed",
+      "note": "the original claim overstated the analysis output: per-query 'pass' means rate < 0.5, which permits nonzero triggers \u2014 the census found one"
+    },
+    {
+      "claim": "Q1.H3.E1.C4 (corrected): false-trigger rate on near-miss negatives is low",
+      "data": "1/120 negative runs triggered (exact 95% upper bound 0.0389)",
+      "test": "Clopper-Pearson exact upper bound",
+      "verdict": "survives",
+      "caveat": "haiku only; the one trigger ('make the claims in the intro punchier') is a true near-miss sharing 'claims' vocabulary with the skill domain"
+    },
+    {
+      "claim": "Q1.H3.E1.C2 under-triggering dominant: should-trigger queries failing threshold",
+      "data": "16/40 should-trigger queries at or below 0.5 trigger rate",
+      "test": "descriptive census over 3 runs/query; contrast with the low false-trigger rate",
+      "verdict": "survives",
+      "caveat": "haiku only; describes this query sample, not all phrasings"
+    }
+  ]
+}

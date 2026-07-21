@@ -1,0 +1,223 @@
+{
+  "trigger": {
+    "skills": {
+      "experiment-engineering": {
+        "queries": [
+          {
+            "query_idx": 0,
+            "query": "write a script that runs our probe prompts \u2014 all 10k of them \u2014 against the anthropic api a",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 1,
+            "query": "this training loop keeps OOMing on the A100 about an hour in, can you fix it",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 2,
+            "query": "can u look over scripts/run_sweep.py before I launch it on 8 gpus overnight",
+            "should_trigger": true,
+            "trigger_rate": 1.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 3,
+            "query": "I need completions for every row of data/items.csv from claude \u2014 write the pipeline",
+            "should_trigger": true,
+            "trigger_rate": 0.67,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 4,
+            "query": "turn the scoring cell in explore.ipynb into a proper script we can rerun on monday",
+            "should_trigger": true,
+            "trigger_rate": 0.33,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 5,
+            "query": "the generation run died at 80% and we lost everything. restructure it so that never happen",
+            "should_trigger": true,
+            "trigger_rate": 1.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 6,
+            "query": "batch these 5000 embedding computations on the gpu without blowing memory",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 7,
+            "query": "add logging to the finetuning script so I can tell whether it'll finish before tomorrow",
+            "should_trigger": true,
+            "trigger_rate": 0.67,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 8,
+            "query": "build the harness that sends our question set to two different model APIs and stores respo",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 9,
+            "query": "promote the notebook prototype into src/ as a reusable pipeline with CLI args",
+            "should_trigger": true,
+            "trigger_rate": 0.67,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 10,
+            "query": "write a bash alias that activates my venv",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 11,
+            "query": "why does python say list index out of range in this snippet",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 12,
+            "query": "make a matplotlib bar chart from results/scores.jsonl",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 13,
+            "query": "which gpu should I rent for llama-70b inference?",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 14,
+            "query": "clean up the imports in utils.py",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 15,
+            "query": "write unit tests for the markdown parser module",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 16,
+            "query": "explain what einops rearrange does with an example",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 17,
+            "query": "update the README with installation instructions",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 18,
+            "query": "git shows a merge conflict in TREE.md \u2014 help me resolve it",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          },
+          {
+            "query_idx": 19,
+            "query": "rename the variables in this function so it reads better",
+            "should_trigger": false,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": true
+          }
+        ],
+        "n_pass": 15,
+        "n_fail": 5,
+        "pass_rate": 0.75,
+        "failures": [
+          {
+            "query_idx": 0,
+            "query": "write a script that runs our probe prompts \u2014 all 10k of them \u2014 against the anthropic api a",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 1,
+            "query": "this training loop keeps OOMing on the A100 about an hour in, can you fix it",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 4,
+            "query": "turn the scoring cell in explore.ipynb into a proper script we can rerun on monday",
+            "should_trigger": true,
+            "trigger_rate": 0.33,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 6,
+            "query": "batch these 5000 embedding computations on the gpu without blowing memory",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          },
+          {
+            "query_idx": 8,
+            "query": "build the harness that sends our question set to two different model APIs and stores respo",
+            "should_trigger": true,
+            "trigger_rate": 0.0,
+            "runs": 3,
+            "passed": false
+          }
+        ]
+      }
+    },
+    "n_runs": 60,
+    "n_errored_runs": 29,
+    "threshold": 0.5
+  },
+  "behaviour": {
+    "tasks": {},
+    "n_runs": 0,
+    "n_errored_runs": 0
+  }
+}
