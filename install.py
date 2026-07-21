@@ -287,7 +287,15 @@ def main() -> int:
     print(f"\nInstalled research-harness into {args.target}")
     for a in actions:
         print(f"  {a}")
-    unfilled = [ph for k, ph in PLACEHOLDERS.items() if not values.get(k)]
+    # Report placeholders that are ACTUALLY present in the target's files —
+    # inferring from missing CLI values wrongly warned on installs that
+    # skipped rendering because real project files already existed.
+    rendered_files = [args.target / dest for _, dest in RENDER]
+    unfilled = sorted({
+        ph for ph in PLACEHOLDERS.values()
+        for path in rendered_files
+        if path.is_file() and ph in path.read_text()
+    })
     if unfilled:
         print("\nUnfilled placeholders still in AGENTS.md / TREE.md / RESEARCH_LOG.md:")
         for ph in unfilled:
