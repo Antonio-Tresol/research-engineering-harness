@@ -60,6 +60,8 @@ COPY_AS = [
     ("templates/CLAUDE.md", "CLAUDE.md"),   # one-line @import of AGENTS.md
     ("templates/mcp.json", ".mcp.json"),
     ("templates/lanorme.toml", "lanorme.toml"),
+    ("templates/claude-settings.json", ".claude/settings.json"),  # team-shared Claude Code config
+    ("templates/codex-config.toml", ".codex/config.toml"),        # team-shared Codex config
     ("check.sh", "check.sh"),
 ]
 # Directories to create empty.
@@ -173,6 +175,7 @@ class Installer:
         dest = self.plan.target / dest_rel
         if not self.can_write(dest):
             return
+        dest.parent.mkdir(parents=True, exist_ok=True)  # .codex/ has no COPY_TREE step
         # copy2, not copyfile: the executable bit on check.sh must survive.
         shutil.copy2(HARNESS / src_rel, dest)
         self.actions.append(f"copied {src_rel} -> {dest_rel}")

@@ -68,6 +68,29 @@ Phases iterate; the gates do not.
    message first, failed setups in backup, error bars and *n* on every number,
    full prompts and real outputs shown.
 
+## Collaboration and parallelism
+
+- **Branches and PRs between humans.** Direct commits to `main` are for solo
+  work only. When more than one person is on the project, work happens on
+  short-lived branches merged to `main` by PR; a PR that adds or changes
+  results, claims, or documents with numbers runs `./check.sh` and the
+  `validate-claims` gate before merge. `main` is always green: validator exit 0,
+  all checks passing.
+- **Worktrees between parallel sessions.** Two agent sessions in one clone will
+  fight over TREE.md, RESEARCH_LOG.md, and `results/`. Run parallel sessions in
+  separate git worktrees (`git worktree add ../<name> <branch>`; Claude Code can
+  create one for a session with EnterWorktree), one branch per worktree, merged
+  back like any other branch.
+- **Be an orchestrator.** For work that fans out — sweeps, literature searches,
+  reviews, independent experiments — delegate to subagents or an agent team and
+  keep synthesis in the orchestrating session. Three rules learned the hard way:
+  give subagents self-contained prompts (they do not see your conversation);
+  give any subagent that executes untrusted or generated work a workspace
+  *outside* the repository (a nested workspace let eval agents write fabricated
+  state into a host project's tree); and keep a **single writer** for TREE.md
+  and RESEARCH_LOG.md — subagents report findings back, the orchestrator records
+  them. The tree survives parallelism because updates flow through one pen.
+
 ## Non-negotiables
 
 - No claim in any deliverable that is not a node in TREE.md with linked evidence.
@@ -105,3 +128,17 @@ Phases iterate; the gates do not.
   live in `CLAUDE.local.md`, which is gitignored, so each team member keeps their
   own. All sources the skills cite are public; unequivocal identifiers (arXiv
   ID / DOI / URL) are in the harness repo's `references/harness.bib`.
+- **Shared session configuration** (checked in, applies to everyone on clone):
+  - `.claude/settings.json` — compaction forced at 50% context
+    (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`; effective on Opus 4.8 and most models,
+    documented as having *no effect on Sonnet 5*, unverified on Fable), agent
+    teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`), and Opus as the
+    advisor model. Teams and advisor are experimental; advisor needs the
+    Anthropic API. Personal opt-outs go in the gitignored
+    `.claude/settings.local.json`, which overrides project settings.
+  - `.codex/config.toml` — Codex auto-compaction at ~50% of a 400k window
+    (`model_auto_compact_token_limit = 200000`; Codex takes tokens, not
+    percentages — adjust if the default model's window differs). Loads only
+    after you mark the project trusted, and note it *outranks* your personal
+    `~/.codex/config.toml`. Codex subagents are on by default; shareable custom
+    agent roles can be added under `.codex/agents/` if the project needs them.
