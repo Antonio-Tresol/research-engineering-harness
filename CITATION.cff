@@ -10,7 +10,12 @@ authors:
     given-names: "Antonio"
     email: antonio1dbo@gmail.com
     orcid: "https://orcid.org/0009-0000-6891-1562"
+version: v0.1.0
+date-released: 2026-07-27
 repository-code: "https://github.com/Antonio-Tresol/research-engineering-harness"
+# Concept DOI: resolves to the newest version. Version DOI for v0.1.0 is
+# 10.5281/zenodo.21617975.
+doi: "10.5281/zenodo.21617974"
 license: MIT
 keywords:
   - research integrity

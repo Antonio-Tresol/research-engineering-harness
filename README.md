@@ -199,3 +199,24 @@ Improvements found while using the harness come back here as commits. Add
 sources to the relevant `.bib`, and notes under `research/` when a survey was
 involved. The same standard applies to the harness itself: a design rule without
 a traceable source is a preference rather than a finding.
+
+## Citation
+
+Archived on Zenodo. The DOI below is the *concept* DOI: it always resolves to the
+newest version, which is usually what you want in a bibliography.
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21617974.svg)](https://doi.org/10.5281/zenodo.21617974)
+
+```bibtex
+@misc{badillaolivas2026harness,
+author = {Badilla-Olivas, Antonio},
+doi = {10.5281/zenodo.21617974},
+month = {7},
+title = {research-engineering-harness},
+url = {https://github.com/Antonio-Tresol/research-engineering-harness},
+year = {2026}
+}
+```
+
+Generated from `CITATION.cff` with `cffconvert`; edit that file rather than this
+block, so the two cannot disagree.
