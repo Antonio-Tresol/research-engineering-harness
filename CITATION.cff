@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "research-engineering-harness"
+abstract: >-
+  A portable harness for AI-assisted technical research: skills, process gates,
+  and mechanical validators that keep human and AI collaborators honest.
+type: software
+authors:
+  - family-names: "Badilla-Olivas"
+    given-names: "Antonio"
+    email: antonio1dbo@gmail.com
+    orcid: "https://orcid.org/0009-0000-6891-1562"
+repository-code: "https://github.com/Antonio-Tresol/research-engineering-harness"
+license: MIT
+keywords:
+  - research integrity
+  - AI agents
+  - reproducibility
+  - agent skills
+  - AI safety
+# PRIVATE repository today. Of the four research repos this is the likeliest to
+# be cited by other people rather than only by its author, so it is also the
+# strongest candidate for a Zenodo DOI once it is public.
+#
+# doi: absent until Zenodo mints one from a tagged release. A placeholder DOI
+# here would be copied verbatim into somebody's bibliography.
