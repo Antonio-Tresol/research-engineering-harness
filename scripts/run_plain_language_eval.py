@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import shutil
 import subprocess
 import sys
@@ -57,6 +58,10 @@ from plain_language_graders import grade
 HARNESS: Final[Path] = Path(__file__).resolve().parent.parent
 BASE_REV: Final[str] = "main"
 NEW_REV: Final[str] = "HEAD"
+# The intervention branch just before the altitude commit: plain-language
+# rules and the hook, but no node-length gate. Pinned so the prealt/alt pair
+# differs in exactly one thing.
+PRE_ALTITUDE_REV: Final[str] = "da766f7"
 
 # Scoped grants instead of --dangerously-skip-permissions: everything a
 # session-end tree/log update plausibly needs, nothing more. Denials are
@@ -140,7 +145,81 @@ DIRTY_ENTRY: Final[str] = f"""### {SEED_DATE}
 * What I will do next: check v2 → tree+log
 """
 
-TASKS: Final[dict[str, dict[str, str]]] = {
+# A registered-protocol node in the accreted state observed in a real tree
+# (registration + reads + verdict ladder + one dated amendment, inlined into
+# a single node line). One line by construction, ~1.5k characters: the
+# pre-altitude validator accepts it, the altitude validator does not.
+ACCRETED_NODE: Final[str] = (
+    "    - Q1.H1.E2: Dose-response protocol for steering strength — REGISTERED "
+    "2026-08-20 before any scoring: coefficients {2.0, 4.0, 8.0, 16.0} on the same "
+    "200 held-out prompts, three seeds per cell, refusal judged by the fixed "
+    "classifier; per-cell noise standard deviation measured at 0.0021 from 24 "
+    "random-direction control runs, which form the null band for every read. READS "
+    "registered: (D, gate) dose-response slope — refusal rate regressed on log "
+    "coefficient, bar: slope positive with permutation p < 0.001 over 10,000 "
+    "shuffles of the coefficient labels; (S) saturation — verdict saturating if the "
+    "fitted curve's rise completes within one coefficient doubling, with a "
+    "bootstrap interval excluding two doublings; (F) fluency guard — mean "
+    "perplexity of steered completions within 1.5x baseline, else the refusal rise "
+    "is discounted as degeneration. VERDICT LADDER registered so a middling result "
+    "cannot be argued sideways: T3 monotonic dose-response with intact fluency > "
+    "T2 rise at high coefficient only, fluency intact > T1 rise with fluency "
+    "degradation > T0 null. AMENDED 2026-08-21: shuffled-prompt control added — "
+    "the same scoring on prompts with shuffled word order; any dose-response "
+    "statistic must not survive it. INSTRUMENT VALIDATION ran 2026-08-21 "
+    "(simulation at matched noise, before any true scoring): the slope estimator "
+    "recovers planted slopes within its bootstrap interval at all four "
+    "coefficients, never reports a positive slope on null simulations (0 of 500), "
+    "and the saturation read is decidable only when the rise amplitude exceeds "
+    "four times the per-cell noise, so an undecided saturation verdict at small "
+    "amplitude is insufficient signal, not evidence against saturation "
+    "[running]\n"
+)
+
+REGISTRATION_DOC: Final[str] = """# Dose-response protocol — registration
+
+Registered 2026-08-20, before any scoring. Coefficients {2.0, 4.0, 8.0, 16.0}
+on the same 200 held-out prompts, three seeds per cell; per-cell noise
+standard deviation 0.0021 from 24 random-direction control runs (the null
+band for every read).
+
+## Reads
+
+- Gate (D): dose-response slope — refusal rate regressed on log coefficient;
+  bar: slope positive with permutation p < 0.001 over 10,000 shuffles.
+- Saturation (S): saturating if the fitted rise completes within one
+  coefficient doubling (bootstrap interval excluding two doublings).
+- Fluency guard (F): mean perplexity of steered completions within 1.5x
+  baseline, else the refusal rise is discounted as degeneration.
+
+## Verdict ladder
+
+- T3: monotonic dose-response with intact fluency.
+- T2: rise at high coefficient only, fluency intact.
+- T1: rise with fluency degradation.
+- T0: null.
+
+Amended 2026-08-21: shuffled-prompt control added — the same scoring on
+prompts with shuffled word order; no dose-response statistic may survive it.
+"""
+
+TRANCHE_RESULT: Final[str] = json.dumps(
+    {
+        "read": "D_gate",
+        "slope_per_log2_coefficient": 0.031,
+        "permutation_p": 0.0004,
+        "n_shuffles": 10000,
+        "fluency_ratio": 1.2,
+        "saturation": "undecided",
+        "tier": "T2",
+        "cells_scored": 8,
+        "cells_total": 12,
+        "seed": 0,
+    },
+    indent=2,
+)
+
+TASKS: Final[dict[str, dict[str, Any]]] = {
     "dictation": {
         "nodes": CLEAN_NODES,
         "entries": CLEAN_ENTRY,
@@ -167,6 +246,60 @@ TASKS: Final[dict[str, dict[str, str]]] = {
             ".claude/skills/research-log/SKILL.md — read it first and follow it."
         ),
     },
+    "accretion": {
+        "nodes": (
+            f"- Q1: {QUESTION} [open]\n"
+            "  - Q1.H1: The refusal direction transfers across model families [open]\n"
+            "    - Q1.H1.E1: Steer Llama-3-8B with the scaled Gemma-2 direction and "
+            "measure refusal rate on 200 held-out prompts [done] | "
+            "evidence: results/steering_v1.json, results/steering_v2.json\n" + ACCRETED_NODE
+        ),
+        "entries": CLEAN_ENTRY,
+        "extra_files": {
+            "notes/runpod-setup.md": (
+                "# GPU box setup\n\nPod template and mount points for the steering "
+                "sweeps; rebuild with the standard image before each batch.\n"
+            ),
+            "results/tranche1.json": TRANCHE_RESULT,
+        },
+        "canaries": ["0.0021", "10,000", "shuffled-prompt", "perplexity"],
+        "must_mention": ["paraphras", "0.031"],
+        "done_id": "Q1.H1.E1",
+        "prompt": (
+            "The first tranche of the dose-response protocol scored; results are in "
+            "results/tranche1.json — the gate read passes its registered bar, "
+            "saturation is undecided, fluency is intact, which the registered ladder "
+            "calls tier T2. Also record the design amendment we agreed: a "
+            "paraphrased-prompt control arm is added (same prompts, "
+            "meaning-preserving paraphrases), and any dose-response statistic must "
+            "also survive it. Please do the session-end update of TREE.md and "
+            "RESEARCH_LOG.md following the conventions in "
+            ".claude/skills/research-log/SKILL.md — read it first."
+        ),
+    },
+    "codename": {
+        "nodes": (
+            f"- Q1: {QUESTION} [open]\n"
+            "  - Q1.H1: The refusal direction transfers across model families [open]\n"
+            "    - Q1.H1.E2: Run the registered dose-response protocol over four "
+            "steering coefficients (registration: notes/dose-response-registration.md) "
+            "[running]\n"
+        ),
+        "entries": CLEAN_ENTRY,
+        "extra_files": {
+            "notes/dose-response-registration.md": REGISTRATION_DOC,
+            "results/tranche1.json": TRANCHE_RESULT,
+        },
+        "must_mention": ["0.031"],
+        "done_id": "Q1.H1.E2",
+        "prompt": (
+            "The dose-response scoring finished; results are in results/tranche1.json "
+            "— the gate read passes, saturation is undecided, fluency intact: tier T2 "
+            "on the registered ladder. Mark the experiment done with evidence, add "
+            "the resulting claim as unvalidated, and append today's entry, following "
+            "the conventions in .claude/skills/research-log/SKILL.md — read it first."
+        ),
+    },
 }
 
 ARMS: Final[dict[str, dict[str, Any]]] = {
@@ -174,6 +307,11 @@ ARMS: Final[dict[str, dict[str, Any]]] = {
     "norms": {"docs_rev": NEW_REV, "validator_rev": BASE_REV, "hook": False},
     "gate": {"docs_rev": NEW_REV, "validator_rev": NEW_REV, "hook": False},
     "hook": {"docs_rev": NEW_REV, "validator_rev": NEW_REV, "hook": True},
+    # Altitude A/B: identical hooked setups differing only in whether the
+    # docs and validator carry the altitude rules (node-length gate, notes/
+    # relocation contract, codename hygiene).
+    "prealt": {"docs_rev": PRE_ALTITUDE_REV, "validator_rev": PRE_ALTITUDE_REV, "hook": True},
+    "alt": {"docs_rev": NEW_REV, "validator_rev": NEW_REV, "hook": True},
 }
 
 HOOK_SCRIPT: Final[str] = '''#!/usr/bin/env python3
@@ -294,6 +432,7 @@ def build_workspace(task_id: str, arm: str, key: str) -> Path:
         "TREE.md": build_tree(spec["docs_rev"], task["nodes"]),
         "RESEARCH_LOG.md": build_log(spec["docs_rev"], task["entries"]),
         **FIXTURES,
+        **task.get("extra_files", {}),
     }
     if spec["hook"]:
         files[".claude/hooks/validate_hook.py"] = HOOK_SCRIPT
@@ -380,7 +519,20 @@ def run_one(task_id: str, arm: str, run_idx: int, args: argparse.Namespace) -> d
         "artifacts": str(artefacts),
         "ts": time.strftime("%FT%T"),
     }
-    row.update(grade(workspace, transcript, SEED_DATE))
+    task = TASKS[task_id]
+    row.update(grade(workspace, transcript, SEED_DATE, canaries=tuple(task.get("canaries", ()))))
+    everything = "\n".join(
+        (workspace / rel).read_text()
+        for rel in ("TREE.md", "RESEARCH_LOG.md")
+        if (workspace / rel).is_file()
+    )
+    for note in sorted(workspace.glob("notes/*.md")):
+        everything += "\n" + note.read_text()
+    row["mentions_present"] = sum(1 for m in task.get("must_mention", ()) if m in everything)
+    row["mentions_total"] = len(task.get("must_mention", ()))
+    done_id = task.get("done_id", "Q1.H1.E1")
+    tree_text = (workspace / "TREE.md").read_text()
+    row["target_done"] = bool(re.search(rf"{re.escape(done_id)}:.*\[done\].*evidence:", tree_text))
     return row
 
 

@@ -99,6 +99,7 @@ def tree_metrics(tree_text: str) -> dict[str, int]:
         "tree_shorthand": count_patterns(node_texts, SHORTHAND),
         "tree_word_abbrevs": count_patterns(node_texts, WORD_ABBREVS),
         "tree_non_node_lines": non_node_after,
+        "max_node_chars": max((len(t) for t in node_texts), default=0),
     }
 
 
@@ -167,10 +168,15 @@ def transcript_metrics(transcript_text: str) -> dict[str, Any]:
     return signals
 
 
-def grade(workspace: Path, transcript_text: str, seed_date: str) -> dict[str, Any]:
+def grade(
+    workspace: Path, transcript_text: str, seed_date: str, canaries: tuple[str, ...] = ()
+) -> dict[str, Any]:
     tree_text = (workspace / "TREE.md").read_text()
     log_text = (workspace / "RESEARCH_LOG.md").read_text()
     entry = new_entry_text(log_text, seed_date)
+    notes = sorted((workspace / "notes").glob("*.md")) if (workspace / "notes").is_dir() else []
+    everything = "\n".join([tree_text, log_text, *[n.read_text() for n in notes]])
+    claim_line = next((line for line in tree_text.splitlines() if re.search(r"\.C\d+:", line)), "")
     validator = subprocess.run(
         [sys.executable, "scripts/validate_research.py"],
         cwd=workspace,
@@ -190,6 +196,13 @@ def grade(workspace: Path, transcript_text: str, seed_date: str) -> dict[str, An
         "ded_in_files": ("DED" in tree_text) or ("DED" in log_text),
         "arm_validator_pass": validator.returncode == 0,
         "arm_validator_tail": (validator.stdout.strip() or validator.stderr.strip())[-300:],
+        "notes_md_files": len(notes),
+        "canaries_present": sum(1 for c in canaries if c in everything),
+        "canaries_total": len(canaries),
+        # Codename hygiene in the first claim: a bare tier name with no pointer
+        # to the registration document is the failure the Altitude rules name.
+        "claim_codename": bool(re.search(r"\bT[0-3]\b", claim_line)),
+        "claim_links_registration": "notes/" in claim_line,
     }
     row.update(transcript_metrics(transcript_text))
     return row
