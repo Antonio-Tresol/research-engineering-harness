@@ -305,5 +305,80 @@ def test_fenced_block_after_nodes_is_allowed(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stdout
 
 
+# --- Altitude and grammar-drift tripwires --------------------------------
+
+
+def test_structured_claim_at_realistic_length_is_quiet(tmp_path: Path) -> None:
+    """The claim shape that survived a real project's hand clean-up — one
+    falsifiable sentence plus Support and Falsification clauses, ~800
+    characters — must pass the length gate comfortably."""
+    claim = (
+        "The assistant axis is stable under subsampling of the roles. — Support: "
+        "axes built from two random halves of the 80 roles agree at cosine 0.966 "
+        "(95% interval 0.947-0.978, 200 half-samples, layer 30); rebuilding the "
+        "vector set with a different random seed reproduces the axis at cosine "
+        "0.991, and dropping any single role family moves it by at most 0.8 "
+        "degrees; n=200 resamples throughout, mean over three rollouts per role. "
+        "— Falsification: a permutation test shuffling role labels destroys the "
+        "agreement (95th percentile 0.31), and the axis is unchanged when the "
+        "prompt template is paraphrased, so the stability is not a template "
+        "artefact; verdict survived, single model family caveat recorded"
+    )
+    tree = (
+        "- Q1: A question [open]\n"
+        "  - Q1.H1: A hypothesis [open]\n"
+        "    - Q1.H1.E1: An experiment [done] | evidence: results/run.json\n"
+        f"    - Q1.H1.E1.C1: {claim} [unvalidated]\n"
+    )
+    root = project(tmp_path, tree)
+    (root / "results/run.json").write_text("{}")
+    result = run(root)
+    assert result.returncode == 0, result.stdout
+
+
+def test_essay_node_fails_the_length_gate(tmp_path: Path) -> None:
+    """A protocol inlined into a node (the dominant real-world failure,
+    4,000-12,000 characters observed) trips the altitude check."""
+    protocol = "The registered read compares matched windows across layers. " * 30
+    result = run(project(tmp_path, f"- Q1: {protocol.strip()} [open]\n"))
+    assert result.returncode == 1
+    assert "headline" in result.stdout
+
+
+def test_ghost_node_id_is_named(tmp_path: Path) -> None:
+    """Sub-lettered ids (E4b, seen in a real tree) previously fell out of
+    validation silently; now they are rejected by name."""
+    tree = (
+        "- Q1: A question [open]\n"
+        "  - Q1.H1: A hypothesis [open]\n"
+        "    - Q1.H1.E4b: an experiment the validator never saw [done]\n"
+    )
+    result = run(project(tmp_path, tree))
+    assert result.returncode == 1
+    assert "not a valid node id" in result.stdout
+
+
+def test_malformed_log_header_is_reported(tmp_path: Path) -> None:
+    """A typo'd date used to silently drop the entry from validation."""
+    log = GOOD_LOG + "\n### 2026-7-2\n\n* What I did: vanished from validation.\n"
+    result = run(project(tmp_path, "- Q1: q [open]\n", log))
+    assert result.returncode == 1
+    assert "dated entry header" in result.stdout
+
+
+def test_fenced_header_placeholder_is_quiet(tmp_path: Path) -> None:
+    """The template documents its entry format as '### YYYY-MM-DD' inside a
+    fence; fenced examples are exempt everywhere."""
+    log = (
+        "# P\n\n## Project summary\n\nA sentence.\n\n"
+        "Entry format:\n\n```\n### YYYY-MM-DD\n\n* What I did:\n```\n\n"
+        "### 2026-07-19\n\n"
+        "* What I did: ran the thing.\n* What I expected vs what happened: fine.\n"
+        "* What this changes about my thinking: nothing.\n* What I will do next: more.\n"
+    )
+    result = run(project(tmp_path, "- Q1: q [open]\n", log))
+    assert result.returncode == 0, result.stdout
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))

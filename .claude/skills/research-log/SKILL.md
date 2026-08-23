@@ -56,6 +56,32 @@ telegraph (arrows, "w/", "b/c", chat abbreviations); treat a clean run as the
 floor, not the contract — what it cannot measure is whether a stranger
 understands you, and that is the actual rule.
 
+## Altitude (the tree stays scannable)
+
+In real projects the tree's failure mode was not shorthand but **accretion**:
+registration protocols, dated amendments, and result narratives appended to
+the same node until single nodes reached 4,000-12,000 characters — good
+science made unfindable, because the tree was the only canonical home for it.
+The rule that keeps the tree scannable:
+
+- **A node is a headline** — one or two plain sentences saying what the thing
+  is and where it stands. The validator rejects node text over 1,200
+  characters.
+- **Protocols, registrations, and amendments are documents.** They live in
+  `notes/` (for example `notes/q3-transition-tracking-registration.md`),
+  dated inside, linked from the node as evidence. Appending an amendment
+  means editing the document and, at most, one clause of the node.
+- **Claims read as: one falsifiable sentence, then labelled clauses.**
+  "<What is claimed>. — Support: <the numbers that carry it, with their
+  comparisons and n>. — Falsification: <verdict and qualified reading>."
+  This shape emerged from a real project's hand clean-up and it keeps the
+  distribution requirement (rule 10) satisfiable inside the length limit.
+- **Codenames live in their registration document.** Reads, tiers, and null
+  models may carry short names (a verdict ladder's tiers, a battery's
+  categories) — defined once in the document that registers them. Node text
+  stays readable without the legend: name the thing plainly and link the
+  document, never "G passes incl. B_conflict" bare in a node.
+
 ## TREE.md grammar (enforced by the validator)
 
 Nodes are nested markdown list items. Each node: `- <ID>: <text> [<status>]`
@@ -99,16 +125,20 @@ Rules the validator enforces (each one mechanically checked, exit 1 on violation
 8. Node text carries no telegraph shorthand — arrows, "w/", "b/c", spaced
    "&"/"@", chat abbreviations — outside inline code. This is the tripwire for
    the Plain language contract above, not its replacement.
+9. Node text stays under 1,200 characters (see Altitude below): a node is a
+   headline, and a protocol inlined into a node is a document in the wrong
+   place. Malformed node ids (sub-letters like `E4b`) are rejected by name —
+   they would otherwise fall out of validation entirely.
 
 Rules held by convention (the validator cannot judge these; the falsify and
 validate-claims gates check them when a claim graduates):
 
-9. **Claims carry their distribution.** State `n` and the aggregation rule (mean
+10. **Claims carry their distribution.** State `n` and the aggregation rule (mean
    over seeds, best-of-k, union over variants) in the claim text. Agent-benchmark
    results have been shown to *reverse* depending on budget and aggregation, and a
    single run of an investigation is close to uninformative — a bare number
    without its `n` is an anecdote, not a claim.
-10. **Graders are pinned and never edited in the same commit as what they grade.**
+11. **Graders are pinned and never edited in the same commit as what they grade.**
     If a validator, scorer, or rubric changes alongside the experiment it certifies,
     the certification means nothing. Agent benchmarks have been broken in exactly
     this way, by an agent with write access to its own test files.
@@ -127,9 +157,10 @@ Newest entry first. Each entry:
 ```
 
 Validator checks: header dates parse, strictly descending, all four bullets present
-and non-empty, a `## Project summary` section exists at the top of the file, and
-prose carries no telegraph shorthand (the same tripwire as node text; fenced
-blocks and inline code are exempt).
+and non-empty, a `## Project summary` section exists at the top of the file, every
+unfenced `### ` line is a dated entry header (a malformed date silently drops the
+whole entry out of validation), and prose carries no telegraph shorthand (the same
+tripwire as node text; fenced blocks and inline code are exempt).
 
 ## Workflow
 

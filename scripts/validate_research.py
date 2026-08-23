@@ -65,6 +65,17 @@ SHORTHAND: Final[tuple[tuple[re.Pattern[str], str], ...]] = (
     (re.compile(r"\b(?:imo|idk)\b"), "write the thought in full"),
 )
 
+# A node is a headline, not a document. Calibrated on real projects: a tree
+# whose claims were deliberately restructured by hand ended with median node
+# text of ~600 characters and 33/34 nodes under 1,000, while an unchecked tree
+# grew nodes of 4,000-12,000 characters (inlined protocol documents). 1,200
+# keeps every deliberate node and catches the essays early.
+MAX_NODE_TEXT: Final[int] = 1200
+# A line that tries to be a node but has a malformed id (sub-letters like
+# E4b) would otherwise fall out of validation entirely — status, evidence,
+# and lineage unchecked — which happened in a real project.
+GHOST_ID_RE: Final[re.Pattern[str]] = re.compile(r"^-\s+([QHEC]\d[\w.]*):")
+
 LOG_HEADER_RE: Final[re.Pattern[str]] = re.compile(r"^### (\d{4}-\d{2}-\d{2})(?:\s+.*)?$")
 LOG_BULLETS: Final[tuple[str, ...]] = (
     "What I did:",
@@ -169,7 +180,12 @@ def check_evidence(node: Node, report: Report) -> None:
         report.add_tree(node.lineno, f"{node.node_id} [{node.status}] requires evidence: <path>")
     for ev in node.evidence:
         if not (ROOT / ev).exists():
-            report.add_tree(node.lineno, f"{node.node_id} evidence path does not exist: {ev}")
+            report.add_tree(
+                node.lineno,
+                f"{node.node_id} evidence path does not exist: {ev} — if the data is "
+                "gitignored, commit a small summary or manifest at this path instead; "
+                "evidence must be checkable from a fresh clone",
+            )
     if node.needs_scorecard and not any(SCORECARD_RE.search(Path(ev).name) for ev in node.evidence):
         report.add_tree(
             node.lineno,
@@ -193,6 +209,18 @@ def check_plain_language(node: Node, report: Report) -> None:
     """Node text must survive a reader without the writer's context."""
     for token, fix in scan_shorthand(node.text):
         report.add_tree(node.lineno, f"{node.node_id} text has shorthand {token!r} — {fix}")
+
+
+def check_altitude(node: Node, report: Report) -> None:
+    """A node is a headline; protocols and running narratives are documents."""
+    if len(node.text) > MAX_NODE_TEXT:
+        report.add_tree(
+            node.lineno,
+            f"{node.node_id} text is {len(node.text)} characters (limit {MAX_NODE_TEXT}) — "
+            "a node is a headline, not a document. Move the protocol, registration, or "
+            "narrative into a notes/ document (or the log) and link it as evidence, "
+            "keeping a plain summary here; relocate, never delete",
+        )
 
 
 def check_hypothesis_support(nodes: list[Node], report: Report) -> None:
@@ -229,9 +257,18 @@ def validate_tree(report: Report) -> list[Node]:
         if in_fence or not stripped:
             continue
         if not is_node_line(stripped):
+            ghost = GHOST_ID_RE.match(stripped)
+            if ghost:
+                report.add_tree(
+                    lineno,
+                    f"{ghost.group(1)!r} is not a valid node id — a malformed id "
+                    "(sub-letters like E4b) drops the whole node out of validation, "
+                    "statuses and evidence unchecked; renumber it to the next free "
+                    "number or nest a child node",
+                )
             # Prose is welcome as a preamble; past the first node the tree
             # holds only nodes, or state starts hiding in freeform text.
-            if nodes:
+            elif nodes:
                 report.add_tree(
                     lineno,
                     f"non-node line after the first node: {stripped[:60]!r} — "
@@ -246,6 +283,7 @@ def validate_tree(report: Report) -> list[Node]:
         check_status(node, report)
         check_evidence(node, report)
         check_plain_language(node, report)
+        check_altitude(node, report)
         seen.add(node.node_id)
         nodes.append(node)
     check_hypothesis_support(nodes, report)
@@ -299,6 +337,27 @@ def check_log_bullets(entries: dict[str, str], report: Report) -> None:
                 report.add(f"RESEARCH_LOG.md {entry_date}: missing or empty bullet '{bullet}'")
 
 
+def check_log_headers(text: str, report: Report) -> None:
+    """Every unfenced '### ' line must be a dated entry header.
+
+    A malformed date ('### 2026-8-15', a leftover placeholder) silently drops
+    the whole entry out of validation: bullets unchecked, cross-references
+    failing with no visible cause.
+    """
+    in_fence = False
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if line.lstrip().startswith(("```", "~~~")):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if line.startswith("### ") and not LOG_HEADER_RE.match(line):
+            report.add(
+                f"RESEARCH_LOG.md:{lineno}: {line.strip()[:40]!r} is not a dated entry "
+                "header (### YYYY-MM-DD) — fix the date or fence the example"
+            )
+
+
 def check_log_language(text: str, report: Report) -> None:
     """Log prose must survive a reader without the writer's context.
 
@@ -331,6 +390,7 @@ def validate_log(report: Report) -> set[str]:
     dates = list(entries)
     check_log_dates(dates, report)
     check_log_bullets(entries, report)
+    check_log_headers(text, report)
     check_log_language(text, report)
     return set(dates)
 
