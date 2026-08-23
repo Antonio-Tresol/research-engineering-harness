@@ -42,6 +42,29 @@ NODE_ID_RE: Final[re.Pattern[str]] = re.compile(r"^[QHEC]\d+(\.[QHEC]\d+)*$")
 NODE_TYPE_RE: Final[re.Pattern[str]] = re.compile(r"([QHEC])\d+$")
 SCORECARD_RE: Final[re.Pattern[str]] = re.compile(r"falsif|scorecard|validat", re.IGNORECASE)
 
+INLINE_CODE_RE: Final[re.Pattern[str]] = re.compile(r"`[^`]+`")
+# Telegraph markers that never belong in plain prose: (pattern, how to fix).
+# Precision over recall, deliberately: every pattern must be unambiguous,
+# because a language check that cries wolf gets bypassed and takes the
+# structural checks' credibility with it. The full plain-language contract
+# lives in the research-log skill; this tripwire catches only the worst drift.
+SHORTHAND: Final[tuple[tuple[re.Pattern[str], str], ...]] = (
+    (re.compile(r"\bw/o\b|\bw/(?=[\w\s])"), "write 'with' / 'without'"),
+    (re.compile(r"\bb/c\b"), "write 'because'"),
+    (re.compile(r"tl;dr", re.IGNORECASE), "state the finding as a full sentence"),
+    (
+        re.compile(r"[→⇒⟶⇢↦←↔↑↓]|(?<![-<])->|=>"),
+        "write the relation in words ('to', 'then', 'increases')",
+    ),
+    (re.compile(r"\s&\s"), "write 'and'"),
+    (re.compile(r"\s@\s"), "write 'at'"),
+    (
+        re.compile(r"\b(?:iirc|afaict|afaik|fwiw|btw|tbh)\b", re.IGNORECASE),
+        "write the thought in full",
+    ),
+    (re.compile(r"\b(?:imo|idk)\b"), "write the thought in full"),
+)
+
 LOG_HEADER_RE: Final[re.Pattern[str]] = re.compile(r"^### (\d{4}-\d{2}-\d{2})(?:\s+.*)?$")
 LOG_BULLETS: Final[tuple[str, ...]] = (
     "What I did:",
@@ -58,6 +81,7 @@ class Node:
     lineno: int
     node_id: str
     node_type: str
+    text: str
     status: str
     evidence: tuple[str, ...]
     log_date: str | None
@@ -115,7 +139,7 @@ def parse_node(line: str, lineno: int, report: Report) -> Node | None:
         report.add_tree(lineno, f"bad node id {node_id!r}")
         return None
     evidence = tuple(e.strip() for e in (match["evidence"] or "").split(",") if e.strip())
-    return Node(lineno, node_id, ntype, match["status"], evidence, match["log"])
+    return Node(lineno, node_id, ntype, match["text"], match["status"], evidence, match["log"])
 
 
 def check_lineage(node: Node, seen: set[str], report: Report) -> None:
@@ -154,6 +178,23 @@ def check_evidence(node: Node, report: Report) -> None:
         )
 
 
+def scan_shorthand(prose: str) -> list[tuple[str, str]]:
+    """(matched token, fix) per shorthand family found; inline code is exempt."""
+    plain = INLINE_CODE_RE.sub(" ", prose)
+    hits: list[tuple[str, str]] = []
+    for pattern, fix in SHORTHAND:
+        match = pattern.search(plain)
+        if match:
+            hits.append((match.group(0).strip(), fix))
+    return hits
+
+
+def check_plain_language(node: Node, report: Report) -> None:
+    """Node text must survive a reader without the writer's context."""
+    for token, fix in scan_shorthand(node.text):
+        report.add_tree(node.lineno, f"{node.node_id} text has shorthand {token!r} — {fix}")
+
+
 def check_hypothesis_support(nodes: list[Node], report: Report) -> None:
     """A belief change requires at least one validated child claim."""
     statuses = {n.node_id: n.status for n in nodes}
@@ -184,7 +225,18 @@ def validate_tree(report: Report) -> list[Node]:
         if line.lstrip().startswith(("```", "~~~")):
             in_fence = not in_fence  # fenced examples document the grammar
             continue
-        if in_fence or not is_node_line(line.strip()):
+        stripped = line.strip()
+        if in_fence or not stripped:
+            continue
+        if not is_node_line(stripped):
+            # Prose is welcome as a preamble; past the first node the tree
+            # holds only nodes, or state starts hiding in freeform text.
+            if nodes:
+                report.add_tree(
+                    lineno,
+                    f"non-node line after the first node: {stripped[:60]!r} — "
+                    "narrative belongs in RESEARCH_LOG.md or in node text",
+                )
             continue
         node = parse_node(line, lineno, report)
         if node is None:
@@ -192,6 +244,7 @@ def validate_tree(report: Report) -> list[Node]:
         check_lineage(node, seen, report)
         check_status(node, report)
         check_evidence(node, report)
+        check_plain_language(node, report)
         seen.add(node.node_id)
         nodes.append(node)
     check_hypothesis_support(nodes, report)
@@ -245,6 +298,23 @@ def check_log_bullets(entries: dict[str, str], report: Report) -> None:
                 report.add(f"RESEARCH_LOG.md {entry_date}: missing or empty bullet '{bullet}'")
 
 
+def check_log_language(text: str, report: Report) -> None:
+    """Log prose must survive a reader without the writer's context.
+
+    Same tripwire as node text. Fenced blocks and inline code are exempt:
+    commands, paths, and quoted output are material, not prose.
+    """
+    in_fence = False
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if line.lstrip().startswith(("```", "~~~")):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for token, fix in scan_shorthand(line):
+            report.add(f"RESEARCH_LOG.md:{lineno}: shorthand {token!r} — {fix}")
+
+
 def validate_log(report: Report) -> set[str]:
     """Returns the set of entry dates (ISO strings)."""
     if not LOG.exists():
@@ -260,6 +330,7 @@ def validate_log(report: Report) -> set[str]:
     dates = list(entries)
     check_log_dates(dates, report)
     check_log_bullets(entries, report)
+    check_log_language(text, report)
     return set(dates)
 
 

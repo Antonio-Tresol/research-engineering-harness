@@ -232,5 +232,78 @@ def test_duplicate_log_dates_are_reported(tmp_path: Path) -> None:
     assert "duplicate entry" in result.stdout
 
 
+# --- Plain-language tripwire ---------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "node_text",
+    [
+        "Steering ↑ refusal w/ the Gemma direction",
+        "KL spike @ layer 12 → gone after fp32",
+        "Probe works b/c prompts leak length",
+        "Compare probes & steering on the held-out split",
+    ],
+)
+def test_shorthand_in_node_text_fails(tmp_path: Path, node_text: str) -> None:
+    result = run(project(tmp_path, f"- Q1: {node_text} [open]\n"))
+    assert result.returncode == 1
+    assert "shorthand" in result.stdout
+
+
+def test_shorthand_in_log_prose_fails(tmp_path: Path) -> None:
+    log = GOOD_LOG.replace("ran the thing.", "reran sweep w/ fp32, tl;dr it works.")
+    result = run(project(tmp_path, "- Q1: q [open]\n", log))
+    assert result.returncode == 1
+    assert "shorthand" in result.stdout
+
+
+def test_plain_prose_with_standard_notation_is_quiet(tmp_path: Path) -> None:
+    """Standard notation is not shorthand: slashes in names, percentages, CIs,
+    em dashes, 'vs', and inline code (which may contain arrows) all stay quiet."""
+    tree = (
+        "- Q1: Does the layer-12 direction transfer across A/B prompt splits? [open]\n"
+        "  - Q1.H1: Held-out AUC stays within the 95% CI — no paraphrase gap [open]\n"
+    )
+    log = (
+        "# P\n\n## Project summary\n\nParaphrase sensitivity of a linear probe; AUC 0.81 (n=400).\n\n"
+        "### 2026-07-19\n\n"
+        "* What I did: Reran `scripts/sweep.py --grid coarse->fine` and plotted the scores.\n"
+        "* What I expected vs what happened: Expected AUC near 0.75; got 0.81, above the pilot.\n"
+        "* What this changes about my thinking: The direction is stronger than assumed.\n"
+        "* What I will do next: Run the length-confound regression before touching statuses.\n"
+    )
+    result = run(project(tmp_path, tree, log))
+    assert result.returncode == 0, result.stdout
+
+
+def test_tree_preamble_prose_and_arrows_are_allowed(tmp_path: Path) -> None:
+    """The template's own preamble — prose, an arrow chain naming the hierarchy,
+    a fenced grammar example — sits before the first node and is not policed."""
+    tree = (
+        "# Research tree\n\n"
+        "State of the project: questions → hypotheses → experiments → claims.\n\n"
+        "```markdown\n- Q1: <question> [open]\n```\n\n"
+        "- Q1: Does the detector fire? [open]\n"
+    )
+    result = run(project(tmp_path, tree))
+    assert result.returncode == 0, result.stdout
+
+
+def test_prose_after_first_node_fails(tmp_path: Path) -> None:
+    """Freeform sections in the tree are state hiding outside the grammar."""
+    tree = "- Q1: A question [open]\n\n## Session notes\n\nNarrative that belongs in the log.\n"
+    result = run(project(tmp_path, tree))
+    assert result.returncode == 1
+    assert "non-node line" in result.stdout
+
+
+def test_fenced_block_after_nodes_is_allowed(tmp_path: Path) -> None:
+    """Fenced content is exempt everywhere: a grammar example below the nodes
+    is quoted material, not freeform state."""
+    tree = "- Q1: q [open]\n\n```markdown\nexample: not → parsed\n```\n"
+    result = run(project(tmp_path, tree))
+    assert result.returncode == 0, result.stdout
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))

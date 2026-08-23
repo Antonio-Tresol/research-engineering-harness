@@ -17,6 +17,39 @@ The tree is the **state** (what we believe now and on what evidence); the log is
 **history** (what was done and learned, frozen per day). Never encode state only in
 the log or history only in the tree.
 
+## Plain language (both files)
+
+The tree and the log have one job: carrying state and history across a context
+boundary — to a collaborator, a reviewer, a future you, and every future agent
+session, none of whom share the context in which you wrote. Agents drift toward
+writing for a reader inside their own context window: coined names, telegraph
+fragments, abbreviations only the current session can expand. That text still
+looks like a record, but it transfers nothing.
+
+Write both files for **a researcher who knows the field but has never opened
+this repository**:
+
+- **Standard vocabulary only** — the terms a paper or textbook would use.
+  Field-standard abbreviations (AUC, KL, CI, LoRA) are fine; coined terms, pet
+  names for experiments, and private abbreviations are not.
+- **Project-specific terms are defined once**, in the log's Project summary,
+  before first use — then used identically everywhere: one term per concept,
+  no synonyms, no competing shorthand.
+- **Complete sentences, no telegraph.** "Reran the sweep in fp32; the KL spike
+  at layer 12 disappeared" — not "KL spike @ L12 → reran w/ fp32, ok now".
+- **Prose stands without the codebase.** Paths and identifiers go in
+  `evidence:` fields and backticks, and the sentence around them must make
+  sense to someone who will never open the file ("the sweep script
+  `scripts/sweep.py`, one row per seed" — never a bare identifier doing a
+  sentence's work).
+
+The test, before every commit: reread today's entry and every touched node as
+that outside reader. A sentence that needs the codebase, this conversation, or
+an earlier entry to parse gets rewritten. The validator trips on the worst
+telegraph (arrows, "w/", "b/c", chat abbreviations); treat a clean run as the
+floor, not the contract — what it cannot measure is whether a stranger
+understands you, and that is the actual rule.
+
 ## TREE.md grammar (enforced by the validator)
 
 Nodes are nested markdown list items. Each node: `- <ID>: <text> [<status>]`
@@ -54,19 +87,25 @@ Rules the validator enforces (each one mechanically checked, exit 1 on violation
    validate-claims protocol ran. Mechanically enforced: at least one evidence
    path must be a scorecard artifact whose filename contains `falsify`,
    `scorecard`, or `validation`.
+7. Past the first node, the file contains only node lines (blank lines and
+   fenced examples aside): narrative belongs in the log or in node text, never
+   in freeform sections where no status or evidence rule can reach it.
+8. Node text carries no telegraph shorthand — arrows, "w/", "b/c", spaced
+   "&"/"@", chat abbreviations — outside inline code. This is the tripwire for
+   the Plain language contract above, not its replacement.
 
 Rules held by convention (the validator cannot judge these; the falsify and
 validate-claims gates check them when a claim graduates):
 
-7. **Claims carry their distribution.** State `n` and the aggregation rule (mean
+9. **Claims carry their distribution.** State `n` and the aggregation rule (mean
    over seeds, best-of-k, union over variants) in the claim text. Agent-benchmark
    results have been shown to *reverse* depending on budget and aggregation, and a
    single run of an investigation is close to uninformative — a bare number
    without its `n` is an anecdote, not a claim.
-8. **Graders are pinned and never edited in the same commit as what they grade.**
-   If a validator, scorer, or rubric changes alongside the experiment it certifies,
-   the certification means nothing. Agent benchmarks have been broken in exactly
-   this way, by an agent with write access to its own test files.
+10. **Graders are pinned and never edited in the same commit as what they grade.**
+    If a validator, scorer, or rubric changes alongside the experiment it certifies,
+    the certification means nothing. Agent benchmarks have been broken in exactly
+    this way, by an agent with write access to its own test files.
 
 ## RESEARCH_LOG.md format (enforced by the validator)
 
@@ -82,7 +121,9 @@ Newest entry first. Each entry:
 ```
 
 Validator checks: header dates parse, strictly descending, all four bullets present
-and non-empty, and a `## Project summary` section exists at the top of the file.
+and non-empty, a `## Project summary` section exists at the top of the file, and
+prose carries no telegraph shorthand (the same tripwire as node text; fenced
+blocks and inline code are exempt).
 
 ## Workflow
 
@@ -96,7 +137,8 @@ and non-empty, and a `## Project summary` section exists at the top of the file.
 - **Before claims graduate**: run `falsify` (statistical destruction) and/or
   `validate-claims` (traceability); update claim statuses per the outcome, linking
   the scorecard.
-- **Session end**: append the day's log entry, update statuses, then run
+- **Session end**: append the day's log entry, update statuses, and reread both
+  files as the outside reader (Plain language above). Then run
   `python scripts/validate_research.py` and fix every error before stopping.
 - **Pivots**: never delete a node — mark it `abandoned` with a log-date pointing at
   the entry explaining why. The tree's job is to never lie about what was tried.

@@ -17,6 +17,11 @@ only to record what is true.
   with statuses and evidence links. This is the current state of belief.
 - `RESEARCH_LOG.md`: the daily log (4-question format, newest first). This is the
   append-only history. Never encode state only here or history only in the tree.
+- Both files are written in plain language for a reader who has never opened
+  this repository: standard AI/ML/software terms, complete sentences, no
+  shorthand, no coined names. A project-specific term is defined once in the
+  log's Project summary before use. The `research-log` skill carries the full
+  contract; the validator trips on the worst telegraph.
 - `uv run scripts/validate_research.py`: mechanical validator for both. Must exit
   0 before ending any session and before any deliverable.
 - `./check.sh`: every mechanical check. `lanorme` (code quality, Agent Skills
@@ -99,6 +104,10 @@ Phases iterate; the gates do not.
   up. A null or infeasible result recorded with evidence is a completed
   experiment, not a failure to complete one.
 - Pivots are recorded, not erased: nodes become `abandoned`, never deleted.
+- No private dialect in shared artefacts. The tree, the log, code comments, and
+  docs are read by people and future sessions with none of the writer's
+  context: plain language and standard terminology throughout, so that what we
+  share stays our common understanding.
 
 ## Tooling
 

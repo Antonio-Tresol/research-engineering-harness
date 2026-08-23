@@ -92,7 +92,11 @@ right.
 claim that fails falsification changes status there. `RESEARCH_LOG.md` is
 append-only history, one dated entry per session answering the same four
 questions, never revised. Keeping both means you can always ask what is believed
-now *and* what you believed last Tuesday before the result came in.
+now *and* what you believed last Tuesday before the result came in. Both files
+are written in plain language — standard terms, complete sentences, no project
+dialect — because their whole job is to be read by someone without the writer's
+context: a collaborator, a reviewer, the next agent session. A validator
+tripwire catches the worst telegraph shorthand; the skill carries the contract.
 
 **Claim graduation.** Every claim starts `unvalidated`. It can only become
 `survived`, `weakened`, or `failed` once a falsification or validation run has
@@ -141,7 +145,7 @@ runs two things:
 | | Covers |
 |---|---|
 | `lanorme` + harness plugins | Python quality, Agent Skills spec, tensor shape discipline (`TENSOR-*`), skill portability (`HSKILL-*`), claim provenance (`PROV-*`), bookkeeping staleness (`STALE-*`) |
-| `scripts/validate_research.py` | Tree and log structure, evidence files exist, scorecard-gated graduation, tree-to-log cross-references |
+| `scripts/validate_research.py` | Tree and log structure, evidence files exist, scorecard-gated graduation, tree-to-log cross-references, plain-language tripwires (no telegraph shorthand, nothing but nodes in the tree) |
 
 The integrity gate is a zero-dependency script, so a project that never installs
 [lanorme](https://github.com/lanorme/lanorme) still gets every guarantee about

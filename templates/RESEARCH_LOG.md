@@ -4,7 +4,8 @@
 
 Update this regularly. One paragraph covering: what paper, codebase, or project
 idea this builds on; what we are trying to figure out; how it connects to the
-broader landscape.
+broader landscape. This is also where any project-specific term used in the
+tree or log is defined — once, before first use.
 
 <What this project is, who is working on it, and its timebox if any.>
 
@@ -14,6 +15,11 @@ broader landscape.
 
 Newest entry first. Every entry answers the same four questions. A null or
 infeasible result recorded with evidence counts as a completed experiment.
+
+Entries are plain language for a reader who has never opened this repository:
+complete sentences, standard terms, no shorthand or private abbreviations. The
+reader who needs this file most — a collaborator, a reviewer, the next session
+— has none of today's context.
 
 Entry format:
 
