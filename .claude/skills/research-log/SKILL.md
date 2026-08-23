@@ -81,6 +81,12 @@ The rule that keeps the tree scannable:
   categories) — defined once in the document that registers them. Node text
   stays readable without the legend: name the thing plainly and link the
   document, never "G passes incl. B_conflict" bare in a node.
+- **Clean-ups relocate before they rewrite.** When restructuring an
+  overgrown tree, write the notes/ documents first, then rewrite the node
+  text to point at them, then record the migration in the log. In measured
+  migrations of a real 94KB tree, this order finished green with every
+  tracked fact preserved; a rewrite-first attempt stalled with nothing
+  landed.
 
 ## TREE.md grammar (enforced by the validator)
 

@@ -316,6 +316,7 @@ def run_one(run_idx: int, args: argparse.Namespace) -> dict[str, Any]:
         "log_entry_appended": any(d not in seed_dates for d in after["log_dates"]),
         "instrument_tampered": after["hashes"] != seed["hashes"],
         "num_turns": int(final.get("num_turns", 0)),
+        "max_turns": args.max_turns,
         "cost_usd": float(final.get("total_cost_usd") or 0.0),
         "duration_s": round(time.monotonic() - started, 1),
         "timed_out": outcome["timed_out"],

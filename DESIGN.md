@@ -59,7 +59,13 @@ binding constraint ([meta Q2.H1][meta]). Hence the plain-language contract is
 stated as a norm, enforced as a tripwire, and backed by a PostToolUse hook as
 insurance for sessions that skip the ritual. Clean-up carries an explicit
 relocation rule because, before it existed, agents deleted a seeded
-operational warning in 8 of 9 clean-up runs instead of moving it.
+operational warning in 8 of 9 clean-up runs instead of moving it. Two
+robustness reads later strengthened the stack: with prompts that never
+mention the skill, it auto-loaded from its description in 18/18 headless
+runs and no telegraph leaked; with a smaller subject model the gate held
+(12/12 green) but a previously registered control was silently dropped from
+the record in 2 of 6 restructuring runs — length is checked mechanically,
+completeness still rides on the docs and the model ([meta Q2.H1][meta]).
 
 ## Mechanisms
 
@@ -133,9 +139,16 @@ clean-up in the second project — every claim restructured to one falsifiable
 sentence with labelled support and falsification clauses — landed at median
 node text near 600 characters, which calibrates the validator's
 1,200-character limit. In an A/B differing only in the altitude rules, agents
-without them appended (nodes grew to 1,946–2,320 characters); with them they
-restructured in 3/3 runs into linked `notes/` registration documents with
-every seeded protocol detail preserved ([meta Q2.H2–H3][meta]).
+without them appended (nodes grew to 1,902–2,822 characters across n=6);
+with them they restructured in 6/6 runs into linked `notes/` registration
+documents with every seeded protocol detail preserved. Across five chained
+sessions on one workspace the gate flattened the real growth curve — max
+node text stayed at or under 1,200 in 15/15 sessions against unbounded
+growth without it — and in a brownfield migration of a real 94KB, 68-
+violation tree, every one of 19 tracked facts (numbers, a teammate
+attribution, a citation) survived in all runs, with a fresh cheap reader
+recovering detail answers from the relocation documents at 40% of the
+original tree's reading cost ([meta Q2.H2–H3][meta]).
 
 ### Code quality applies to promoted code only
 

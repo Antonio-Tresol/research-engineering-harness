@@ -84,7 +84,7 @@ ALLOWED_TOOLS: Final[str] = (
     "Bash(mkdir:*),Bash(echo:*),Bash(git:*),Bash(date:*),Bash(head:*),"
     "Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(rg:*),Bash(sed:*),"
     "Bash(awk:*),Bash(cut:*),Bash(sort:*),Bash(uniq:*),Bash(cp:*),"
-    "Bash(mv:*),Bash(touch:*)"
+    "Bash(mv:*),Bash(touch:*),Bash(for:*),Bash(while:*)"
 )
 
 log = logging.getLogger("plain-language-eval")
