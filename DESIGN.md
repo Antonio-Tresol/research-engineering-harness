@@ -1,8 +1,9 @@
 # Design rationale
 
-Why the harness enforces what it enforces. Every claim here cites a source in
-`references/`; the per-source notes, with read-depth tags and verbatim quotes,
-are under `research/`.
+Why the harness enforces what it enforces. Every claim here cites either a
+source in `references/` — with per-source notes, read-depth tags, and verbatim
+quotes under `research/` — or the harness's own measured record in the private
+companion repo [research-harness-meta][meta] (tree nodes named inline).
 
 The organising idea: **norms remove the reasons to fabricate, and mechanisms
 catch the mistakes that honesty does not prevent.** Neither substitutes for the
@@ -43,6 +44,22 @@ human-generated ones, reversing the ranking that ideation-stage review had
 produced ([arXiv:2506.20803][gap], following [arXiv:2409.04109][ideas]).
 Pre-execution novelty is not a proxy for research value, so the harness
 structures the choice of what to run and leaves the direction to a person.
+
+### Shared artefacts are written for readers without the writer's context
+
+Behaviour probes on the harness's own files found that legibility drift is
+mimicry: the same model that wrote plain entries on a clean project — even
+from a telegraph-heavy user message — reproduced seeded dialect in 3/3 runs on
+a dialect-seeded one, extending it into its own new writing. The files, not
+the agent's disposition, carry the style forward. Norms alone cleaned
+inherited dialect unreliably (the tree in 3/3 runs, the log history in 1/3),
+while the validator tripwire cleaned both in 6/6 — and agents ran the
+validator in 24/24 runs, so what it catches, not whether it runs, was the
+binding constraint ([meta Q2.H1][meta]). Hence the plain-language contract is
+stated as a norm, enforced as a tripwire, and backed by a PostToolUse hook as
+insurance for sessions that skip the ritual. Clean-up carries an explicit
+relocation rule because, before it existed, agents deleted a seeded
+operational warning in 8 of 9 clean-up runs instead of moving it.
 
 ## Mechanisms
 
@@ -105,6 +122,21 @@ rule, and a single run of an investigation is close to uninformative. Claims
 therefore state `n` and the aggregation rule. See `research/research-agents/`
 for the specific reversals.
 
+### A node is a headline
+
+The artefact histories of two real consuming projects (103 artefact commits,
+every one agent-co-authored) showed the dominant legibility failure is
+accretion, not shorthand: registration protocols and dated amendments
+appended into single tree nodes until one reached 12,051 characters, its
+codename legend buried inside the same unreadable line. A deliberate hand
+clean-up in the second project — every claim restructured to one falsifiable
+sentence with labelled support and falsification clauses — landed at median
+node text near 600 characters, which calibrates the validator's
+1,200-character limit. In an A/B differing only in the altitude rules, agents
+without them appended (nodes grew to 1,946–2,320 characters); with them they
+restructured in 3/3 runs into linked `notes/` registration documents with
+every seeded protocol detail preserved ([meta Q2.H2–H3][meta]).
+
 ### Code quality applies to promoted code only
 
 42% of The AI Scientist's experiments failed on coding errors
@@ -131,3 +163,4 @@ The gap analyses in `research/` record the reasoning for each.
 [jr]: https://arxiv.org/abs/2511.04583
 [labels]: https://arxiv.org/abs/2605.12874
 [aisci]: https://arxiv.org/abs/2408.06292
+[meta]: https://github.com/Antonio-Tresol/research-harness-meta
