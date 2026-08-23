@@ -235,7 +235,8 @@ def validate_tree(report: Report) -> list[Node]:
                 report.add_tree(
                     lineno,
                     f"non-node line after the first node: {stripped[:60]!r} — "
-                    "narrative belongs in RESEARCH_LOG.md or in node text",
+                    "move its content into RESEARCH_LOG.md (today's entry or the "
+                    "Project summary) or into node text; relocate, never delete",
                 )
             continue
         node = parse_node(line, lineno, report)

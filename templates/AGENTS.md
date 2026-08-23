@@ -23,7 +23,11 @@ only to record what is true.
   log's Project summary before use. The `research-log` skill carries the full
   contract; the validator trips on the worst telegraph.
 - `uv run scripts/validate_research.py`: mechanical validator for both. Must exit
-  0 before ending any session and before any deliverable.
+  0 before ending any session and before any deliverable. In Claude Code a
+  `PostToolUse` hook (`.claude/hooks/validate_research_hook.py`, wired in
+  `.claude/settings.json`) also runs it after every edit to `TREE.md` or
+  `RESEARCH_LOG.md` and feeds failures straight back; agents without hook
+  support rely on the session-end run alone.
 - `./check.sh`: every mechanical check. `lanorme` (code quality, Agent Skills
   spec, plus the harness plugins `tensors` for jaxtyping/einops discipline and
   `skill_portability`) followed by the research-integrity gate. Run after

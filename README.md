@@ -149,7 +149,11 @@ runs two things:
 
 The integrity gate is a zero-dependency script, so a project that never installs
 [lanorme](https://github.com/lanorme/lanorme) still gets every guarantee about
-evidence and claim graduation.
+evidence and claim graduation. In Claude Code sessions the project settings also
+wire it to a `PostToolUse` hook, so every edit to `TREE.md` or `RESEARCH_LOG.md`
+revalidates immediately and failures land back in the agent's context — in
+behaviour runs agents reliably fixed what the validator showed them; the hook
+removes the need to remember to run it.
 
 `./check.sh` also runs the checks' own test suite. Roughly half of those tests
 assert that a rule stays **quiet**: on rounded values, on documentation examples

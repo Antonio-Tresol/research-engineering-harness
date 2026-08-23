@@ -42,6 +42,12 @@ this repository**:
   sense to someone who will never open the file ("the sweep script
   `scripts/sweep.py`, one row per seed" — never a bare identifier doing a
   sentence's work).
+- **Clean-up preserves information.** When rewriting dialect or removing a
+  freeform section, move what it said — into today's log entry, the Project
+  summary, or the node's own text — before deleting the words. In a measured
+  run of this clean-up, agents silently dropped an operational warning in
+  eight cases out of nine; rewriting for clarity never deletes recorded
+  state, exactly as pivots are recorded and never erased.
 
 The test, before every commit: reread today's entry and every touched node as
 that outside reader. A sentence that needs the codebase, this conversation, or

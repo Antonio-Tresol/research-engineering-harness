@@ -160,13 +160,13 @@ class Installer:
             return False
         return True
 
-    def copy_dir(self, rel: str, label: str = "") -> None:
+    def copy_dir(self, rel: str, label: str = "", ignore: tuple[str, ...] = ()) -> None:
         src, dest = HARNESS / rel, self.plan.target / rel
         if not src.exists() or not self.can_write(dest):
             return
         if dest.exists():
             shutil.rmtree(dest)
-        shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__"))
+        shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__", *ignore))
         self.actions.append(f"copied {rel}/{label}")
 
     def copy_file(self, src_rel: str, dest_rel: str) -> None:
@@ -232,7 +232,11 @@ class Installer:
     def run(self) -> list[str]:
         self.plan.target.mkdir(parents=True, exist_ok=True)
         for rel in COPY_TREE:
-            self.copy_dir(rel)
+            # The project's settings come from templates/claude-settings.json
+            # (COPY_AS below). Copying the harness's own settings here would
+            # shadow that template — and silently did, until the two diverged.
+            ignore = ("settings.json", "settings.local.json") if rel == ".claude" else ()
+            self.copy_dir(rel, ignore=ignore)
         if self.plan.with_reference:
             for rel in COPY_REFERENCE:
                 self.copy_dir(rel, label=" (reference)")

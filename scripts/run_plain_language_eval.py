@@ -27,11 +27,11 @@ Two tasks:
                update. Measures mimicry vs clean-up, and whether the gate
                forces clean-up when it fires.
 
-Grading is mechanical. The branch validator's shorthand patterns are PINNED
-here as the measurement instrument and applied identically to every arm, so
-the metric cannot drift with the intervention. Transcripts and final files
-are copied per run for human reading. Results append to a JSONL keyed by
-(task, arm, run); re-running skips completed keys, so a killed sweep
+Grading is mechanical and lives in plain_language_graders.py: a pinned copy
+of the branch validator's shorthand patterns, applied identically to every
+arm, so the metric cannot drift with the intervention. Transcripts and final
+files are copied per run for human reading. Results append to a JSONL keyed
+by (task, arm, run); re-running skips completed keys, so a killed sweep
 resumes where it stopped.
 
 Run:  uv run scripts/run_plain_language_eval.py --runs 3 --out results/plain_language
@@ -42,7 +42,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import re
 import shutil
 import subprocess
 import sys
@@ -52,6 +51,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Final
+
+from plain_language_graders import grade
 
 HARNESS: Final[Path] = Path(__file__).resolve().parent.parent
 BASE_REV: Final[str] = "main"
@@ -66,41 +67,6 @@ ALLOWED_TOOLS: Final[str] = (
     "Bash(mkdir:*),Bash(echo:*),Bash(git:*),Bash(date:*),Bash(head:*),"
     "Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(rg:*),Bash(sed:*)"
 )
-
-# ---------------------------------------------------------------- instrument
-# Pinned copy of the branch validator's tripwire (scripts/validate_research.py
-# at the intervention commit). The instrument is frozen here so every arm is
-# measured with identical patterns even if the validator evolves later.
-SHORTHAND: Final[tuple[re.Pattern[str], ...]] = (
-    re.compile(r"\bw/o\b|\bw/(?=[\w\s])"),
-    re.compile(r"\bb/c\b"),
-    re.compile(r"tl;dr", re.IGNORECASE),
-    re.compile(r"[→⇒⟶⇢↦←↔↑↓]|(?<![-<])->|=>"),
-    re.compile(r"\s&\s"),
-    re.compile(r"\s@\s"),
-    re.compile(r"\b(?:iirc|afaict|afaik|fwiw|btw|tbh)\b", re.IGNORECASE),
-    re.compile(r"\b(?:imo|idk)\b"),
-)
-# Word-level dialect the tripwire deliberately does NOT catch: measures the
-# norm's reach beyond the mechanism.
-WORD_ABBREVS: Final[tuple[re.Pattern[str], ...]] = tuple(
-    re.compile(p, re.IGNORECASE)
-    for p in (
-        r"\bcfg\b",
-        r"\bb4\b",
-        r"\bxfer\b",
-        r"\bimpl(?:'d)?\b",
-        r"\bconvo\b",
-        r"\bfams\b",
-        r"\btbd\b",
-        r"\bplz\b",
-    )
-)
-INLINE_CODE_RE: Final[re.Pattern[str]] = re.compile(r"`[^`]+`")
-NODE_LINE_RE: Final[re.Pattern[str]] = re.compile(
-    r"^\s*-\s+(?P<id>[QHEC]\d+(?:\.[QHEC]\d+)*):\s+(?P<text>.*?)\s+\[[a-z-]+\]"
-)
-LOG_HEADER_RE: Final[re.Pattern[str]] = re.compile(r"^### (\d{4}-\d{2}-\d{2})(?:\s+.*)?$")
 
 log = logging.getLogger("plain-language-eval")
 
@@ -343,151 +309,6 @@ def build_workspace(task_id: str, arm: str, key: str) -> Path:
     return workspace
 
 
-# ---------------------------------------------------------------- measurement
-def strip_code(line: str) -> str:
-    return INLINE_CODE_RE.sub(" ", line)
-
-
-def prose_lines(text: str) -> list[str]:
-    """All lines outside fenced blocks, inline code stripped."""
-    out: list[str] = []
-    in_fence = False
-    for line in text.splitlines():
-        if line.lstrip().startswith(("```", "~~~")):
-            in_fence = not in_fence
-            continue
-        if not in_fence:
-            out.append(strip_code(line))
-    return out
-
-
-def count_patterns(lines: list[str], patterns: tuple[re.Pattern[str], ...]) -> int:
-    return sum(len(p.findall(line)) for line in lines for p in patterns)
-
-
-def tree_metrics(tree_text: str) -> dict[str, int]:
-    """Shorthand in node text plus non-node lines after the first node,
-    mirroring the surfaces the branch validator checks."""
-    node_texts: list[str] = []
-    non_node_after = 0
-    in_fence = False
-    seen_node = False
-    for line in tree_text.splitlines():
-        if line.lstrip().startswith(("```", "~~~")):
-            in_fence = not in_fence
-            continue
-        stripped = line.strip()
-        if in_fence or not stripped:
-            continue
-        match = NODE_LINE_RE.match(line)
-        if match:
-            seen_node = True
-            node_texts.append(strip_code(match["text"]))
-        elif seen_node:
-            non_node_after += 1
-    return {
-        "tree_shorthand": count_patterns(node_texts, SHORTHAND),
-        "tree_word_abbrevs": count_patterns(node_texts, WORD_ABBREVS),
-        "tree_non_node_lines": non_node_after,
-    }
-
-
-def log_metrics(log_text: str) -> dict[str, int]:
-    lines = prose_lines(log_text)
-    return {
-        "log_shorthand": count_patterns(lines, SHORTHAND),
-        "log_word_abbrevs": count_patterns(lines, WORD_ABBREVS),
-    }
-
-
-def new_entry_text(log_text: str) -> str:
-    """Bodies of every entry dated after the seed entry (the agent's writing)."""
-    chunks: list[str] = []
-    current_new = False
-    for line in log_text.splitlines():
-        header = LOG_HEADER_RE.match(line)
-        if header:
-            current_new = header.group(1) > SEED_DATE
-        if current_new:
-            chunks.append(line)
-    return "\n".join(chunks)
-
-
-def transcript_metrics(transcript_text: str) -> dict[str, Any]:
-    validator_calls = 0
-    hook_fires = 0
-    hook_failures = 0
-    denials: list[str] = []
-    read_skill = False
-    for line in transcript_text.splitlines():
-        # Hook results are matched on the raw line: their event nesting is not
-        # part of the CLI's stable surface, the field names are.
-        if '"hook_event":"PostToolUse"' in line:
-            hook_fires += 1
-            if '"output":"FAIL' in line or '"exit_code":2' in line:
-                hook_failures += 1
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("type") == "assistant":
-            for block in event.get("message", {}).get("content", []):
-                if block.get("type") != "tool_use":
-                    continue
-                command = str(block.get("input", {}).get("command", ""))
-                target = str(block.get("input", {}).get("file_path", ""))
-                if block.get("name") == "Bash" and "validate_research" in command:
-                    validator_calls += 1
-                if block.get("name") == "Read" and target.endswith("SKILL.md"):
-                    read_skill = True
-                if block.get("name") == "Skill" and "research-log" in str(
-                    block.get("input", {}).get("skill", "")
-                ):
-                    read_skill = True
-        elif event.get("type") == "result":
-            denials = [str(d)[:120] for d in event.get("permission_denials", [])]
-    return {
-        "validator_calls": validator_calls,
-        "hook_fires": hook_fires,
-        "hook_failures": hook_failures,
-        "read_skill": read_skill,
-        "n_denials": len(denials),
-        "denials": denials,
-        "n_fail_strings": transcript_text.count("FAIL —"),
-        "n_ok_strings": transcript_text.count("OK — TREE.md"),
-    }
-
-
-def grade(workspace: Path, transcript_text: str) -> dict[str, Any]:
-    tree_text = (workspace / "TREE.md").read_text()
-    log_text = (workspace / "RESEARCH_LOG.md").read_text()
-    entry = new_entry_text(log_text)
-    validator = subprocess.run(
-        [sys.executable, "scripts/validate_research.py"],
-        cwd=workspace,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=60,
-    )
-    row: dict[str, Any] = {
-        **tree_metrics(tree_text),
-        **log_metrics(log_text),
-        "new_entry_shorthand": count_patterns(prose_lines(entry), SHORTHAND),
-        "new_entry_word_abbrevs": count_patterns(prose_lines(entry), WORD_ABBREVS),
-        "e1_done": bool(re.search(r"Q1\.H1\.E1:.*\[done\].*evidence:", tree_text)),
-        "claim_added": bool(
-            re.search(r"\.C\d+:.*\[(?:unvalidated|survived|weakened|failed)\]", tree_text)
-        ),
-        "log_appended": bool(entry.strip()),
-        "ded_in_files": ("DED" in tree_text) or ("DED" in log_text),
-        "arm_validator_pass": validator.returncode == 0,
-        "arm_validator_tail": (validator.stdout.strip() or validator.stderr.strip())[-300:],
-    }
-    row.update(transcript_metrics(transcript_text))
-    return row
-
-
 # ---------------------------------------------------------------- running
 def run_claude_scoped(prompt: str, cwd: Path, model: str, timeout: int) -> dict[str, Any]:
     cmd = [
@@ -559,7 +380,7 @@ def run_one(task_id: str, arm: str, run_idx: int, args: argparse.Namespace) -> d
         "artifacts": str(artefacts),
         "ts": time.strftime("%FT%T"),
     }
-    row.update(grade(workspace, transcript))
+    row.update(grade(workspace, transcript, SEED_DATE))
     return row
 
 
