@@ -9,7 +9,7 @@
 #              as carefully as fires-on-bad-input.
 #   research gate — validate_research.py, run through research_graph.py verify
 #              where that CLI exists (same validator, plus evidence drift
-#              against provenance pins and orphaned notes/). Deliberately
+#              against recorded evidence hashes and orphaned notes/). Deliberately
 #              standalone and dependency-free: a project that never installs
 #              lanorme must still have every integrity guarantee. Skipped in
 #              the harness repo itself, which is not a research project and

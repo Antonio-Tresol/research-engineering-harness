@@ -31,7 +31,9 @@ from datetime import date
 from pathlib import Path
 from typing import Final
 
+from research_graph_glossary import glossary_report
 from research_graph_model import ERROR, INFO, INVALID, OK, WARNING, Graph, load
+from research_graph_review import review_report
 from research_graph_verification import load_scorecard_block, verification_report
 
 GRADUATED: Final[frozenset[str]] = frozenset({"survived", "weakened", "failed"})
@@ -133,7 +135,7 @@ def compute_pin(root: Path, claim_ids: list[str]) -> dict[str, object]:
 
 
 def read_pins(root: Path, graph: Graph) -> dict[str, dict]:
-    """Each graduated claim's recorded provenance pin, keyed by claim id.
+    """For each decided claim, the commit, date, and evidence hashes recorded for it.
 
     For every claim whose status is in GRADUATED, this looks at its
     scorecard evidence files (by filename, via ``_is_scorecard``) in the
@@ -221,7 +223,7 @@ def _missing_evidence_findings(graph: Graph) -> list[str]:
 
 
 def _unpinned_graduated_claims(graph: Graph, pins: dict[str, dict]) -> int:
-    """How many graduated claims have no entry in ``pins``."""
+    """How many decided claims have no recorded commit, date, and evidence hashes."""
     return sum(
         1
         for node in graph.nodes.values()
@@ -235,8 +237,13 @@ def verify(root: Path) -> int:
     In order: the sibling validator as a subprocess (grammar and the
     evidence-exists-on-disk basics), evidence existence per artifact,
     drift, verification scorecards (quote anchors resolve, verdicts match
-    statuses, reader runs recorded), orphan documents, and finally how many graduated claims still
-    have no provenance pin. Each problem becomes one "ERROR: " finding,
+    statuses, reader runs recorded), clarity reviews (whether an independent
+    reader has read each shared document, and whether its complaints quote text
+    that is still there), orphan documents, and finally how many decided claims
+    still have no recorded evidence hashes. A clarity review never reports on
+    the quality of any writing: that judgement belongs to the reader, and this
+    only says whether the reading happened and about which text. Each problem
+    becomes one "ERROR: " finding,
     and this fails (returns 1) exactly when at least one such finding
     exists — a failed validator run, missing evidence, or drift.
     Orphans are warnings and the unpinned count is informational; on
@@ -253,11 +260,14 @@ def verify(root: Path) -> int:
     findings.extend(_missing_evidence_findings(graph))
     findings.extend(drift_report(root, graph))
     findings.extend(verification_report(root, graph, pins))
+    findings.extend(glossary_report(root, graph))
+    findings.extend(review_report(root))
     findings.extend(orphan_report(graph))
     unpinned = _unpinned_graduated_claims(graph, pins)
     if unpinned:
         findings.append(
-            f"{INFO}{unpinned} graduated claims have no provenance pin; "
+            f"{INFO}{unpinned} claims whose status has been decided carry no "
+            f"recorded hash of their evidence files; "
             "run the pin command at the next gate."
         )
     for finding in findings:

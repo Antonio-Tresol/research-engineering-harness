@@ -81,7 +81,7 @@ def _require_node(graph: model.Graph, node_id: str) -> model.GraphNode | None:
 
 
 def _pin_and_drift(root: Path, graph: model.Graph) -> tuple[set[str], set[str]]:
-    """Evidence paths covered by a provenance pin, and which of those drifted.
+    """Evidence paths with a recorded hash, and which of those have changed since.
 
     An unpinned path was never drift-checked, so callers report it as "not
     pinned", never as "no drift" — those are different claims."""

@@ -94,10 +94,12 @@ claim that fails falsification changes status there. `RESEARCH_LOG.md` is
 append-only history, one dated entry per session answering the same four
 questions, never revised. Keeping both means you can always ask what is believed
 now *and* what you believed last Tuesday before the result came in. Both files
-are written in plain language — standard terms, complete sentences, no project
-dialect — because their whole job is to be read by someone without the writer's
-context: a collaborator, a reviewer, the next agent session. A validator
-tripwire catches the worst telegraph shorthand; the skill carries the contract.
+are written in plain language — the standard vocabulary of machine learning,
+statistics, and software engineering, complete sentences, no shorthand, and no
+names invented in one session — because their whole job is to be read by
+someone without the writer's context: a collaborator, a reviewer, the next
+agent session. The validator catches the worst telegraph shorthand; the skill
+carries the rest of the contract.
 
 **The record CLI.** `scripts/research_graph.py` reads and writes the record as
 a typed graph: `tree`, `show`, `search`, and `path` to navigate it; `add`,
@@ -105,14 +107,30 @@ a typed graph: `tree`, `show`, `search`, and `path` to navigate it; `add`,
 write validated before it lands and rolled back with an explanation when it
 would break the record; `json` and `mermaid` to export it for tooling and
 visualisation. `verify` re-checks everything from disk — structure, evidence
-files, drift against provenance pins, orphaned notes — and is the first
+files, evidence that changed after a claim was decided, orphaned notes — and
+is the first
 command an agent runs in a fresh session. The markdown files stay canonical
 and hand-editable; the CLI is a paved road over them, never a second store.
 
-**Claim graduation.** Every claim starts `unvalidated`. It can only become
-`survived`, `weakened`, or `failed` once a falsification or validation run has
-produced a scorecard file, which the checker requires by name. At graduation
-the evidence is pinned — commit hash and a per-file sha256 embedded in the
+**The independent reader.** Whether the record communicates is a judgement no
+checker can make — the validator catches "w/" and over-long nodes, never an
+unreadable paragraph. So the judgement is delegated to an agent with none of
+the writer's context: `research_graph.py review --run TREE.md` spawns a fresh
+reader process that receives only the document (no tools, no repository, no
+conversation) and records what it could not follow, every complaint quoting
+the file verbatim. The mechanical layer then does what it is good at: each
+quote must resolve against the file, the review carries a hash of the text
+that was read so staleness is visible, and `verify` plus the pre-commit hook
+report a shared document that changed since a reader last saw it. Findings
+are resolved through the same command — fix the text and re-run the reader,
+or keep it and record why with `--waive`. Nothing in this channel can fail a
+build: a semantic verdict that can block gets bypassed once and then forever.
+
+**How a claim's status is decided.** Every claim starts `unvalidated`. It can
+only become `survived`, `weakened`, or `failed` once a falsification or
+validation run has produced a report file, which the checker requires by name.
+When the status is decided the evidence is pinned — commit hash and a per-file
+sha256 embedded in the
 scorecard — so a later `verify` catches evidence files that changed after
 certification. `failed` is a
 normal outcome: retracting a claim before it ships is the system working.
@@ -159,11 +177,11 @@ runs two things:
 | | Covers |
 |---|---|
 | `lanorme` + harness plugins | Python quality, Agent Skills spec, tensor shape discipline (`TENSOR-*`), skill portability (`HSKILL-*`), claim provenance (`PROV-*`), bookkeeping staleness (`STALE-*`) |
-| `scripts/validate_research.py` — run via `scripts/research_graph.py verify` in projects | Tree and log structure, evidence files exist, scorecard-gated graduation, tree-to-log cross-references, plain-language tripwires (no telegraph shorthand, nothing but nodes in the tree); `verify` adds evidence drift against provenance pins and orphaned `notes/` documents |
+| `scripts/validate_research.py` — run via `scripts/research_graph.py verify` in projects | Tree and log structure, evidence files exist, no status change without a falsification report, tree-to-log cross-references, plain-language checks (no telegraph shorthand, nothing but nodes in the tree); `verify` adds evidence that changed since a claim was decided, and orphaned `notes/` documents |
 
 The integrity gate is a zero-dependency script, so a project that never installs
 [lanorme](https://github.com/lanorme/lanorme) still gets every guarantee about
-evidence and claim graduation. In Claude Code sessions the project settings also
+evidence and about how a claim's status is decided. In Claude Code sessions the project settings also
 wire it to a `PostToolUse` hook, so every edit to `TREE.md` or `RESEARCH_LOG.md`
 revalidates immediately and failures land back in the agent's context — in
 behaviour runs agents reliably fixed what the validator showed them; the hook
@@ -189,7 +207,7 @@ because only a person can say whether a run produced a belief worth recording.
 The optional pre-commit hook (`./hooks/install.sh`) blocks a commit when checks
 fail, then lists what the change implies without blocking: results that arrived
 with no tree update, a skill edited without touching the docs, code and results
-moving together so a graduated claim may need re-checking, an `updated:` date
+moving together so a decided claim may need re-checking, an `updated:` date
 that wants bumping. Each reminder names the files that triggered it, because a
 vague reminder gets skimmed and a specific one gets acted on.
 

@@ -4,10 +4,25 @@
 
 Update this regularly. One paragraph covering: what paper, codebase, or project
 idea this builds on; what we are trying to figure out; how it connects to the
-broader landscape. This is also where any project-specific term used in the
-tree or log is defined — once, before first use.
+broader landscape.
 
 <What this project is, who is working on it, and its timebox if any.>
+
+
+## Glossary
+
+This section is deliberately tiny, and most projects need nothing in it. The
+tree and the log are written in ordinary English and the standard vocabulary of
+machine learning, statistics, and software engineering; a thing with no standard
+name gets described in plain words wherever it appears, not given an invented
+name here. Only a name that no description can replace belongs in this list —
+the record's own file names, and the values a field is allowed to take. If you
+are about to add an entry for a task, a condition, a scoring scheme, or an
+internal tool, rewrite the sentence instead. Delete this note and the example
+once you have real entries, or delete the whole section if you have none.
+
+- **Example term**: what it means, in one sentence a research partner
+  outside the project could follow.
 
 ---
 

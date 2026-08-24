@@ -67,6 +67,15 @@ def test_validator_hook_ships_and_is_wired(installed: Path) -> None:
     assert "validate_research_hook.py" in settings
 
 
+def test_session_verify_hook_ships_and_is_wired(installed: Path) -> None:
+    """Session start is where the record re-anchors an agent after context loss."""
+    hook = installed / ".claude" / "hooks" / "session_verify_hook.py"
+    assert hook.is_file()
+    settings = json.loads((installed / ".claude" / "settings.json").read_text())
+    assert "SessionStart" in settings.get("hooks", {})
+    assert "session_verify_hook.py" in json.dumps(settings["hooks"]["SessionStart"])
+
+
 def test_fresh_project_validates(installed: Path) -> None:
     done = subprocess.run(
         [sys.executable, "scripts/validate_research.py"],
@@ -86,6 +95,10 @@ def test_shipped_scripts_are_exactly_the_record_tooling(installed: Path) -> None
     agent behaviour ON the harness) and must stay home. A new script failing
     this test is the forcing function: either it ships (add it here) or it is
     lab equipment (make it match a COPY_IGNORE pattern in install.py).
+
+    review_clarity.py ships even though it spawns an agent, because it is
+    aimed at the project's own documents rather than at the harness: every
+    project needs a reader who has never seen its repository.
     """
     shipped = {p.name for p in (installed / "scripts").glob("*.py")}
     assert shipped == {
@@ -94,9 +107,12 @@ def test_shipped_scripts_are_exactly_the_record_tooling(installed: Path) -> None
         "research_graph_model.py",
         "research_graph_write.py",
         "research_graph_checks.py",
+        "research_graph_glossary.py",
         "research_graph_txn.py",
         "research_graph_verification.py",
         "research_graph_views.py",
+        "research_graph_review.py",
+        "review_clarity.py",
     }
 
 

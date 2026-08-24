@@ -20,6 +20,7 @@ assuming no prior context, run: uv run scripts/research_graph.py help"""
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import sys
 from dataclasses import dataclass
@@ -27,7 +28,10 @@ from pathlib import Path
 from typing import Callable, Final
 
 import research_graph_checks as checks
+import research_graph_glossary as glossary
 import research_graph_model as model
+import research_graph_review as review
+import review_clarity
 import research_graph_views as views
 import research_graph_write as write
 from research_graph_model import INVALID as EXIT_INVALID
@@ -71,7 +75,7 @@ RECIPES: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
         ),
     ),
     (
-        "Move an over-long node's detail into a document (the altitude rule)",
+        "Move an over-long node's detail into a document (nodes stay short)",
         (
             'uv run scripts/research_graph.py add-note <slug> "<title>" "<the protocol '
             'text that was inlined>" --link Q1.H1.E1',
@@ -80,11 +84,22 @@ RECIPES: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
         ),
     ),
     (
-        "Graduate a claim",
+        "Decide a claim's status after the falsification pass",
         (
             "uv run scripts/research_graph.py pin Q1.H1.E1.C1",
             "uv run scripts/research_graph.py set-status Q1.H1.E1.C1 survived "
             "--evidence results/falsify_scorecard.json",
+        ),
+    ),
+    (
+        "Ask an outside reader what the record fails to communicate, then resolve "
+        "each finding: fix the text and read again, or keep it and say why",
+        (
+            "uv run scripts/research_graph.py review --run TREE.md",
+            "uv run scripts/research_graph.py review",
+            'uv run scripts/research_graph.py set-text Q1.H1.E1 "<the plain rewrite>"',
+            "uv run scripts/research_graph.py review --waive TREE.md "
+            '--quote "<the finding\'s excerpt>" --because "<why the text stays>"',
         ),
     ),
     (
@@ -124,6 +139,96 @@ def _default_root() -> Path:
 
 def cmd_verify(args: argparse.Namespace) -> int:
     return checks.verify(args.root)
+
+
+def _print_review(root: Path, artifact: str, record: "review.Review") -> None:
+    """One artifact's review: reader runs, then each finding as open or waived."""
+    state = "current" if review.is_current(root, record) else "STALE (the text has changed)"
+    latest = max((str(run.get("at", "")) for run in record.runs), default="unknown")
+    print(f"{artifact} — {record.readers} reader(s), last read {latest}, {state}")
+    if not record.findings:
+        print("  no findings: every reader followed the whole document")
+    for finding in record.findings:
+        excerpt = " ".join(str(finding.get("excerpt", "")).split())
+        waiver = record.waiver_for(finding)
+        mark = "waived" if waiver else "open"
+        print(f"  [{mark}] {excerpt[:70]!r}")
+        print(f"      {finding.get('problem', '')}")
+        if waiver:
+            print(f"      kept as written because: {waiver.get('because', '')}")
+
+
+def cmd_review(args: argparse.Namespace) -> int:
+    """Run, report, or resolve independent-reader reviews of the shared documents."""
+    if args.run:
+        config = review_clarity.ReaderConfig(model=args.model, readers=args.readers)
+        return review_clarity.run_review(args.root, args.run, config)
+    if args.waive:
+        problem = review.record_waiver(
+            args.root,
+            args.waive,
+            args.quote or "",
+            args.because or "",
+            datetime.date.today().isoformat(),
+        )
+        if problem:
+            print(f"cannot waive: {problem}", file=sys.stderr)
+            return EXIT_USAGE
+        print(f"waived, with the reason on record; 'review' shows it under {args.waive}.")
+        return EXIT_OK
+    reviews = review.load_reviews(args.root)
+    if not reviews:
+        print(
+            "No document has been read by an independent reader yet. Whether "
+            "prose communicates is a judgement no checker here can make, so a "
+            "reader agent makes it: run\n"
+            "  uv run scripts/research_graph.py review --run TREE.md\n"
+            "It reads the document with no access to this repository or this "
+            "conversation, and writes what a research partner outside this "
+            "session could not follow to "
+            f"{review.REVIEW_DIR}/. Fix what it finds and run the reader again, "
+            "or keep the text and record why with --waive. Findings are "
+            "advisory and never fail a build."
+        )
+        return EXIT_OK
+    for artifact in sorted(reviews):
+        _print_review(args.root, artifact, reviews[artifact])
+    return EXIT_OK
+
+
+def cmd_glossary(args: argparse.Namespace) -> int:
+    """Print the record's defined names, or survey it for phrases worth rewriting."""
+    graph = model.load(args.root)
+    if args.survey:
+        rows = glossary.survey_candidates(args.root, graph)
+        if not rows:
+            print("No candidate project terms found in the tree or the log.")
+            return EXIT_OK
+        print(
+            "Phrases that read like invented names a reader would have to guess "
+            "at, most used first. Rewrite each real one in standard words or a "
+            "plain description; define a name only when no description can "
+            "replace it. This is a survey, not a check: nothing here fails a "
+            "build, and ordinary English can still appear."
+        )
+        for phrase, count, covered in rows:
+            mark = "defined" if covered else "rewrite or define"
+            print(f"  {phrase:34} used {count:3}x   {mark}")
+        return EXIT_OK
+    terms = glossary.parse_glossary(args.root)
+    if not terms:
+        print(
+            "This record defines no terms, which is the healthy default: the "
+            "tree and the log are meant to read in ordinary English and "
+            "standard field vocabulary. Add a '## Glossary' section to "
+            "RESEARCH_LOG.md only for a name no description can replace, such "
+            "as a file name or the values a field is allowed to take. Run "
+            "'glossary --survey' to find phrases worth rewriting."
+        )
+        return EXIT_OK
+    for term in terms:
+        print(f"{term.term}: {term.definition}")
+    return EXIT_OK
 
 
 def cmd_pin(args: argparse.Namespace) -> int:
@@ -252,7 +357,7 @@ COMMAND_REGISTRY: Final[tuple[CommandSpec, ...]] = (
             arg(
                 "--graduated",
                 action="store_true",
-                help="Limit to graduated claims (survived, weakened, or failed).",
+                help="Limit to claims whose status has been decided: survived, weakened, or failed.",
             ),
         ),
         cmd_evidence,
@@ -285,8 +390,44 @@ COMMAND_REGISTRY: Final[tuple[CommandSpec, ...]] = (
         cmd_verify,
     ),
     CommandSpec(
+        "review",
+        "Run an independent reader over a shared document, report what readers "
+        "found, or record why a finding's text stays as written.",
+        (
+            arg(
+                "--run",
+                metavar="ARTIFACT",
+                help="Read this document with fresh reader agents and record what "
+                "they could not follow.",
+            ),
+            arg("--readers", type=int, default=1, help="Readers to run (default: 1)."),
+            arg("--model", default="sonnet", help="Reader model (default: sonnet)."),
+            arg(
+                "--waive",
+                metavar="ARTIFACT",
+                help="Keep the text a finding points at, recording the decision.",
+            ),
+            arg("--quote", help="The finding's excerpt, verbatim (with --waive)."),
+            arg("--because", help="Why the text stays as it is (with --waive)."),
+        ),
+        cmd_review,
+    ),
+    CommandSpec(
+        "glossary",
+        "Print the terms this record defines, or survey the text for terms it does not.",
+        (
+            arg(
+                "--survey",
+                action="store_true",
+                help="List phrases that may be undefined project terms (advisory, never fails).",
+            ),
+        ),
+        cmd_glossary,
+    ),
+    CommandSpec(
         "pin",
-        "Compute a provenance pin (commit, date, evidence hashes) to embed in a scorecard.",
+        "Record what a claim rests on — the commit, the date, and a hash of every "
+        "evidence file — to embed in its falsification report.",
         (arg("ids", nargs="+", help="One or more claim ids, for example Q1.H1.E1.C1."),),
         cmd_pin,
     ),

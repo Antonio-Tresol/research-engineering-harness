@@ -35,7 +35,7 @@ exactly there), every input must exist on disk, and the scorecard's verdict
 must agree with the claim's status in the tree. The judgment half — whether
 the verdict is honest — stays with the readers and the norms; a claim with
 no verification block is silent, never a false alarm, the same
-precision-over-recall policy the provenance pins follow.
+precision-over-recall policy the recorded evidence hashes follow.
 """
 
 from __future__ import annotations
@@ -100,8 +100,12 @@ def _load_verification(path: Path) -> dict[str, object] | None:
     return load_scorecard_block(path, "verification")
 
 
-def _quote_resolves(root: Path, rel_path: str, excerpt: str) -> bool | None:
+def quote_resolves(root: Path, rel_path: str, excerpt: str) -> bool | None:
     """Whether the excerpt appears verbatim in the cited file.
+
+    Public because the clarity-review module anchors its findings the same
+    way. One resolver, so a quote that anchors a claim and a quote that
+    anchors a readability finding are held to exactly the same standard.
 
     None means the file could not be read (reported separately). Both sides
     are whitespace-collapsed, and the excerpt is also tried in its two
@@ -141,7 +145,7 @@ def _check_quote(root: Path, claim_id: str, quote: object) -> list[str]:
             f"short to anchor anything (under {MIN_ANCHOR_CHARS} characters) — "
             "quote a longer verbatim span."
         ]
-    resolved = _quote_resolves(root, rel_path, excerpt)
+    resolved = quote_resolves(root, rel_path, excerpt)
     if resolved is None:
         return [
             f"{ERROR}{claim_id} verification quotes {rel_path}, which cannot be "
@@ -196,7 +200,8 @@ def _check_block(
         elif pinned and str(rel_path) not in pinned:
             findings.append(
                 f"{WARNING}{claim_id} verification input {rel_path} is not covered "
-                "by the claim's provenance pin, so drift on it is invisible — "
+                "by the claim's recorded evidence hashes, so a later change to it "
+                "would go unnoticed — "
                 "re-run the pin command with this claim."
             )
     verdict = str(block.get("verdict", ""))
@@ -220,10 +225,10 @@ def _check_block(
 
 
 def verification_report(root: Path, graph: Graph, pins: dict[str, dict] | None = None) -> list[str]:
-    """One finding per problem in any graduated claim's verification block.
+    """One finding per problem in the verification block of any decided claim.
 
     `pins` is the read_pins result when the caller has it (verify does);
-    without it the pin-coverage warning stays quiet rather than guessing.
+    without it the coverage warning stays quiet rather than guessing.
     """
     findings: list[str] = []
     for claim_id, node in sorted(graph.nodes.items()):
