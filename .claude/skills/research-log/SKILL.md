@@ -52,10 +52,13 @@ Two commands are session rituals:
 
 The tree and the log have one job: carrying state and history across a context
 boundary — to a collaborator, a reviewer, a future you, and every future agent
-session, none of whom share the context in which you wrote. Agents drift toward
-writing for a reader inside their own context window: coined names, telegraph
+session, none of whom share any of the state you wrote from — not the context
+window, not your memory files, not your scratch notes. Agents drift toward
+writing for a reader inside that private state: coined names, telegraph
 fragments, abbreviations only the current session can expand. That text still
-looks like a record, but it transfers nothing.
+looks like a record, but it transfers nothing. Your reader is not a stranger —
+they are your research partner; the record is the one place you actually
+meet.
 
 Write both files for **a researcher who knows the field but has never opened
 this repository**:

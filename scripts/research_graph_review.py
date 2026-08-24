@@ -16,9 +16,10 @@ What it does instead is the bargain the falsification scorecards already run.
 The validator never rules on whether a falsification was any good; it rules
 that a scorecard exists and that its verdict matches the claim. The same split
 applies to prose. A reader agent stands in for the person the record is
-actually for — a research partner who does not live in the writer's context
-window — and writes down what they could not follow. This module checks that
-the reading happened, that
+actually for — a research partner with none of the writer's saved state: no
+shared context window, no memory files, no scratch notes — and writes down
+what they could not follow. This module checks that the reading happened,
+that
 it was of *this* text, and that every complaint points at words the file
 actually contains.
 

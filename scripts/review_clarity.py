@@ -6,10 +6,12 @@
 """Ask an independent reader what a research partner cannot follow in a document.
 
 The reader stands in for the person the record is actually for: a research
-partner who shares the work but not the writer's context window — the same
+partner who shares the work but none of the writer's saved state — not the
+context window, not the memory files, not the scratch notes. The same
 colleague next month, the next agent session, a collaborator seeing the
-repository for the first time. Independence is not estrangement; it is what
-lets their reading tell the truth.
+repository for the first time: all of them read from the record alone.
+Independence is not estrangement; it is what lets their reading tell the
+truth.
 
 The mechanical checks in this project can tell you that a sentence contains
 "w/" or that a node runs past 1,200 characters. They cannot tell you that a
