@@ -20,6 +20,7 @@ assuming no prior context, run: uv run scripts/research_graph.py help"""
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import sys
 from dataclasses import dataclass
@@ -29,6 +30,8 @@ from typing import Callable, Final
 import research_graph_checks as checks
 import research_graph_glossary as glossary
 import research_graph_model as model
+import research_graph_review as review
+import review_clarity
 import research_graph_views as views
 import research_graph_write as write
 from research_graph_model import INVALID as EXIT_INVALID
@@ -125,6 +128,60 @@ def _default_root() -> Path:
 
 def cmd_verify(args: argparse.Namespace) -> int:
     return checks.verify(args.root)
+
+
+def _print_review(root: Path, artifact: str, record: "review.Review") -> None:
+    """One artifact's review: reader runs, then each finding as open or waived."""
+    state = "current" if review.is_current(root, record) else "STALE (the text has changed)"
+    latest = max((str(run.get("at", "")) for run in record.runs), default="unknown")
+    print(f"{artifact} — {record.readers} reader(s), last read {latest}, {state}")
+    if not record.findings:
+        print("  no findings: every reader followed the whole document")
+    for finding in record.findings:
+        excerpt = " ".join(str(finding.get("excerpt", "")).split())
+        waiver = record.waiver_for(finding)
+        mark = "waived" if waiver else "open"
+        print(f"  [{mark}] {excerpt[:70]!r}")
+        print(f"      {finding.get('problem', '')}")
+        if waiver:
+            print(f"      kept as written because: {waiver.get('because', '')}")
+
+
+def cmd_review(args: argparse.Namespace) -> int:
+    """Run, report, or resolve independent-reader reviews of the shared documents."""
+    if args.run:
+        config = review_clarity.ReaderConfig(model=args.model, readers=args.readers)
+        return review_clarity.run_review(args.root, args.run, config)
+    if args.waive:
+        problem = review.record_waiver(
+            args.root,
+            args.waive,
+            args.quote or "",
+            args.because or "",
+            datetime.date.today().isoformat(),
+        )
+        if problem:
+            print(f"cannot waive: {problem}", file=sys.stderr)
+            return EXIT_USAGE
+        print(f"waived, with the reason on record; 'review' shows it under {args.waive}.")
+        return EXIT_OK
+    reviews = review.load_reviews(args.root)
+    if not reviews:
+        print(
+            "No document has been read by an independent reader yet. Whether "
+            "prose communicates is a judgement no checker here can make, so a "
+            "reader agent makes it: run\n"
+            "  uv run scripts/research_graph.py review --run TREE.md\n"
+            "It reads the document with no access to this repository or this "
+            "conversation, and writes what a stranger could not follow to "
+            f"{review.REVIEW_DIR}/. Fix what it finds and run the reader again, "
+            "or keep the text and record why with --waive. Findings are "
+            "advisory and never fail a build."
+        )
+        return EXIT_OK
+    for artifact in sorted(reviews):
+        _print_review(args.root, artifact, reviews[artifact])
+    return EXIT_OK
 
 
 def cmd_glossary(args: argparse.Namespace) -> int:
@@ -319,6 +376,29 @@ COMMAND_REGISTRY: Final[tuple[CommandSpec, ...]] = (
         "Run every integrity check and report pass or fail: grammar, evidence, drift, orphans.",
         (),
         cmd_verify,
+    ),
+    CommandSpec(
+        "review",
+        "Run an independent reader over a shared document, report what readers "
+        "found, or record why a finding's text stays as written.",
+        (
+            arg(
+                "--run",
+                metavar="ARTIFACT",
+                help="Read this document with fresh reader agents and record what "
+                "they could not follow.",
+            ),
+            arg("--readers", type=int, default=1, help="Readers to run (default: 1)."),
+            arg("--model", default="sonnet", help="Reader model (default: sonnet)."),
+            arg(
+                "--waive",
+                metavar="ARTIFACT",
+                help="Keep the text a finding points at, recording the decision.",
+            ),
+            arg("--quote", help="The finding's excerpt, verbatim (with --waive)."),
+            arg("--because", help="Why the text stays as it is (with --waive)."),
+        ),
+        cmd_review,
     ),
     CommandSpec(
         "glossary",

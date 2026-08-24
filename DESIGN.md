@@ -261,6 +261,41 @@ plausible-but-wrong numbers hide. But most research work is exploratory
 de-risking, and linting that phase taxes the part that should be cheapest, so
 gates apply at promotion.
 
+### Semantic judgement is delegated to an agent, and the checks verify the judging
+
+Whether the record communicates to a stranger is not a mechanically decidable
+question. The phrase-level survey proves it on this repository's own text: it
+flags "the same task" and "the first sweep", which are ordinary English. A
+mechanical check pushed past what it can decide becomes a checker that cries
+wolf, and a checker that cries wolf gets bypassed and takes its true positives
+with it. So the semantic question goes to an instrument that can answer it — a
+reader agent — and the mechanical layer verifies the *instrument* instead of
+the prose: the reading happened, it was of this exact text (the review records
+a hash of what was read, so an edit makes it visibly stale rather than
+silently wrong), and every complaint quotes words the file actually contains,
+through the same verbatim-quote resolver the claim-verification blocks use.
+
+Independence is structural, not requested. The reader runs in a fresh process
+that receives only the document — no tools, no repository, no conversation —
+because an agent reviewing prose from inside the session that wrote it shares
+the context that made the prose look clear. Resolution goes through the record
+command-line tool in one of two ways: fix the text and run the reader again
+(resolution is re-derived from a fresh read, never marked), or keep the text
+and record a waiver with its grounds — dissent stays visible, and a waiver
+that answers no recorded complaint is itself flagged.
+
+The trigger question got the same treatment as the verdict question. Every
+hook event was considered; most were declined. The reader runs as a deliberate
+command, like the falsification pass, because a review that fires on every
+edit reviews half-written text at agent-call prices. What is automated is
+mechanical and cheap: the pre-commit hook reminds — never blocks — when a
+shared document changed and no review covers its current hash, and a
+SessionStart hook (which also fires after a compaction, the exact boundary the
+record exists to survive) puts the `verify` report, review staleness included,
+in front of the agent whose context was just reset. PreCompact cannot reach
+the model's context, Stop would either duplicate the edit-time validator hook
+or block on judgement, and per-prompt injection talks too often to stay heard.
+
 ## What the harness deliberately does not do
 
 Sandboxing and self-modification guards, multi-agent debate, tournament review,

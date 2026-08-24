@@ -106,6 +106,22 @@ this repository**:
   eight cases out of nine; rewriting for clarity never deletes recorded
   state, exactly as pivots are recorded and never erased.
 
+- **An independent reader is the real test, and it runs as a command.** Every
+  check above is mechanical, and whether prose communicates is not a
+  mechanical question — so the judgement is made by an agent that has none of
+  your context. `uv run scripts/research_graph.py review --run TREE.md` reads
+  the document in a fresh process with no tools and no access to this
+  repository or conversation, and records every place it could not follow,
+  each quoting the file verbatim. `review` reports the findings; resolve each
+  one either by fixing the text and running the reader again, or by keeping
+  the text and recording why with `review --waive <file> --quote "<the
+  finding's excerpt>" --because "<the grounds>"`. Reviews are stamped with a
+  hash of the text that was read, so `verify` and the pre-commit hook can say
+  when a document has changed since a reader last saw it. Findings are
+  advisory and never fail a build; the reader's job is to catch what the
+  writer cannot see, which is exactly the writing that looks fine from
+  inside the session that produced it.
+
 The test, before every commit: reread today's entry and every touched node as
 that outside reader. A sentence that needs the codebase, this conversation, or
 an earlier entry to parse gets rewritten. The validator trips on the worst

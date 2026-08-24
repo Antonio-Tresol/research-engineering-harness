@@ -100,8 +100,12 @@ def _load_verification(path: Path) -> dict[str, object] | None:
     return load_scorecard_block(path, "verification")
 
 
-def _quote_resolves(root: Path, rel_path: str, excerpt: str) -> bool | None:
+def quote_resolves(root: Path, rel_path: str, excerpt: str) -> bool | None:
     """Whether the excerpt appears verbatim in the cited file.
+
+    Public because the clarity-review module anchors its findings the same
+    way. One resolver, so a quote that anchors a claim and a quote that
+    anchors a readability finding are held to exactly the same standard.
 
     None means the file could not be read (reported separately). Both sides
     are whitespace-collapsed, and the excerpt is also tried in its two
@@ -141,7 +145,7 @@ def _check_quote(root: Path, claim_id: str, quote: object) -> list[str]:
             f"short to anchor anything (under {MIN_ANCHOR_CHARS} characters) — "
             "quote a longer verbatim span."
         ]
-    resolved = _quote_resolves(root, rel_path, excerpt)
+    resolved = quote_resolves(root, rel_path, excerpt)
     if resolved is None:
         return [
             f"{ERROR}{claim_id} verification quotes {rel_path}, which cannot be "

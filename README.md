@@ -112,6 +112,20 @@ is the first
 command an agent runs in a fresh session. The markdown files stay canonical
 and hand-editable; the CLI is a paved road over them, never a second store.
 
+**The independent reader.** Whether the record communicates is a judgement no
+checker can make — the validator catches "w/" and over-long nodes, never an
+unreadable paragraph. So the judgement is delegated to an agent with none of
+the writer's context: `research_graph.py review --run TREE.md` spawns a fresh
+reader process that receives only the document (no tools, no repository, no
+conversation) and records what it could not follow, every complaint quoting
+the file verbatim. The mechanical layer then does what it is good at: each
+quote must resolve against the file, the review carries a hash of the text
+that was read so staleness is visible, and `verify` plus the pre-commit hook
+report a shared document that changed since a reader last saw it. Findings
+are resolved through the same command — fix the text and re-run the reader,
+or keep it and record why with `--waive`. Nothing in this channel can fail a
+build: a semantic verdict that can block gets bypassed once and then forever.
+
 **How a claim's status is decided.** Every claim starts `unvalidated`. It can
 only become `survived`, `weakened`, or `failed` once a falsification or
 validation run has produced a report file, which the checker requires by name.
