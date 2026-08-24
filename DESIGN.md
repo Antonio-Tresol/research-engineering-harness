@@ -203,6 +203,21 @@ matters, because nothing else re-reads certified evidence
 ([meta Q3.H1][meta]; the full design note is `notes/record-cli-design.md`
 there).
 
+The same bargain extends to claims no arithmetic can check — a verdict read
+out of a model transcript, a citation checked against its paper. Agents are
+the verification instrument there, and their reading is recorded as a
+`verification` block in the scorecard: the protocol registered before
+reading, the input files, and one entry per reader run with its date,
+verdict, and verbatim quotes. `verify` re-checks the mechanical half — every
+quoted excerpt must appear in the file it cites, inputs must exist and be
+pinned, the scorecard's verdict must match the claim's status — while verdict
+honesty stays with reader independence: readers are fresh sessions, never the
+claim's author, because a system producing a claim must not be the only
+mechanism accepting it (the verification-gap survey's reviewer-independence
+criterion). How many readers verified a claim is derived from the run
+entries rather than stored as a count, so the number can never disagree with
+the runs it summarizes.
+
 ### A refusal has to say whose problem it is
 
 The write commands refuse anything that would leave the record invalid, and

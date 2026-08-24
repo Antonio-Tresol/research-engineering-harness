@@ -122,7 +122,10 @@ def cmd_pin(args: argparse.Namespace) -> int:
     print(json.dumps(result, indent=2))
     print(
         'Embed this dict under the "provenance" key of the scorecard evidence file '
-        "you are about to write for these claims."
+        "you are about to write for these claims. If agents verified the claim by "
+        'reading traces, literature, or code, also record a "verification" block '
+        "there (the validate-claims skill has the schema); verify re-checks its "
+        "quote anchors against the pinned files."
     )
     return EXIT_OK
 
@@ -192,7 +195,9 @@ def cmd_help(args: argparse.Namespace) -> int:
 # below are generated from. DRY_RUN is shared by every write command so the
 # flag's wording never drifts between them.
 DRY_RUN: Final[Arg] = arg(
-    "--dry-run", action="store_true", help="Preview the exact change; write nothing."
+    "--dry-run",
+    action="store_true",
+    help="Rehearse the write, report the validator's verdict, and leave the files untouched.",
 )
 
 COMMAND_REGISTRY: Final[tuple[CommandSpec, ...]] = (

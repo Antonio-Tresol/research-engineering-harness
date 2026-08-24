@@ -407,6 +407,34 @@ def test_verify_exit_code_one_on_drift(tmp_path: Path) -> None:
     assert verify(root) == 1
 
 
+def test_verify_exit_code_one_on_fabricated_verification_quote(tmp_path: Path) -> None:
+    """The verification checks ride inside verify: a scorecard whose quoted
+    excerpt does not appear in the file it cites fails the whole record."""
+    root = build_fixture_project(tmp_path)
+    scorecard = root / "results/falsify_scorecard.json"
+    data = json.loads(scorecard.read_text())
+    data["verification"] = {
+        "method": "trace-read",
+        "inputs": ["results/run.json"],
+        "verdict": "survives",
+        "runs": [
+            {
+                "reader": "reader-model",
+                "at": "2026-08-24",
+                "verdict": "survives",
+                "quotes": [
+                    {
+                        "path": "results/run.json",
+                        "excerpt": "a sentence that appears nowhere in that file",
+                    }
+                ],
+            }
+        ],
+    }
+    scorecard.write_text(json.dumps(data))
+    assert verify(root) == 1
+
+
 # --- Write: add_node ---------------------------------------------------------
 
 

@@ -58,7 +58,11 @@ exist. Then graduate each claim:
 `uv run scripts/research_graph.py set-status <claim-id> survived|weakened|failed
 --evidence <scorecard-path>` (the validator refuses graduation without a
 scorecard evidence file, and the CLI restores everything untouched if any part
-of the write would be invalid).
+of the write would be invalid). When the falsification was a reading rather
+than a computation — traces read, literature checked, labels discriminated —
+also record a `"verification"` block in the scorecard (reader runs with dates,
+verdicts, and verbatim quote anchors; the validate-claims skill has the
+schema), so `verify` can re-check the reading instead of taking its word.
 
 ## Worked examples of falsification catches
 

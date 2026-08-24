@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Final
 
 from research_graph_model import ERROR, INFO, INVALID, OK, WARNING, Graph, load
+from research_graph_verification import load_scorecard_block, verification_report
 
 GRADUATED: Final[frozenset[str]] = frozenset({"survived", "weakened", "failed"})
 
@@ -66,21 +67,8 @@ def _git_short_sha(root: Path) -> str:
 
 
 def _load_provenance(full_path: Path) -> dict | None:
-    """The "provenance" block of a scorecard file, or None if it has none.
-
-    None covers every reason the block cannot be read: the file is
-    missing, is not valid JSON, is JSON but not an object, or is an
-    object with no top-level "provenance" key. All of these mean the
-    same thing to a caller — this scorecard carries no pin to check.
-    """
-    try:
-        data = json.loads(full_path.read_text())
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-        return None
-    if not isinstance(data, dict):
-        return None
-    provenance = data.get("provenance")
-    return provenance if isinstance(provenance, dict) else None
+    """The "provenance" block of a scorecard file, or None if it has none."""
+    return load_scorecard_block(full_path, "provenance")
 
 
 def _run_validator(root: Path) -> bool:
@@ -246,7 +234,8 @@ def verify(root: Path) -> int:
 
     In order: the sibling validator as a subprocess (grammar and the
     evidence-exists-on-disk basics), evidence existence per artifact,
-    drift, orphan documents, and finally how many graduated claims still
+    drift, verification scorecards (quote anchors resolve, verdicts match
+    statuses, reader runs recorded), orphan documents, and finally how many graduated claims still
     have no provenance pin. Each problem becomes one "ERROR: " finding,
     and this fails (returns 1) exactly when at least one such finding
     exists — a failed validator run, missing evidence, or drift.
@@ -260,10 +249,11 @@ def verify(root: Path) -> int:
             "is invalid; see its output above for details."
         )
     graph = load(root)
+    pins = read_pins(root, graph)
     findings.extend(_missing_evidence_findings(graph))
     findings.extend(drift_report(root, graph))
+    findings.extend(verification_report(root, graph, pins))
     findings.extend(orphan_report(graph))
-    pins = read_pins(root, graph)
     unpinned = _unpinned_graduated_claims(graph, pins)
     if unpinned:
         findings.append(

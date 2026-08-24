@@ -33,8 +33,8 @@ only to record what is true.
   `evidence`; write with `add`, `set-status`, `add-evidence`, `log`,
   `add-note` — every write is validated before it lands and rolled back with
   an explanation when it would break the record. Run `verify` at session
-  start and after any compaction (the validator plus evidence drift and
-  orphaned notes), `pin` when a claim graduates, and `help` for the guide
+  start and after any compaction (the validator plus evidence drift,
+  verification quote anchors, and orphaned notes), `pin` when a claim graduates, and `help` for the guide
   with recipes. Hand-editing the markdown stays fine; the CLI and validator
   hold both paths to the same rules.
 - `./check.sh`: every mechanical check. `lanorme` (code quality, Agent Skills
