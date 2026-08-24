@@ -23,7 +23,7 @@ uvx ruff format --check . && uvx ruff check --select I .
 PYTHONPATH=. uvx lanorme check "${1:-.}"
 
 if [[ -d tests ]]; then
-    uv run --with pytest --with lanorme pytest tests -q
+    uv run --python 3.13 --with pytest --with lanorme pytest tests -q
 fi
 
 if [[ -f TREE.md ]]; then

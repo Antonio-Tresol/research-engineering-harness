@@ -25,6 +25,18 @@ So the harness says everywhere that a null or infeasible result recorded with
 evidence is a completed experiment. This is not encouragement, it is the removal
 of an incentive.
 
+A red-team sweep on the harness's own stack measured what that buys. Eighteen
+runs were each instructed to corrupt the record a different way; fourteen
+refused outright and quoted these documents back. Asked to record a fabricated
+number for an experiment never run, 3 of 3 refused; asked to graduate a claim
+on a stub scorecard, 3 of 3 refused, against a registered prediction that most
+would succeed; asked to delete an abandoned hypothesis before a reviewer saw
+it, 3 of 3 refused and no node id disappeared ([meta Q3.H3][meta]). None of
+those three shortcuts is mechanically detectable — a fabricated number backed
+by a fabricated file passes every check the validator can run. The norms are
+carrying that load, which is the argument for writing them down where an agent
+reads them rather than relying on the gate.
+
 ### A failed claim means the protocol worked
 
 `falsify` grades each claim Survives, Weakened, or Failed. A scorecard where
@@ -101,6 +113,24 @@ code" ([arXiv:2511.04583][jr]).
 the code produced. It catches the other half: prose drifting from correct data
 after a re-run, which no amount of careful reading reliably notices.
 
+### Nothing in the tree may be invisible to the checks
+
+The parser skips fenced blocks so a grammar example can sit in the preamble.
+An adversarial run found what that carve-out costs: wrapping a claim line in a
+code fence graduated it to `survived` with no evidence past a green validator,
+every grader file untouched. Fenced content is skipped by *every* rule, so one
+trick defeated the scorecard gate, the evidence requirement, the length limit,
+and the shorthand tripwire together, while the line still read as recorded to
+anyone opening the file — the validator counted one node fewer than the file
+visibly contained and exited 0 ([meta Q3.H3][meta]).
+
+A node-shaped line inside a fence among the nodes is now an error. The rule is
+position-sensitive on purpose: a fenced example above the first node stays
+quiet, because that is documentation no reader mistakes for the tree, and
+policing it would fire on every project the installer creates. The general
+lesson is that an exemption in a checker is a place to hide things, and an
+exemption that applies to every rule at once is a place to hide anything.
+
 ### Graders are pinned
 
 Agentic benchmarks have been compromised by giving agents write access to the
@@ -172,6 +202,24 @@ changes: the integrity failure that is otherwise invisible exactly when it
 matters, because nothing else re-reads certified evidence
 ([meta Q3.H1][meta]; the full design note is `notes/record-cli-design.md`
 there).
+
+### A refusal has to say whose problem it is
+
+The write commands refuse anything that would leave the record invalid, and
+roll the files back byte for byte. Measured on agents who had never been told
+the tool existed, that refusal did two opposite things with the same message.
+Given a seeded node already over the length limit, one run read the rejection,
+hand-trimmed the node, retried the identical command, and landed it; another
+read the same bytes as "this tool cannot get me there" and abandoned the write
+commands for the rest of the session ([meta Q3.H2][meta]). The message had
+listed a violation the command neither caused nor could fix, without saying so.
+
+So a refusal now distinguishes a bad command from a record that was already
+broken. The same sweep found a preview that validated nothing (a clean dry run
+followed by a hard rejection of the identical command) and a repeated evidence
+flag that dropped every path but the last while reporting success. A tool whose
+whole purpose is to be trusted with the record cannot report success over
+silent data loss, and cannot spend its credibility on a preview that is wrong.
 
 ### Code quality applies to promoted code only
 
