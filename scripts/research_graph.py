@@ -75,7 +75,7 @@ RECIPES: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
         ),
     ),
     (
-        "Move an over-long node's detail into a document (the altitude rule)",
+        "Move an over-long node's detail into a document (nodes stay short)",
         (
             'uv run scripts/research_graph.py add-note <slug> "<title>" "<the protocol '
             'text that was inlined>" --link Q1.H1.E1',
@@ -84,11 +84,22 @@ RECIPES: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
         ),
     ),
     (
-        "Graduate a claim",
+        "Decide a claim's status after the falsification pass",
         (
             "uv run scripts/research_graph.py pin Q1.H1.E1.C1",
             "uv run scripts/research_graph.py set-status Q1.H1.E1.C1 survived "
             "--evidence results/falsify_scorecard.json",
+        ),
+    ),
+    (
+        "Ask an outside reader what the record fails to communicate, then resolve "
+        "each finding: fix the text and read again, or keep it and say why",
+        (
+            "uv run scripts/research_graph.py review --run TREE.md",
+            "uv run scripts/research_graph.py review",
+            'uv run scripts/research_graph.py set-text Q1.H1.E1 "<the plain rewrite>"',
+            "uv run scripts/research_graph.py review --waive TREE.md "
+            '--quote "<the finding\'s excerpt>" --because "<why the text stays>"',
         ),
     ),
     (

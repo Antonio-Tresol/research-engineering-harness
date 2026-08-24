@@ -32,13 +32,23 @@ only to record what is true.
   support rely on the session-end run alone.
 - `uv run scripts/research_graph.py`: the typed CLI over the whole record
   (tree + log + `notes/`). Read with `tree`, `show`, `search`, `path`,
-  `evidence`; write with `add`, `set-status`, `add-evidence`, `log`,
-  `add-note` — every write is validated before it lands and rolled back with
-  an explanation when it would break the record. Run `verify` at session
-  start and after any compaction (the validator plus evidence drift,
-  verification quote anchors, and orphaned notes), `pin` when a claim's status is decided, and `help` for the guide
-  with recipes. Hand-editing the markdown stays fine; the CLI and validator
-  hold both paths to the same rules.
+  `evidence`; write with `add`, `set-status`, `set-text`, `add-evidence`,
+  `log`, `add-note` — every write is validated before it lands and rolled
+  back with an explanation when it would break the record. Run `verify` at
+  session start and after any compaction (the validator plus evidence drift,
+  verification quote anchors, review staleness, and orphaned notes), `pin`
+  when a claim's status is decided, and `help` for the guide with recipes.
+  Hand-editing the markdown stays fine; the CLI and validator hold both
+  paths to the same rules.
+- `uv run scripts/research_graph.py review --run TREE.md`: ask an outside
+  reader what the record fails to communicate. A fresh agent with no tools
+  and no project context reads the document and records every place it could
+  not follow, quoting it verbatim; `review` reports the findings, and each is
+  resolved through the same tool — fix the text and read again, or keep it
+  and record why with `--waive`. Whether prose communicates is a judgement no
+  mechanical check can make; this channel makes it, and the checks verify
+  only that the reading happened, of this exact text, quoting real words.
+  Findings never fail a build.
 - `./check.sh`: every mechanical check. `lanorme` (code quality, Agent Skills
   spec, plus the harness plugins `tensors` for jaxtyping/einops discipline and
   `skill_portability`) followed by the research-integrity gate. Run after
