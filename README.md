@@ -261,7 +261,7 @@ newest version, which is usually what you want in a bibliography.
 @misc{badillaolivas2026harness,
 author = {Badilla-Olivas, Antonio},
 doi = {10.5281/zenodo.21617974},
-month = {7},
+month = {8},
 title = {research-engineering-harness},
 url = {https://github.com/Antonio-Tresol/research-engineering-harness},
 year = {2026}

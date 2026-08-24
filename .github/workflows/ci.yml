@@ -1,0 +1,36 @@
+name: CI
+
+# Runs the project gates on every pull request and on pushes to main —
+# the same ./check.sh a contributor runs locally and the pre-commit hook
+# enforces, so a green run here means a clean tree: ruff formatting and
+# import order, lanorme with the harness's own plugins, and the test
+# suite. The research-integrity gate inside check.sh skips itself in this
+# repository, which has no TREE.md; the reader channel needs an agent CLI
+# and is exercised by tests with the reader mocked.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: "3.13"
+
+      - name: Run every gate
+        run: ./check.sh

@@ -17,12 +17,12 @@ surface it holds.
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-08-24
+## [0.2.0] - 2026-08-24
 
-First versioned release. The repository predates versioning (first commit
-2026-07-19); that history lives in this repo's git log, in `DESIGN.md`, and
-in the research record of the companion `research-harness-meta` repository,
-which carries the measurements every mechanism below cites.
+Everything between the July deposit and today. The measurements every
+mechanism cites live in the research record of the companion (currently
+private) `research-harness-meta` repository; `DESIGN.md` summarises them
+with sources.
 
 ### The record system
 
@@ -74,7 +74,7 @@ which carries the measurements every mechanism below cites.
   wires the git hook when a repository exists, excludes the harness's lab
   equipment, and stamps `.harness-version`.
 
-### Upgrading a project scaffolded before 0.1.0
+### Upgrading a project scaffolded before 0.2.0
 
 Re-run `install.py` over the project (it reports what it would overwrite),
 or copy `scripts/`, `.claude/`, and `hooks/` by hand. Then expect and work
@@ -85,3 +85,11 @@ silently skipped, now rejected by name; and the first `review --run` of each
 record file, which will report real findings — fix or waive them through the
 tool. The emotion-vectors migration in the meta record is the worked example
 of exactly this upgrade.
+
+## [0.1.0] - 2026-07-27
+
+Initial release, archived on Zenodo (version DOI 10.5281/zenodo.21617975):
+the nine agent skills, the two record templates, the mechanical validator
+for both files, `install.py`, the pre-commit gate, and lanorme with the
+harness's own plugins. Everything in 0.2.0 was built on and measured
+against this state.
