@@ -58,6 +58,7 @@ if _HERE not in sys.path:
 from research_graph_review import (  # noqa: E402
     REVIEW_DIR,
     content_hash,
+    load_review,
     slug_for,
 )
 
@@ -247,7 +248,7 @@ def run_review(root: Path, artifact: str, config: ReaderConfig) -> int:
     if not runs:
         print("no reader completed; nothing written", file=sys.stderr)
         return EXIT_FAIL
-    record = {
+    record: dict[str, Any] = {
         "artifact": artifact,
         "sha256": content_hash(target),
         "protocol": PROTOCOL,
@@ -256,6 +257,14 @@ def run_review(root: Path, artifact: str, config: ReaderConfig) -> int:
     out_dir = root / REVIEW_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{slug_for(artifact)}.json"
+    # A re-read replaces the runs — the fresh reading is the current review —
+    # but never the waivers: each is a recorded decision, and deleting a
+    # recorded decision silently is exactly what this project's clean-up rule
+    # forbids. A waiver the new readers no longer justify shows up as the
+    # dangling-waiver warning, which says to delete it deliberately.
+    previous = load_review(out_path)
+    if previous is not None and previous.waivers:
+        record["waivers"] = previous.waivers
     out_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     total = sum(len(run["findings"]) for run in runs)
     print(f"{out_path.relative_to(root)}: {len(runs)} reader(s), {total} finding(s)")

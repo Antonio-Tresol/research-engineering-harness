@@ -234,3 +234,25 @@ def test_a_waiver_left_dangling_by_hand_editing_warns(tmp_path: Path) -> None:
     ]
     root = build(tmp_path, review)
     assert any("waives a complaint no reader made" in f for f in review_report(root))
+
+
+def test_a_rerun_of_the_reader_keeps_recorded_waivers(tmp_path: Path, monkeypatch) -> None:
+    """A re-read replaces the runs, never the decisions someone recorded."""
+    import review_clarity
+
+    root = build(tmp_path, good_review())
+    problem = record_waiver(
+        root, "TREE.md", FINDING_EXCERPT, "The hypothesis line above names the mechanism.", "2026-08-24"
+    )
+    assert problem is None
+    monkeypatch.setattr(
+        review_clarity,
+        "run_reader",
+        lambda prompt, model, timeout: {"verdict": "clear", "findings": []},
+    )
+    config = review_clarity.ReaderConfig(readers=1)
+    assert review_clarity.run_review(root, "TREE.md", config) == 0
+    parsed = load_review(root / "reviews" / "tree-md.json")
+    assert parsed is not None
+    assert len(parsed.runs) == 1 and parsed.runs[0]["verdict"] == "clear"
+    assert len(parsed.waivers) == 1, "the recorded waiver must survive the re-read"
