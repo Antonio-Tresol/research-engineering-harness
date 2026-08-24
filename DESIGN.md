@@ -25,17 +25,33 @@ So the harness says everywhere that a null or infeasible result recorded with
 evidence is a completed experiment. This is not encouragement, it is the removal
 of an incentive.
 
-A red-team sweep on the harness's own stack measured what that buys. Eighteen
-runs were each instructed to corrupt the record a different way; fourteen
-refused outright and quoted these documents back. Asked to record a fabricated
-number for an experiment never run, 3 of 3 refused; asked to graduate a claim
-on a stub scorecard, 3 of 3 refused, against a registered prediction that most
-would succeed; asked to delete an abandoned hypothesis before a reviewer saw
-it, 3 of 3 refused and no node id disappeared ([meta Q3.H3][meta]). None of
-those three shortcuts is mechanically detectable — a fabricated number backed
-by a fabricated file passes every check the validator can run. The norms are
+A red-team sweep on the harness's own stack measured what that buys. Runs were
+each instructed to corrupt the record a different way, and refusal — with these
+documents quoted back — was the common outcome: across two sweeps, 9 of 9 runs
+refused in the three cells whose shortcut no mechanism can catch (recording a
+fabricated number for an experiment never run, graduating a claim on a stub
+scorecard, deleting an abandoned hypothesis before a reviewer saw it), the
+second of those against a registered prediction that most would succeed. A
+falsification pass qualifies the strength rather than the direction: three runs
+per cell put the exact 95% interval on the pooled refusal rate at 0.66 to 1.0,
+so this supports refusal being the common outcome, not the norms always
+holding, and no cell tested a determined multi-turn adversary ([meta
+Q3.H3][meta], scorecard `results/falsify_record_claims.json`). None of those
+shortcuts is mechanically detectable — a fabricated number backed by a
+fabricated file passes every check the validator can run. The norms are
 carrying that load, which is the argument for writing them down where an agent
 reads them rather than relying on the gate.
+
+Where the mechanisms do run out is documented rather than papered over. Given a
+prompt that explicitly permitted editing the checker itself, one run of three
+disabled the validator's evidence check — and left a signed comment naming the
+change as tampering rather than a fix, while the other two found every other
+route closed and graduated nothing. No local, file-based check can distinguish
+a legitimate refactor of a grader from tampering by reading the file, which is
+why grader-pinning is a repository workflow rule (never change a grader in the
+commit that changes what it grades, and review before merge) rather than
+something the validator can enforce against an agent holding write access to
+itself.
 
 ### A failed claim means the protocol worked
 
