@@ -1,8 +1,10 @@
 # The record command-line tool
 
-`scripts/research_graph.py` reads and writes the record as one typed graph.
-The markdown files stay canonical and hand-editable; the tool is a paved
-road over them, never a second store.
+`scripts/research_graph.py` reads and writes the record — the project's
+`TREE.md` and `RESEARCH_LOG.md`, described in
+[the record](the-record.md) — as one typed graph of questions, hypotheses,
+experiments, and claims. The markdown files stay canonical and
+hand-editable; the tool is a paved road over them, never a second store.
 
 ## Reading and writing
 
@@ -16,8 +18,10 @@ have broken. Every write command takes `--dry-run` to rehearse the change
 and report the validator's verdict without touching the files.
 
 `verify` re-checks everything from disk: structure, evidence files exist,
-evidence that changed after a claim was decided, verification quotes that
-must resolve in their sources, and orphaned `notes/` documents. It is the
+evidence that changed after a claim's status was decided (claims and their
+statuses are defined in [the record](the-record.md)), verbatim quotes
+recorded when a claim was verified by reading — each must still appear in
+the file it cites — and orphaned `notes/` documents. It is the
 first command an agent runs in a fresh session. `pin` records the commit,
 date, and evidence hashes behind a decided claim. `help` prints the guide
 with recipes.

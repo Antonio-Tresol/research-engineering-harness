@@ -6,7 +6,10 @@ surface is: the record grammar the validator enforces over `TREE.md` and
 installed skill names, the hook contracts (`PostToolUse` validation,
 `SessionStart` verify report, the pre-commit gate), the scorecard and review
 file formats under `results/` and `reviews/`, and `check.sh`. A breaking
-change is one after which an installed project must act to stay green.
+change is one after which an installed project must act to stay green. In
+the record grammar, a claim is one node of `TREE.md`, and its status may
+leave `unvalidated` only when a falsification run has produced the claim's
+report file.
 
 Versions are semantic in that spirit: breaking changes raise the minor
 version while 0.x lasts, new capability raises it too and says so, fixes
@@ -19,7 +22,8 @@ surface it holds.
 
 ## [0.2.0] - 2026-08-24
 
-Derived from the 40 commits between the July deposit and today. The
+Derived from the 40 commits between the July Zenodo deposit (version
+0.1.0, below) and today. The
 measurements each mechanism cites live in the companion (currently private)
 `research-harness-meta` repository; `DESIGN.md` summarises them with
 sources.
@@ -33,7 +37,8 @@ sources.
   back byte-identical when it would break the record; every write takes
   `--dry-run`. `verify` re-derives the record's health from disk, and
   `pin` records the commit, date, and a hash of every evidence file behind
-  a decided claim, so later drift is detectable. `set-text` was added
+  a claim whose status has been decided as `survived`, `weakened`, or
+  `failed`, so a later change to that evidence is detectable. `set-text` was added
   after a usability study found it was the one missing command that forced
   hand edits.
 - The independent reader (`review --run`, `review`, `review --waive`): a
@@ -42,17 +47,19 @@ sources.
   mechanical checks verify the reading (quotes resolve, the reviewed
   text's hash matches, waivers answer recorded complaints) and never judge
   prose. Findings resolve by rewriting and re-reading, or by a waiver with
-  grounds; waivers survive re-reads. Nothing in the channel can fail a
-  build. By default the reader runs through the Claude Code CLI;
+  grounds; waivers survive re-reads. Nothing in the review workflow can
+  fail a build. By default the reader runs through the Claude Code CLI;
   `RESEARCH_READER_CMD` substitutes any agent command that accepts the
   prompt file and prints the reader's JSON.
-- Verification blocks: a claim verified by reading rather than computation
-  carries reader runs with dates and verbatim quotes, and the checker
+- Verification blocks, a named section of a claim's report file: a claim
+  verified by reading rather than computation records its reader runs with
+  dates and verbatim quotes, and the validator
   resolves every quote against its cited file.
 - Hooks for both supported agents. Claude Code: a `PostToolUse` hook
   re-validates after every edit to the two record files, and a
-  `SessionStart` hook puts the `verify` report in front of every fresh or
-  just-compacted session. Codex: `.codex/hooks.json` wires the same two,
+  `SessionStart` hook puts the `verify` report in front of every session at
+  its start, including the restart after context compaction, when the
+  session's history has just been summarised to fit its window. Codex: `.codex/hooks.json` wires the same two,
   with an adapter that hashes the record files and validates only when
   they changed. The installer wires the pre-commit gate automatically when
   the target is already a git repository.
@@ -62,14 +69,16 @@ sources.
 
 ### Changed
 
-- The plain-language contract in the research-log skill: standard
+- The plain-language contract in the research-log skill (one of the nine
+  skills 0.1.0 shipped): standard
   vocabulary, no invented names, prose that stands without the codebase,
-  and clean-up that moves information before deleting words. The first
+  and clean-up that must move displaced information into the log or a
+  linked document before the words carrying it are deleted. The first
   version of the vocabulary rule asked for a glossary of coined terms; it
   now says to prefer rewriting in standard terms, with a glossary reserved
   for names no description can replace.
-- The validator grew, in evidence order: checks against telegraph
-  shorthand; a 1,200-character limit on node text, calibrated on two real
+- The validator grew, each check added on measured evidence: checks
+  against telegraph shorthand; a 1,200-character limit on node text, calibrated on two real
   project trees; rejection of malformed node ids and log entry headers,
   which the old validator silently skipped; and rejection of node-shaped
   lines inside code fences, which a red-team run had used to hide a
@@ -93,6 +102,7 @@ sources.
 
 Initial release, archived on Zenodo (version DOI 10.5281/zenodo.21617975):
 the nine agent skills, the two record templates, the mechanical validator
-for both files, `install.py`, the pre-commit gate, and lanorme with the
-harness's own plugins. Everything in 0.2.0 was built on and measured
+for both files, `install.py`, the pre-commit gate, and
+[lanorme](https://github.com/lanorme/lanorme), the code checker the
+harness builds on, with the harness's own checks as its plugins. Everything in 0.2.0 was built on and measured
 against this state.

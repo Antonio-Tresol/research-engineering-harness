@@ -2,7 +2,9 @@
 
 The harness turns a repository into a research project whose record can be
 trusted: two canonical markdown files, a validator, one command-line tool
-over them, agent skills, and hooks. Everything it ships was adopted because
+over them, agent skills, and hooks, all checked by
+[lanorme](https://github.com/lanorme/lanorme), the standard-library code
+checker the harness builds on and extends. Everything it ships was adopted because
 a measured run of agents behaving on it said so; the measurements live in
 the companion `research-harness-meta` repository.
 
@@ -13,8 +15,9 @@ the companion `research-harness-meta` repository.
   never stored beside them. A change that makes the markdown depend on a
   second store will not be accepted.
 - **Gate only on facts.** A mechanical check may fail a build only for
-  something with no false-positive risk: a file that does not exist, a
-  quote that does not resolve, a status that changed without its report.
+  something with no false-positive risk: a cited file that does not exist,
+  a quoted excerpt that does not appear in the file it cites, a claim
+  status that changed with no falsification report on disk.
   Judgement (is this clear, is this well designed) is advisory, or
   delegated to an independent reader whose verdicts are themselves
   checkable. A checker that cries wolf gets bypassed and takes its true
@@ -30,9 +33,10 @@ the companion `research-harness-meta` repository.
   name. The reader channel (`research_graph.py review`) is the check;
   run it on prose you touch.
 - **Lab equipment never ships.** Eval runners, graders, and red-team
-  scenarios measure agent behaviour ON the harness and stay out of
-  scaffolds via `COPY_IGNORE` in `install.py`. Adversarial or generated
-  work runs in fenced workspaces outside any real repository.
+  scenarios measure agent behaviour ON the harness, and `COPY_IGNORE` in
+  `install.py` keeps them out of the projects the installer creates.
+  Adversarial or generated work runs in throwaway workspaces outside any
+  real repository, so it cannot touch a real record.
 - **Evidence before shipping.** A mechanism earns its place through a
   registered-prediction eval: predictions written before the runs, every
   condition run more than once, transcripts read by hand, because the
@@ -47,7 +51,7 @@ the companion `research-harness-meta` repository.
 You need [`uv`](https://docs.astral.sh/uv/). There is no environment to
 build; every script declares its own dependencies.
 
-    ./check.sh          # formatting, lanorme + house plugins, tests, integrity gate
+    ./check.sh          # formatting, lanorme and the harness's own checks, tests, record validation
     ./hooks/install.sh  # wire the pre-commit gate into .git/hooks
 
 ## Making a change
@@ -62,8 +66,8 @@ build; every script declares its own dependencies.
   Update the recipes in `research_graph.py help` and the research-log
   skill if the workflow changes.
 - **A skill**: `.claude/skills/<name>/SKILL.md`; the `description` field
-  is the trigger, so say when to use it in behavioural terms. `lanorme`
-  checks the format; the trigger evals in the meta repository are the
+  is the trigger, so say when to use it in behavioural terms. lanorme
+  checks the file format; the trigger evals in the meta repository are the
   measure of whether it fires.
 - **Anything user-facing**: update `CHANGELOG.md` under `[Unreleased]` in
   the same commit; the pre-commit reminder will point it out if you
