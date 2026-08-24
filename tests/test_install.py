@@ -17,6 +17,7 @@ Run:  uv run tests/test_install.py
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -187,3 +188,15 @@ def test_existing_pre_commit_is_never_replaced(git_target: Path) -> None:
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))
+
+
+def test_scaffold_is_stamped_with_the_harness_version(installed: Path) -> None:
+    """A project must know which surface it holds; CHANGELOG.md speaks per version."""
+    stamp = (installed / ".harness-version").read_text(encoding="utf-8").strip()
+    source = (HARNESS / "install.py").read_text(encoding="utf-8")
+    declared = re.search(r'HARNESS_VERSION: Final\[str\] = "([^"]+)"', source)
+    assert declared is not None and stamp == declared.group(1)
+    changelog = (HARNESS / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert f"## [{stamp}]" in changelog, (
+        "the shipped version must have a section in CHANGELOG.md"
+    )

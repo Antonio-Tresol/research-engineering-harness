@@ -211,6 +211,16 @@ moving together so a decided claim may need re-checking, an `updated:` date
 that wants bumping. Each reminder names the files that triggered it, because a
 vague reminder gets skimmed and a specific one gets acted on.
 
+## Versioning and changelog
+
+The surface an installed project receives — the record grammar, the CLI
+commands, the skill names, the hook contracts, the scorecard and review
+formats, `check.sh` — is versioned, and `CHANGELOG.md` narrates every change
+to it: the why alongside the what, with upgrade steps whenever an installed
+project must act. `install.py` stamps `.harness-version` into each scaffold.
+A breaking change is one after which an installed project must act to stay
+green, and raises the minor version while 0.x lasts.
+
 ## The skills
 
 | Skill | What it covers |
