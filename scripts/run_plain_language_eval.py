@@ -74,6 +74,18 @@ NEW_REV: Final[str] = "HEAD"
 # rules and the hook, but no node-length gate. Pinned so the prealt/alt pair
 # differs in exactly one thing.
 PRE_ALTITUDE_REV: Final[str] = "da766f7"
+# The record-CLI commit's parent: the full altitude stack before the CLI
+# shipped and the docs began teaching it. Pinned for the same reason as
+# BASE_REV — HEAD after the CLI shipped would make an unpinned "alt" arm
+# incoherent (docs teaching a CLI the workspace does not contain).
+PRE_CLI_REV: Final[str] = "3893353"
+# The record CLI and its libraries, shipped only into "cli"-flagged arms.
+CLI_MODULES: Final[tuple[str, ...]] = (
+    "scripts/research_graph.py",
+    "scripts/research_graph_model.py",
+    "scripts/research_graph_write.py",
+    "scripts/research_graph_checks.py",
+)
 
 # Scoped grants instead of --dangerously-skip-permissions: everything a
 # session-end tree/log update plausibly needs, nothing more. Denials are
@@ -84,7 +96,11 @@ ALLOWED_TOOLS: Final[str] = (
     "Bash(mkdir:*),Bash(echo:*),Bash(git:*),Bash(date:*),Bash(head:*),"
     "Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(rg:*),Bash(sed:*),"
     "Bash(awk:*),Bash(cut:*),Bash(sort:*),Bash(uniq:*),Bash(cp:*),"
-    "Bash(mv:*),Bash(touch:*),Bash(for:*),Bash(while:*)"
+    "Bash(mv:*),Bash(touch:*),Bash(for:*),Bash(while:*),"
+    # Direct script invocation (both scripts ship executable). Granted to every
+    # arm identically so a permission denial can never masquerade as low CLI
+    # adoption in the cli arm.
+    "Bash(scripts/*),Bash(./scripts/*)"
 )
 
 log = logging.getLogger("plain-language-eval")
@@ -98,7 +114,11 @@ ARMS: Final[dict[str, dict[str, Any]]] = {
     # docs and validator carry the altitude rules (node-length gate, notes/
     # relocation contract, codename hygiene).
     "prealt": {"docs_rev": PRE_ALTITUDE_REV, "validator_rev": PRE_ALTITUDE_REV, "hook": True},
-    "alt": {"docs_rev": NEW_REV, "validator_rev": NEW_REV, "hook": True},
+    "alt": {"docs_rev": PRE_CLI_REV, "validator_rev": PRE_CLI_REV, "hook": True},
+    # CLI usability A/B against alt: identical hooked altitude stacks, but the
+    # record CLI ships in the workspace and the docs/skill teach it. The task
+    # prompts never mention the CLI — adoption must come from the docs.
+    "cli": {"docs_rev": NEW_REV, "validator_rev": NEW_REV, "hook": True, "cli": True},
 }
 
 HOOK_SCRIPT: Final[str] = '''#!/usr/bin/env python3
@@ -224,15 +244,85 @@ def build_workspace(task_id: str, arm: str, key: str) -> Path:
     if spec["hook"]:
         files[".claude/hooks/validate_hook.py"] = HOOK_SCRIPT
         files[".claude/settings.json"] = json.dumps(HOOK_SETTINGS, indent=2)
+    if spec.get("cli"):
+        for rel in CLI_MODULES:
+            files[rel] = git_show(spec["validator_rev"], rel)
     for rel, content in files.items():
         target = workspace / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content)
     (workspace / "scripts" / "validate_research.py").chmod(0o755)
+    if spec.get("cli"):
+        (workspace / "scripts" / "research_graph.py").chmod(0o755)
     identity = ["-c", "user.email=eval@local", "-c", "user.name=eval"]
     for args in (["init", "-q"], ["add", "-A"], [*identity, "commit", "-q", "-m", "seed"]):
         subprocess.run(["git", *args], cwd=workspace, capture_output=True, check=False, timeout=30)
     return workspace
+
+
+# ------------------------------------------------------------- cli metrics
+# A record-CLI invocation and its subcommand: the only global flag is --root,
+# so the first non-flag token after the script name is the subcommand.
+CLI_CALL_RE: Final[re.Pattern[str]] = re.compile(
+    r"research_graph\.py(?:\s+--root\s+\S+)?\s+(--help|-h|[a-z][a-z-]*)"
+)
+CLI_WRITE_SUBCOMMANDS: Final[frozenset[str]] = frozenset(
+    {"add", "add-evidence", "set-status", "log", "add-note"}
+)
+
+
+def cli_metrics(transcript_text: str) -> dict[str, Any]:
+    """How the agent used (or avoided) the record CLI, from the transcript.
+
+    Descriptive measurements for the usability read. They live in the runner,
+    not the pinned graders: they record what happened, they never score it.
+    """
+    out: dict[str, Any] = {
+        "cli_calls": 0,
+        "cli_write_calls": 0,
+        "cli_help_calls": 0,
+        "cli_subcommands": [],
+        "hand_edits": 0,
+    }
+    result_chunks: list[str] = []
+    for line in transcript_text.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        content = event.get("message", {}).get("content", [])
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if not isinstance(block, dict):
+                continue
+            if event.get("type") == "assistant" and block.get("type") == "tool_use":
+                name = block.get("name")
+                tool_input = block.get("input", {})
+                if name == "Bash":
+                    for sub in CLI_CALL_RE.findall(str(tool_input.get("command", ""))):
+                        sub = "help" if sub in ("-h", "--help") else sub
+                        out["cli_calls"] += 1
+                        out["cli_subcommands"].append(sub)
+                        out["cli_write_calls"] += sub in CLI_WRITE_SUBCOMMANDS
+                        out["cli_help_calls"] += sub == "help"
+                elif name in ("Write", "Edit", "MultiEdit") and str(
+                    tool_input.get("file_path", "")
+                ).endswith(("TREE.md", "RESEARCH_LOG.md")):
+                    out["hand_edits"] += 1
+            elif event.get("type") == "user" and block.get("type") == "tool_result":
+                inner = block.get("content")
+                if isinstance(inner, str):
+                    result_chunks.append(inner)
+                elif isinstance(inner, list):
+                    result_chunks.extend(
+                        str(item.get("text", "")) for item in inner if isinstance(item, dict)
+                    )
+    results = "\n".join(result_chunks)
+    out["cli_rejections"] = results.count("the record would become invalid")
+    out["cli_usage_errors"] = results.count("research_graph.py: error:")
+    out["cli_unknown_id_errors"] = results.count("Error: no node with id")
+    return out
 
 
 # ---------------------------------------------------------------- running
@@ -310,6 +400,7 @@ def run_one(task_id: str, arm: str, run_idx: int, args: argparse.Namespace) -> d
     }
     task = TASKS[task_id]
     row.update(grade(workspace, transcript, SEED_DATE, canaries=tuple(task.get("canaries", ()))))
+    row.update(cli_metrics(transcript))
     everything = "\n".join(
         (workspace / rel).read_text()
         for rel in ("TREE.md", "RESEARCH_LOG.md")

@@ -5,3 +5,6 @@ CLAUDE.local.md
 
 # Transient agent worktrees created for isolated build tasks
 .claude/worktrees/
+
+# Eval sweep outputs: transient here, archived as evidence in research-harness-meta
+results/
