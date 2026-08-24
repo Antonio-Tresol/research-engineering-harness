@@ -271,6 +271,32 @@ CLI_WRITE_SUBCOMMANDS: Final[frozenset[str]] = frozenset(
 )
 
 
+def _scan_cli_tool_use(block: dict[str, Any], out: dict[str, Any]) -> None:
+    """Count one tool_use block as CLI calls or as a hand edit of the record."""
+    tool_input = block.get("input", {})
+    if block.get("name") == "Bash":
+        for raw in CLI_CALL_RE.findall(str(tool_input.get("command", ""))):
+            sub = "help" if raw in ("-h", "--help") else raw
+            out["cli_calls"] += 1
+            out["cli_subcommands"].append(sub)
+            out["cli_write_calls"] += sub in CLI_WRITE_SUBCOMMANDS
+            out["cli_help_calls"] += sub == "help"
+    elif block.get("name") in ("Write", "Edit", "MultiEdit") and str(
+        tool_input.get("file_path", "")
+    ).endswith(("TREE.md", "RESEARCH_LOG.md")):
+        out["hand_edits"] += 1
+
+
+def _result_text(block: dict[str, Any]) -> list[str]:
+    """The text of one tool_result block, whose content may be string or list."""
+    inner = block.get("content")
+    if isinstance(inner, str):
+        return [inner]
+    if isinstance(inner, list):
+        return [str(item.get("text", "")) for item in inner if isinstance(item, dict)]
+    return []
+
+
 def cli_metrics(transcript_text: str) -> dict[str, Any]:
     """How the agent used (or avoided) the record CLI, from the transcript.
 
@@ -302,27 +328,9 @@ def cli_metrics(transcript_text: str) -> dict[str, Any]:
             if not isinstance(block, dict):
                 continue
             if event.get("type") == "assistant" and block.get("type") == "tool_use":
-                name = block.get("name")
-                tool_input = block.get("input", {})
-                if name == "Bash":
-                    for sub in CLI_CALL_RE.findall(str(tool_input.get("command", ""))):
-                        sub = "help" if sub in ("-h", "--help") else sub
-                        out["cli_calls"] += 1
-                        out["cli_subcommands"].append(sub)
-                        out["cli_write_calls"] += sub in CLI_WRITE_SUBCOMMANDS
-                        out["cli_help_calls"] += sub == "help"
-                elif name in ("Write", "Edit", "MultiEdit") and str(
-                    tool_input.get("file_path", "")
-                ).endswith(("TREE.md", "RESEARCH_LOG.md")):
-                    out["hand_edits"] += 1
+                _scan_cli_tool_use(block, out)
             elif event.get("type") == "user" and block.get("type") == "tool_result":
-                inner = block.get("content")
-                if isinstance(inner, str):
-                    result_chunks.append(inner)
-                elif isinstance(inner, list):
-                    result_chunks.extend(
-                        str(item.get("text", "")) for item in inner if isinstance(item, dict)
-                    )
+                result_chunks.extend(_result_text(block))
     results = "\n".join(result_chunks)
     out["cli_rejections"] = results.count("the record would become invalid")
     out["cli_usage_errors"] = results.count("research_graph.py: error:")
