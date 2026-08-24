@@ -35,8 +35,8 @@ looks right.
 `./check.sh` also runs the checks' own test suite. Roughly half of those
 tests assert that a rule stays quiet: on rounded values, on documentation
 examples inside code fences, on ordinary Python with no tensors, on folded
-YAML. Each one encodes a false positive that was genuinely shipped at some
-point. A checker that cries wolf gets bypassed, and then its true positives
+YAML. Each one records a false positive an earlier version of the checks
+actually produced. A checker that cries wolf gets bypassed, and then its true positives
 go unread too.
 
 The rules are also measured against real repositories rather than only
