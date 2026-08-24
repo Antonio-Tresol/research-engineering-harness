@@ -62,7 +62,8 @@ if [[ -n "$committed_tree" ]]; then
     done < <(git diff --cached --name-only --diff-filter=M | grep -E '^results/' || true)
 fi
 
-# Whether prose reads clearly to a stranger is a judgement, so no check here
+# Whether prose reads clearly to a research partner outside this session is a
+# judgement, so no check here
 # makes it. What IS mechanical is whether an independent reader has read THIS
 # version: reviews record the hash of the text they were written about, so a
 # review that no longer matches is visibly stale rather than silently wrong.

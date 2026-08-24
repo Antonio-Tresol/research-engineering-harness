@@ -126,8 +126,8 @@ The test, before every commit: reread today's entry and every touched node as
 that outside reader. A sentence that needs the codebase, this conversation, or
 an earlier entry to parse gets rewritten. The validator trips on the worst
 telegraph (arrows, "w/", "b/c", chat abbreviations); treat a clean run as the
-floor, not the contract — what it cannot measure is whether a stranger
-understands you, and that is the actual rule.
+floor, not the contract — what it cannot measure is whether your research
+partner understands you, and that is the actual rule.
 
 ## How much detail a node holds (the tree stays scannable)
 

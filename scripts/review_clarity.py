@@ -3,7 +3,13 @@
 # requires-python = ">=3.10"
 # dependencies = []
 # ///
-"""Have an independent reader say what a stranger cannot follow in a document.
+"""Ask an independent reader what a research partner cannot follow in a document.
+
+The reader stands in for the person the record is actually for: a research
+partner who shares the work but not the writer's context window — the same
+colleague next month, the next agent session, a collaborator seeing the
+repository for the first time. Independence is not estrangement; it is what
+lets their reading tell the truth.
 
 The mechanical checks in this project can tell you that a sentence contains
 "w/" or that a node runs past 1,200 characters. They cannot tell you that a
@@ -273,7 +279,8 @@ def run_review(root: Path, artifact: str, config: ReaderConfig) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Have an independent reader report what a stranger cannot follow.",
+        description="Ask an independent reader what a research partner outside "
+        "this session cannot follow.",
         epilog="Findings are advisory: this never fails a build.",
     )
     parser.add_argument("artifact", help="Path to the document, relative to --root.")

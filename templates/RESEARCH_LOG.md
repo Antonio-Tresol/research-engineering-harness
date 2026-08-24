@@ -21,7 +21,8 @@ are about to add an entry for a task, a condition, a scoring scheme, or an
 internal tool, rewrite the sentence instead. Delete this note and the example
 once you have real entries, or delete the whole section if you have none.
 
-- **Example term**: what it means, in one sentence a stranger could follow.
+- **Example term**: what it means, in one sentence a research partner
+  outside the project could follow.
 
 ---
 

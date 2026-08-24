@@ -15,8 +15,10 @@ positives with it, so the mechanical layer here judges nothing about writing.
 What it does instead is the bargain the falsification scorecards already run.
 The validator never rules on whether a falsification was any good; it rules
 that a scorecard exists and that its verdict matches the claim. The same split
-applies to prose. A reader agent reads the document and writes down what a
-stranger could not follow. This module checks that the reading happened, that
+applies to prose. A reader agent stands in for the person the record is
+actually for — a research partner who does not live in the writer's context
+window — and writes down what they could not follow. This module checks that
+the reading happened, that
 it was of *this* text, and that every complaint points at words the file
 actually contains.
 
@@ -357,7 +359,8 @@ def _coverage(root: Path, reviews: dict[str, Review]) -> list[str]:
         if review is None:
             findings.append(
                 f"{INFO}{artifact} has never been read by an independent reader — "
-                f"run 'review {artifact}' to find what a stranger cannot follow."
+                f"run 'review {artifact}' to learn what a research partner "
+                "outside this session cannot follow."
             )
         elif not is_current(root, review):
             findings.append(

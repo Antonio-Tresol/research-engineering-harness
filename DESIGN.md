@@ -263,7 +263,8 @@ gates apply at promotion.
 
 ### Semantic judgement is delegated to an agent, and the checks verify the judging
 
-Whether the record communicates to a stranger is not a mechanically decidable
+Whether the record communicates to a research partner outside the writer's
+context is not a mechanically decidable
 question. The phrase-level survey proves it on this repository's own text: it
 flags "the same task" and "the first sweep", which are ordinary English. A
 mechanical check pushed past what it can decide becomes a checker that cries
