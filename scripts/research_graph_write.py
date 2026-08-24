@@ -347,6 +347,51 @@ def set_status(
     )
 
 
+def set_text(root: Path, node_id: str, text: str, dry_run: bool = False) -> int:
+    """Replace one node's headline text, keeping its status, evidence, and log date.
+
+    The command the record was missing. Every other field had a way to change
+    it, but the text itself did not, so the one operation the altitude rule
+    actually demands — trimming an over-long node down to a headline after its
+    detail moves into a notes/ document — was the operation authors had to do
+    by hand. Two measured sessions independently read the source to confirm no
+    such command existed before falling back to a hand edit, and a third
+    hand-edit slip introduced a log reference to an entry that did not exist
+    yet. Rewriting the line here keeps the rest of the node intact by
+    construction.
+    """
+    tree_path = root / "TREE.md"
+    if not tree_path.exists():
+        return _missing_file(tree_path)
+    lines, nodes = _read_tree(root)
+    node = _find_node(nodes, node_id)
+    if node is None:
+        return _no_such_node(node_id)
+    cleaned = " ".join(text.split())
+    if not cleaned:
+        return _refuse(
+            f"The new text for {node_id} is empty. A node is a headline: give one or two "
+            "plain sentences saying what the thing is and where it stands."
+        )
+    index = node.lineno - 1
+    line = _format_node_line(
+        _indent_of(lines[index]),
+        node.node_id,
+        cleaned,
+        node.status,
+        node.evidence,
+        node.log_date,
+    )
+    lines[index] = line
+    return write_transaction(
+        root,
+        {tree_path: _joined(lines)},
+        ["TREE.md:", line],
+        f"Rewrote the text of {node_id}, keeping its status, evidence, and log date.",
+        dry_run,
+    )
+
+
 # --------------------------------------------------------------------------------------
 # Write commands over the research log.
 # --------------------------------------------------------------------------------------

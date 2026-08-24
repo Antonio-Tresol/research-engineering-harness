@@ -71,6 +71,15 @@ RECIPES: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
         ),
     ),
     (
+        "Move an over-long node's detail into a document (the altitude rule)",
+        (
+            'uv run scripts/research_graph.py add-note <slug> "<title>" "<the protocol '
+            'text that was inlined>" --link Q1.H1.E1',
+            'uv run scripts/research_graph.py set-text Q1.H1.E1 "<one or two plain '
+            'sentences, pointing at the document>"',
+        ),
+    ),
+    (
         "Graduate a claim",
         (
             "uv run scripts/research_graph.py pin Q1.H1.E1.C1",
@@ -156,6 +165,10 @@ def cmd_set_status(args: argparse.Namespace) -> int:
     return write.set_status(
         args.root, args.id, args.status, args.evidence or [], args.log_date, dry_run=args.dry_run
     )
+
+
+def cmd_set_text(args: argparse.Namespace) -> int:
+    return write.set_text(args.root, args.id, args.text, dry_run=args.dry_run)
 
 
 def cmd_log(args: argparse.Namespace) -> int:
@@ -324,6 +337,16 @@ COMMAND_REGISTRY: Final[tuple[CommandSpec, ...]] = (
             DRY_RUN,
         ),
         cmd_set_status,
+    ),
+    CommandSpec(
+        "set-text",
+        "Rewrite a node's headline text, keeping its status, evidence, and log date.",
+        (
+            arg("id", help="The node id whose text to rewrite."),
+            arg("text", help="The new text: one or two plain sentences."),
+            DRY_RUN,
+        ),
+        cmd_set_text,
     ),
     CommandSpec(
         "log",

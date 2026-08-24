@@ -53,6 +53,7 @@ from research_graph_write import (  # noqa: E402
     add_note,
     append_log_entry,
     set_status,
+    set_text,
 )
 
 # --- Golden fixture content ------------------------------------------------
@@ -433,6 +434,63 @@ def test_verify_exit_code_one_on_fabricated_verification_quote(tmp_path: Path) -
     }
     scorecard.write_text(json.dumps(data))
     assert verify(root) == 1
+
+
+def test_set_text_rewrites_only_the_text(tmp_path: Path) -> None:
+    """The gap this command fills: change the headline, keep everything else.
+
+    Two measured sessions read the source to confirm no such command existed
+    and fell back to hand edits; one of those hand edits introduced a log
+    reference to an entry that did not exist yet. Status, evidence, and the
+    log date must survive untouched.
+    """
+    root = build_fixture_project(tmp_path)
+    exit_code = set_text(root, "Q1.H1.E1", "Train a probe on layer 14 and evaluate held out.")
+    assert exit_code == 0
+    line = next(
+        line
+        for line in (root / "TREE.md").read_text().splitlines()
+        if line.strip().startswith("- Q1.H1.E1:")
+    )
+    assert "Train a probe on layer 14 and evaluate held out. [done]" in line
+    assert "evidence: results/run.json, notes/linked-note.md" in line
+
+
+def test_set_text_trims_an_over_long_node_to_a_headline(tmp_path: Path) -> None:
+    """The altitude workflow end to end: a node past the length gate is
+    rejected until its text becomes a headline, and set-text is what does it."""
+    root = build_fixture_project(tmp_path)
+    tree = (root / "TREE.md").read_text()
+    bloated = tree.replace(
+        "Repeat the probe training on layer 20 activations to check whether the "
+        "effect is specific to one layer",
+        "Repeat the probe training on layer 20. " + ("Protocol detail. " * 90),
+    )
+    (root / "TREE.md").write_text(bloated, encoding="utf-8")
+    assert run_validator(root).returncode == 1
+    assert set_text(root, "Q1.H1.E2", "Repeat the probe training on layer 20 activations.") == 0
+    assert run_validator(root).returncode == 0
+
+
+def test_set_text_refuses_empty_text_and_unknown_node(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = build_fixture_project(tmp_path)
+    before = (root / "TREE.md").read_bytes()
+    assert set_text(root, "Q1.H1.E1", "   ") == 1
+    assert "is empty" in capsys.readouterr().out
+    assert set_text(root, "Q9.H9", "Some text.") == 1
+    assert "no node called Q9.H9" in capsys.readouterr().out
+    assert (root / "TREE.md").read_bytes() == before
+
+
+def test_set_text_rejects_text_that_would_break_the_record(tmp_path: Path) -> None:
+    """set-text is a write like any other: the shorthand tripwire still applies
+    and the file comes back byte-identical."""
+    root = build_fixture_project(tmp_path)
+    before = (root / "TREE.md").read_bytes()
+    assert set_text(root, "Q1.H1.E1", "Probe trained w/o the length control.") == 1
+    assert (root / "TREE.md").read_bytes() == before
 
 
 # --- Write: add_node ---------------------------------------------------------

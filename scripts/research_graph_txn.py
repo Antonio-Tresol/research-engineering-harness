@@ -136,9 +136,9 @@ def _report_preexisting(root: Path, validator: Path) -> None:
     print(
         "\nNote: the record was ALREADY invalid before this command ran, so this "
         "write is not necessarily what broke it. Nothing was written either way. "
-        "Fix the violations above that your change did not introduce — often by "
-        "hand, since no command rewrites existing node text — then run the same "
-        "command again."
+        "Fix the violations above that your change did not introduce — the "
+        "set-text command rewrites an over-long node's text in place, keeping its "
+        "status and evidence — then run the same command again."
     )
 
 
