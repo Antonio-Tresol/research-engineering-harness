@@ -45,6 +45,11 @@ from typing import Final
 
 HARNESS = Path(__file__).resolve().parent
 
+# Single source of truth for the shipped surface's version; CHANGELOG.md
+# narrates what each version changed. Stamped into every scaffold as
+# .harness-version so a project knows which surface it holds.
+HARNESS_VERSION: Final[str] = "0.1.0"
+
 # Files/dirs copied verbatim (portable, no placeholders).
 COPY_TREE = [".claude", "scripts", "lanorme_plugins", "hooks", "tests"]
 # Harness-internal files that never reach a project. scripts/: the eval
@@ -285,6 +290,7 @@ class Installer:
         self.make_dirs()
         self.write_text_file(".gitignore", GITIGNORE)
         self.write_text_file("CLAUDE.local.md", LOCAL_POINTERS_TEXT)
+        self.write_text_file(".harness-version", HARNESS_VERSION + "\n")
         return self.actions
 
 

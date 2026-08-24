@@ -41,6 +41,18 @@ if has '^results/' && ! has '^(RESEARCH_LOG|TREE)\.md$'; then
     A null or inconclusive result still counts as a completed experiment."
 fi
 
+# Only the harness repo carries a CHANGELOG.md; in an installed project,
+# scripts/ is the project's own experiment code and this must stay silent.
+# Lab equipment (eval runners, graders) is not shipped surface either.
+if [[ -f CHANGELOG.md ]]; then
+    surface="$(grep -E '^(scripts/|\.claude/|templates/|hooks/|install\.py)' <<<"$staged" \
+        | grep -vE '^scripts/(run_|analyse_|skill_eval_|plain_language_|redteam_|falsify_)' || true)"
+    if [[ -n "$surface" ]] && ! has '^CHANGELOG\.md$'; then
+        note "The shipped surface changed ($(head -3 <<<"$surface" | tr '\n' ' ')) but CHANGELOG.md did not.
+    If an installed project would notice, narrate it under [Unreleased]."
+    fi
+fi
+
 if has '^\.claude/skills/' && ! has '^(AGENTS\.md|README\.md)$'; then
     note "A skill changed ($(list '^\.claude/skills/')).
     Do AGENTS.md and the README still describe it correctly?"

@@ -206,3 +206,22 @@ def test_passes_when_checks_pass(repo: Path) -> None:
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))
+
+
+def test_surface_change_without_changelog_reminds_only_the_harness_repo(repo: Path) -> None:
+    """The changelog reminder needs a CHANGELOG.md to exist, fires on shipped
+    surface changing without it staged, and stays quiet for lab equipment and
+    for the commit that updates the changelog alongside the change."""
+    (repo / "CHANGELOG.md").write_text("# Changelog\n\n## [Unreleased]\n")
+    run_git(repo, "add", "-A")
+    run_git(repo, "commit", "-q", "-m", "adopt changelog")
+    stage(repo, "scripts/research_graph.py", "x = 1\n")
+    out = hook(repo).stdout
+    assert "CHANGELOG.md did not" in out, out
+    stage(repo, "CHANGELOG.md", "# Changelog\n\n## [Unreleased]\n- change\n")
+    out = hook(repo).stdout
+    assert "CHANGELOG.md did not" not in out, out
+    run_git(repo, "commit", "-q", "-m", "surface with changelog")
+    stage(repo, "scripts/run_probe.py", "x = 2\n")
+    out = hook(repo).stdout
+    assert "CHANGELOG.md did not" not in out, out
