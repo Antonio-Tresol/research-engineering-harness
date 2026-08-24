@@ -44,9 +44,9 @@ Two commands are session rituals:
 - **`verify` at session start and after any compaction.** It re-derives the
   record's health from the files on disk — the one source of truth that
   survives context loss.
-- **`pin` when a claim graduates** (the falsify skill has the full step): it
-  hashes the claim's evidence files into the scorecard, so a later `verify`
-  detects when a file a graduated claim rests on has changed.
+- **`pin` when a claim's status is decided** (the falsify skill has the full
+  step): it hashes the claim's evidence files into the scorecard, so a later
+  `verify` detects when a file that claim rests on has changed.
 
 ## Plain language (both files)
 
@@ -60,12 +60,38 @@ looks like a record, but it transfers nothing.
 Write both files for **a researcher who knows the field but has never opened
 this repository**:
 
-- **Standard vocabulary only** — the terms a paper or textbook would use.
-  Field-standard abbreviations (AUC, KL, CI, LoRA) are fine; coined terms, pet
-  names for experiments, and private abbreviations are not.
-- **Project-specific terms are defined once**, in the log's Project summary,
-  before first use — then used identically everywhere: one term per concept,
-  no synonyms, no competing shorthand.
+- **Standard vocabulary only, and do not invent names.** Use the words a paper
+  or a textbook would use. Field-standard abbreviations (AUC, KL, CI, LoRA) are
+  fine; private abbreviations are not. When the thing you are describing has no
+  standard name, describe it in ordinary words every time it appears rather
+  than inventing a name for it. Write "the condition with the written rules and
+  no mechanical check", not "the norms-only arm"; "the abbreviation check in
+  the validator", not "the tripwire"; "the task where the results are dictated
+  to the agent", not "the dictation task". The test for any word: would it
+  appear with this meaning in a textbook, a paper's methods section, or a
+  tool's own documentation? If not, write the description instead. An invented
+  name is grammatical English, so no mechanical check catches it, and it
+  charges every later reader a guess about a history they were not present for.
+  This is the failure mode the other rules miss: a survey of this project's own
+  record found eighteen such phrases, fifteen of them explained nowhere. Run
+  `uv run scripts/research_graph.py glossary --survey` to list the phrases in
+  your record that read like invented names, and rewrite them.
+- **Plain, simple English.** Short sentences over long ones, common words over
+  rare ones, the direct statement over the clever one. A reader should never
+  have to reconstruct the history of this project, or the shape of its code, to
+  parse a sentence. Repeating a plain description in full is always better than
+  compressing it into a name; the repetition costs a line, the name costs every
+  future reader.
+- **A glossary is the last resort, and adding to it should be rare.** Rewriting
+  is the fix; defining is only for a name no description can replace — the
+  record's own file names, and the values a field is allowed to take. Put those
+  few in a `## Glossary` section of the log, before first use, and use them
+  identically everywhere. Before adding an entry, try three times to write the
+  sentence without the word. A glossary that grows is a record drifting into
+  private vocabulary, not one documenting itself well. `verify` checks only
+  what you declared: that each entry has a real definition, appears once, and
+  is actually used. The survey is advisory and cannot tell an invented name
+  from ordinary English, so nothing it reports ever fails a build.
 - **Complete sentences, no telegraph.** "Reran the sweep in fp32; the KL spike
   at layer 12 disappeared" — not "KL spike @ L12 → reran w/ fp32, ok now".
 - **Prose stands without the codebase.** Paths and identifiers go in
@@ -73,7 +99,7 @@ this repository**:
   sense to someone who will never open the file ("the sweep script
   `scripts/sweep.py`, one row per seed" — never a bare identifier doing a
   sentence's work).
-- **Clean-up preserves information.** When rewriting dialect or removing a
+- **Clean-up preserves information.** When rewriting shorthand or removing a
   freeform section, move what it said — into today's log entry, the Project
   summary, or the node's own text — before deleting the words. In a measured
   run of this clean-up, agents silently dropped an operational warning in
@@ -87,12 +113,13 @@ telegraph (arrows, "w/", "b/c", chat abbreviations); treat a clean run as the
 floor, not the contract — what it cannot measure is whether a stranger
 understands you, and that is the actual rule.
 
-## Altitude (the tree stays scannable)
+## How much detail a node holds (the tree stays scannable)
 
-In real projects the tree's failure mode was not shorthand but **accretion**:
-registration protocols, dated amendments, and result narratives appended to
-the same node until single nodes reached 4,000-12,000 characters — good
-science made unfindable, because the tree was the only canonical home for it.
+In real projects the tree's failure mode was not shorthand but **unchecked
+growth**: registration protocols, dated amendments, and result narratives
+appended to the same node until single nodes reached 4,000-12,000 characters —
+good science made unfindable, because the tree was the only canonical home for
+it.
 The rule that keeps the tree scannable:
 
 - **A node is a headline** — one or two plain sentences saying what the thing
@@ -107,10 +134,11 @@ The rule that keeps the tree scannable:
   comparisons and n>. — Falsification: <verdict and qualified reading>."
   This shape emerged from a real project's hand clean-up and it keeps the
   distribution requirement (rule 10) satisfiable inside the length limit.
-- **Codenames live in their registration document.** Reads, tiers, and null
-  models may carry short names (a verdict ladder's tiers, a battery's
-  categories) — defined once in the document that registers them. Node text
-  stays readable without the legend: name the thing plainly and link the
+- **Short labels live in the document that registers them.** Where an
+  experiment genuinely needs short labels for its conditions or its scoring
+  levels, define them once in the document that registers the design, and
+  link that document from the node. The node text has to read without the
+  list of labels in front of you: name the thing plainly and link the
   document, never "G passes incl. B_conflict" bare in a node.
 - **Clean-ups relocate before they rewrite.** When restructuring an
   overgrown tree, write the notes/ documents first, then rewrite the node
@@ -160,15 +188,16 @@ Rules the validator enforces (each one mechanically checked, exit 1 on violation
    fenced examples aside): narrative belongs in the log or in node text, never
    in freeform sections where no status or evidence rule can reach it.
 8. Node text carries no telegraph shorthand — arrows, "w/", "b/c", spaced
-   "&"/"@", chat abbreviations — outside inline code. This is the tripwire for
-   the Plain language contract above, not its replacement.
-9. Node text stays under 1,200 characters (see Altitude below): a node is a
+   "&"/"@", chat abbreviations — outside inline code. This check is the floor
+   under the Plain language contract above, not its replacement.
+9. Node text stays under 1,200 characters (see how much detail a node holds,
+   above): a node is a
    headline, and a protocol inlined into a node is a document in the wrong
    place. Malformed node ids (sub-letters like `E4b`) are rejected by name —
    they would otherwise fall out of validation entirely.
 
 Rules held by convention (the validator cannot judge these; the falsify and
-validate-claims gates check them when a claim graduates):
+validate-claims gates check them when a claim's status is decided):
 
 10. **Claims carry their distribution.** State `n` and the aggregation rule (mean
    over seeds, best-of-k, union over variants) in the claim text. Agent-benchmark
@@ -197,7 +226,7 @@ Validator checks: header dates parse, strictly descending, all four bullets pres
 and non-empty, a `## Project summary` section exists at the top of the file, every
 unfenced `### ` line is a dated entry header (a malformed date silently drops the
 whole entry out of validation), and prose carries no telegraph shorthand (the same
-tripwire as node text; fenced blocks and inline code are exempt).
+check as node text; fenced blocks and inline code are exempt).
 
 ## Workflow
 
@@ -209,9 +238,10 @@ tripwire as node text; fenced blocks and inline code are exempt).
   evidence counts as a completed experiment** — completion pressure is a
   documented driver of fabrication in research agents; there is no pressure to
   produce a positive result, only to record what happened.
-- **Before claims graduate**: run `falsify` (statistical destruction) and/or
-  `validate-claims` (traceability); update claim statuses per the outcome, linking
-  the scorecard — with the `pin` provenance block embedded in it (falsify Step 6).
+- **Before any claim leaves `unvalidated`**: run `falsify` (statistical
+  destruction) and/or `validate-claims` (traceability); update claim statuses per
+  the outcome, linking the scorecard — with the `pin` block of commit, date, and
+  evidence hashes embedded in it (falsify Step 6).
 - **Session end**: append the day's log entry, update statuses, and reread both
   files as the outside reader (Plain language above). Then run
   `uv run scripts/research_graph.py verify` and fix every error before stopping.

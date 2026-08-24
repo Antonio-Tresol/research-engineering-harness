@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Callable, Final
 
 import research_graph_checks as checks
+import research_graph_glossary as glossary
 import research_graph_model as model
 import research_graph_views as views
 import research_graph_write as write
@@ -124,6 +125,41 @@ def _default_root() -> Path:
 
 def cmd_verify(args: argparse.Namespace) -> int:
     return checks.verify(args.root)
+
+
+def cmd_glossary(args: argparse.Namespace) -> int:
+    """Print the record's defined names, or survey it for phrases worth rewriting."""
+    graph = model.load(args.root)
+    if args.survey:
+        rows = glossary.survey_candidates(args.root, graph)
+        if not rows:
+            print("No candidate project terms found in the tree or the log.")
+            return EXIT_OK
+        print(
+            "Phrases that read like invented names a reader would have to guess "
+            "at, most used first. Rewrite each real one in standard words or a "
+            "plain description; define a name only when no description can "
+            "replace it. This is a survey, not a check: nothing here fails a "
+            "build, and ordinary English can still appear."
+        )
+        for phrase, count, covered in rows:
+            mark = "defined" if covered else "rewrite or define"
+            print(f"  {phrase:34} used {count:3}x   {mark}")
+        return EXIT_OK
+    terms = glossary.parse_glossary(args.root)
+    if not terms:
+        print(
+            "This record defines no terms, which is the healthy default: the "
+            "tree and the log are meant to read in ordinary English and "
+            "standard field vocabulary. Add a '## Glossary' section to "
+            "RESEARCH_LOG.md only for a name no description can replace, such "
+            "as a file name or the values a field is allowed to take. Run "
+            "'glossary --survey' to find phrases worth rewriting."
+        )
+        return EXIT_OK
+    for term in terms:
+        print(f"{term.term}: {term.definition}")
+    return EXIT_OK
 
 
 def cmd_pin(args: argparse.Namespace) -> int:
@@ -252,7 +288,7 @@ COMMAND_REGISTRY: Final[tuple[CommandSpec, ...]] = (
             arg(
                 "--graduated",
                 action="store_true",
-                help="Limit to graduated claims (survived, weakened, or failed).",
+                help="Limit to claims whose status has been decided: survived, weakened, or failed.",
             ),
         ),
         cmd_evidence,
@@ -285,8 +321,21 @@ COMMAND_REGISTRY: Final[tuple[CommandSpec, ...]] = (
         cmd_verify,
     ),
     CommandSpec(
+        "glossary",
+        "Print the terms this record defines, or survey the text for terms it does not.",
+        (
+            arg(
+                "--survey",
+                action="store_true",
+                help="List phrases that may be undefined project terms (advisory, never fails).",
+            ),
+        ),
+        cmd_glossary,
+    ),
+    CommandSpec(
         "pin",
-        "Compute a provenance pin (commit, date, evidence hashes) to embed in a scorecard.",
+        "Record what a claim rests on — the commit, the date, and a hash of every "
+        "evidence file — to embed in its falsification report.",
         (arg("ids", nargs="+", help="One or more claim ids, for example Q1.H1.E1.C1."),),
         cmd_pin,
     ),

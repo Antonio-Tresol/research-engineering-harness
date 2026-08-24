@@ -18,9 +18,11 @@ only to record what is true.
 - `RESEARCH_LOG.md`: the daily log (4-question format, newest first). This is the
   append-only history. Never encode state only here or history only in the tree.
 - Both files are written in plain language for a reader who has never opened
-  this repository: standard AI/ML/software terms, complete sentences, no
-  shorthand, no coined names. A project-specific term is defined once in the
-  log's Project summary before use. The `research-log` skill carries the full
+  this repository: standard AI, machine-learning, and software-engineering
+  terms, complete sentences, no shorthand, and no invented names. A thing with
+  no standard name gets described in ordinary words wherever it appears rather
+  than named; the log's `## Glossary` section is a last resort, reserved for a
+  name no description can replace. The `research-log` skill carries the full
   contract; the validator trips on the worst telegraph.
 - `uv run scripts/validate_research.py`: mechanical validator for both. Must exit
   0 before ending any session and before any deliverable. In Claude Code a
@@ -34,7 +36,7 @@ only to record what is true.
   `add-note` — every write is validated before it lands and rolled back with
   an explanation when it would break the record. Run `verify` at session
   start and after any compaction (the validator plus evidence drift,
-  verification quote anchors, and orphaned notes), `pin` when a claim graduates, and `help` for the guide
+  verification quote anchors, and orphaned notes), `pin` when a claim's status is decided, and `help` for the guide
   with recipes. Hand-editing the markdown stays fine; the CLI and validator
   hold both paths to the same rules.
 - `./check.sh`: every mechanical check. `lanorme` (code quality, Agent Skills
@@ -78,7 +80,7 @@ Phases iterate; the gates do not.
    Any run costing real time or money must be resumable: kill it halfway and
    re-running should pick up where it left off. Fixed seeds; a result that can't
    be re-produced by re-running a script doesn't count as evidence.
-5. **Falsify** (gate). Before any claim graduates, run the `falsify` skill:
+5. **Falsify** (gate). Before any claim leaves `unvalidated`, run the `falsify` skill:
    design tests that could destroy each claim. Update claim statuses in TREE.md:
    `survived` / `weakened` / `failed`, scorecard linked as evidence.
 6. **Validate** (gate). Before any document with numbers leaves the project, run
@@ -111,7 +113,8 @@ Phases iterate; the gates do not.
   *outside* the repository (a nested workspace let eval agents write fabricated
   state into a host project's tree); and keep a **single writer** for TREE.md
   and RESEARCH_LOG.md — subagents report findings back, the orchestrator records
-  them. The tree survives parallelism because updates flow through one pen.
+  them. The tree survives parallelism because every update goes through a
+  single writer.
 
 ## Non-negotiables
 
@@ -121,7 +124,7 @@ Phases iterate; the gates do not.
   up. A null or infeasible result recorded with evidence is a completed
   experiment, not a failure to complete one.
 - Pivots are recorded, not erased: nodes become `abandoned`, never deleted.
-- No private dialect in shared artefacts. The tree, the log, code comments, and
+- No private shorthand in shared artefacts. The tree, the log, code comments, and
   docs are read by people and future sessions with none of the writer's
   context: plain language and standard terminology throughout, so that what we
   share stays our common understanding.
@@ -144,7 +147,7 @@ Phases iterate; the gates do not.
   | `derive-from-sources` | writing anything derived from named sources |
   | `eval-design` | designing an eval or writing eval questions |
   | `experiment-engineering` | writing any script that costs GPU time or API budget |
-  | `falsify` | before any claim graduates from `unvalidated` |
+  | `falsify` | before any claim leaves `unvalidated` |
   | `validate-claims` | before any document with numbers leaves the project |
   | `research-log` | at the start and end of every session |
   | `communicate-results` | preparing an update, figures, or a write-up |

@@ -176,7 +176,8 @@ def test_missing_input_is_an_error_and_unpinned_input_warns(tmp_path: Path) -> N
     findings = report(root, pins)
     assert any("gone.txt" in hit for hit in errors(findings))
     assert any(
-        "not covered by the claim's provenance pin" in finding and finding.startswith("WARNING")
+        "not covered by the claim's recorded evidence hashes" in finding
+        and finding.startswith("WARNING")
         for finding in findings
     )
 

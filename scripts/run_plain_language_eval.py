@@ -88,6 +88,7 @@ CLI_MODULES: Final[tuple[str, ...]] = (
     "scripts/research_graph_txn.py",
     "scripts/research_graph_views.py",
     "scripts/research_graph_verification.py",
+    "scripts/research_graph_glossary.py",
 )
 
 # Scoped grants instead of --dangerously-skip-permissions: everything a

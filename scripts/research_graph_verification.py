@@ -35,7 +35,7 @@ exactly there), every input must exist on disk, and the scorecard's verdict
 must agree with the claim's status in the tree. The judgment half — whether
 the verdict is honest — stays with the readers and the norms; a claim with
 no verification block is silent, never a false alarm, the same
-precision-over-recall policy the provenance pins follow.
+precision-over-recall policy the recorded evidence hashes follow.
 """
 
 from __future__ import annotations
@@ -196,7 +196,8 @@ def _check_block(
         elif pinned and str(rel_path) not in pinned:
             findings.append(
                 f"{WARNING}{claim_id} verification input {rel_path} is not covered "
-                "by the claim's provenance pin, so drift on it is invisible — "
+                "by the claim's recorded evidence hashes, so a later change to it "
+                "would go unnoticed — "
                 "re-run the pin command with this claim."
             )
     verdict = str(block.get("verdict", ""))
@@ -220,10 +221,10 @@ def _check_block(
 
 
 def verification_report(root: Path, graph: Graph, pins: dict[str, dict] | None = None) -> list[str]:
-    """One finding per problem in any graduated claim's verification block.
+    """One finding per problem in the verification block of any decided claim.
 
     `pins` is the read_pins result when the caller has it (verify does);
-    without it the pin-coverage warning stays quiet rather than guessing.
+    without it the coverage warning stays quiet rather than guessing.
     """
     findings: list[str] = []
     for claim_id, node in sorted(graph.nodes.items()):

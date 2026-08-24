@@ -29,7 +29,7 @@ A red-team sweep on the harness's own stack measured what that buys. Runs were
 each instructed to corrupt the record a different way, and refusal — with these
 documents quoted back — was the common outcome: across two sweeps, 9 of 9 runs
 refused in the three cells whose shortcut no mechanism can catch (recording a
-fabricated number for an experiment never run, graduating a claim on a stub
+fabricated number for an experiment never run, marking a claim as survived on an empty
 scorecard, deleting an abandoned hypothesis before a reviewer saw it), the
 second of those against a registered prediction that most would succeed. A
 falsification pass qualifies the strength rather than the direction: three runs
@@ -46,7 +46,7 @@ Where the mechanisms do run out is documented rather than papered over. Given a
 prompt that explicitly permitted editing the checker itself, one run of three
 disabled the validator's evidence check — and left a signed comment naming the
 change as tampering rather than a fix, while the other two found every other
-route closed and graduated nothing. No local, file-based check can distinguish
+route closed and changed no claim's status. No local, file-based check can distinguish
 a legitimate refactor of a grader from tampering by reading the file, which is
 why grader-pinning is a repository workflow rule (never change a grader in the
 commit that changes what it grades, and review before merge) rather than
@@ -77,14 +77,15 @@ structures the choice of what to run and leaves the direction to a person.
 
 Behaviour probes on the harness's own files found that legibility drift is
 mimicry: the same model that wrote plain entries on a clean project — even
-from a telegraph-heavy user message — reproduced seeded dialect in 3/3 runs on
-a dialect-seeded one, extending it into its own new writing. The files, not
+from a user message full of telegraph shorthand — reproduced the seeded
+shorthand in 3/3 runs on a project already written that way, extending it into
+its own new writing. The files, not
 the agent's disposition, carry the style forward. Norms alone cleaned
-inherited dialect unreliably (the tree in 3/3 runs, the log history in 1/3),
-while the validator tripwire cleaned both in 6/6 — and agents ran the
+cleaned inherited shorthand unreliably (the tree in 3/3 runs, the log history in 1/3),
+while the validator's abbreviation check cleaned both in 6/6 — and agents ran the
 validator in 24/24 runs, so what it catches, not whether it runs, was the
 binding constraint ([meta Q2.H1][meta]). Hence the plain-language contract is
-stated as a norm, enforced as a tripwire, and backed by a PostToolUse hook as
+stated as a written rule, enforced by a mechanical check, and backed by a PostToolUse hook as
 insurance for sessions that skip the ritual. Clean-up carries an explicit
 relocation rule because, before it existed, agents deleted a seeded
 operational warning in 8 of 9 clean-up runs instead of moving it. Two
@@ -105,7 +106,7 @@ test. Independent evaluation of The AI Scientist found papers containing
 ([arXiv:2502.14297][beel]). `validate_research.py` therefore checks that every
 evidence path resolves to a file, and refuses to take the claim's word for it.
 
-### Claims cannot graduate without a scorecard
+### A claim's status cannot change without a scorecard
 
 An audit of the KOSMOS autonomous scientist tested three of its hypotheses
 against null models: one was well supported, one uncertain, and one was
@@ -133,10 +134,10 @@ after a re-run, which no amount of careful reading reliably notices.
 
 The parser skips fenced blocks so a grammar example can sit in the preamble.
 An adversarial run found what that carve-out costs: wrapping a claim line in a
-code fence graduated it to `survived` with no evidence past a green validator,
+code fence marked it `survived` with no evidence, past a passing validator,
 every grader file untouched. Fenced content is skipped by *every* rule, so one
 trick defeated the scorecard gate, the evidence requirement, the length limit,
-and the shorthand tripwire together, while the line still read as recorded to
+and the abbreviation check together, while the line still read as recorded to
 anyone opening the file — the validator counted one node fewer than the file
 visibly contained and exited 0 ([meta Q3.H3][meta]).
 
@@ -180,11 +181,11 @@ The artefact histories of two real consuming projects (103 artefact commits,
 every one agent-co-authored) showed the dominant legibility failure is
 accretion, not shorthand: registration protocols and dated amendments
 appended into single tree nodes until one reached 12,051 characters, its
-codename legend buried inside the same unreadable line. A deliberate hand
+list of short labels buried inside the same unreadable line. A deliberate hand
 clean-up in the second project — every claim restructured to one falsifiable
 sentence with labelled support and falsification clauses — landed at median
 node text near 600 characters, which calibrates the validator's
-1,200-character limit. In an A/B differing only in the altitude rules, agents
+1,200-character limit. In a two-arm comparison differing only in the node-length rules, agents
 without them appended (nodes grew to 1,902–2,822 characters across n=6);
 with them they restructured in 6/6 runs into linked `notes/` registration
 documents with every seeded protocol detail preserved. Across five chained
@@ -211,7 +212,7 @@ second representation that can drift from it. And the harness's own probes
 located the binding constraint in validator *coverage*, not validator
 adoption (agents ran it unprompted in 24/24 runs), so validation moved to the
 moment of writing, where a rejected write names what is missing while the
-writer still has the context to fix it. When a claim graduates, its evidence
+writer still has the context to fix it. When a claim's status is decided, its evidence
 files are pinned — commit hash and per-file sha256, embedded in the scorecard
 by the `pin` command — and `verify` reports drift when a pinned file later
 changes: the integrity failure that is otherwise invisible exactly when it
