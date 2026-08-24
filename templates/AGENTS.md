@@ -28,8 +28,12 @@ only to record what is true.
   0 before ending any session and before any deliverable. In Claude Code a
   `PostToolUse` hook (`.claude/hooks/validate_research_hook.py`, wired in
   `.claude/settings.json`) also runs it after every edit to `TREE.md` or
-  `RESEARCH_LOG.md` and feeds failures straight back; agents without hook
-  support rely on the session-end run alone.
+  `RESEARCH_LOG.md` and feeds failures straight back. Codex gets the same
+  two hooks through `.codex/hooks.json`: the validator after tool calls
+  (`.codex/hooks/validate_record_hook.py`, which hashes the two files and
+  runs only when they changed) and the record health report at session
+  start. Agents with neither hook system rely on the session ritual: run
+  `verify` at session start and the validator before ending.
 - `uv run scripts/research_graph.py`: the typed CLI over the whole record
   (tree + log + `notes/`). Read with `tree`, `show`, `search`, `path`,
   `evidence`; write with `add`, `set-status`, `set-text`, `add-evidence`,

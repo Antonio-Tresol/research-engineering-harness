@@ -9,7 +9,9 @@ is no second store to drift out of sync.
 `TREE.md` is current belief: a tree of questions, hypotheses, experiments,
 and claims. Edit it in place; a claim that fails falsification changes status
 there. `RESEARCH_LOG.md` is append-only history: one dated entry per session,
-newest first, answering the same four questions, never revised. Keeping both
+newest first, never revised, each answering the same four questions —
+what I did; what I expected against what happened; what this changes
+about my thinking; what I will do next. Keeping both
 means you can always ask what is believed now, and also what you believed
 last Tuesday before the result came in.
 
@@ -27,8 +29,8 @@ supports it:
 
 Every claim starts `unvalidated`. It can only become `survived`, `weakened`,
 or `failed` once a falsification or validation run has produced a report
-file, which the checker requires by name. When the status is decided, the
-evidence is pinned: a commit hash and a per-file sha256 embedded in the
+file, called the scorecard, which the validator requires by name. When the status is decided, the
+evidence is pinned: a commit hash and a per-file sha256 embedded in that
 scorecard, so a later `verify` catches evidence files that changed after
 certification. `failed` is a normal outcome. Retracting a claim before it
 ships is the system working.
@@ -40,8 +42,10 @@ the repository: the standard vocabulary of machine learning, statistics, and
 software engineering, complete sentences, no shorthand, and no names invented
 in one session. Their whole job is to be read by someone without the
 writer's context: a collaborator, a reviewer, the next agent session. The
-validator catches the worst telegraph shorthand; the research-log skill
-carries the rest of the contract, including the rule that a thing with no
+validator (`scripts/validate_research.py`, the mechanical checker over both
+files) catches the worst telegraph shorthand; the research-log skill (an
+instruction document the agent loads, see [the skills](skills.md)) carries
+the rest of the contract, including the rule that a thing with no
 standard name gets described in plain words wherever it appears.
 
 Node text stays under 1,200 characters. A node is a headline; protocols,

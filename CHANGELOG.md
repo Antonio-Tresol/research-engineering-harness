@@ -6,7 +6,10 @@ surface is: the record grammar the validator enforces over `TREE.md` and
 installed skill names, the hook contracts (`PostToolUse` validation,
 `SessionStart` verify report, the pre-commit gate), the scorecard and review
 file formats under `results/` and `reviews/`, and `check.sh`. A breaking
-change is one after which an installed project must act to stay green.
+change is one after which an installed project must act to stay green. In
+the record grammar, a claim is one node of `TREE.md`, and its status may
+leave `unvalidated` only when a falsification run has produced the claim's
+report file.
 
 Versions are semantic in that spirit: breaking changes raise the minor
 version while 0.x lasts, new capability raises it too and says so, fixes
@@ -19,78 +22,87 @@ surface it holds.
 
 ## [0.2.0] - 2026-08-24
 
-Everything between the July deposit and today. The measurements every
-mechanism cites live in the research record of the companion (currently
-private) `research-harness-meta` repository; `DESIGN.md` summarises them
-with sources.
+Derived from the 40 commits between the July Zenodo deposit (version
+0.1.0, below) and today. The
+measurements each mechanism cites live in the companion (currently private)
+`research-harness-meta` repository; `DESIGN.md` summarises them with
+sources.
 
-### The record system
+### Added
 
-- Two canonical markdown files per project: `TREE.md` (questions →
-  hypotheses → experiments → claims, each with a status and evidence links)
-  and `RESEARCH_LOG.md` (dated entries, newest first, four fixed questions).
-  The files are the database; everything else is derived from them on read.
-- `scripts/validate_research.py`: the mechanical validator. It checks
-  structure, statuses, that evidence files exist, claim statuses only change with a
-  falsification report, node text under 1,200 characters, no telegraph
-  shorthand, no node-shaped lines hidden in code fences, malformed node ids
-  and log headers rejected by name.
 - `scripts/research_graph.py`: one command-line tool over the whole record.
   Reads: `tree`, `show`, `search`, `path`, `evidence`, `orphans`, `json`,
-  `mermaid`. Writes: `add`, `set-status`, `set-text`, `add-evidence`, `log`,
-  `add-note`. Every write is validated before it lands, and rolled back
-  byte-identical when it would break the record. `verify` re-derives the
-  record's health from disk; `pin` records commit, date, and a hash of every
-  evidence file behind a decided claim, so later drift is detectable.
-- Verification blocks: claims verified by reading (traces, literature) carry
-  a machine-checkable block: reader runs with dates, and verbatim quotes
-  that must resolve in the cited files.
+  `mermaid`. Writes: `add`, `set-status`, `set-text`, `add-evidence`,
+  `log`, `add-note`. Every write is validated before it lands and rolled
+  back byte-identical when it would break the record; every write takes
+  `--dry-run`. `verify` re-derives the record's health from disk, and
+  `pin` records the commit, date, and a hash of every evidence file behind
+  a claim whose status has been decided as `survived`, `weakened`, or
+  `failed`, so a later change to that evidence is detectable. `set-text` was added
+  after a usability study found it was the one missing command that forced
+  hand edits.
+- The independent reader (`review --run`, `review`, `review --waive`): a
+  reader agent with none of the writer's context receives a document and
+  reports every place it could not follow, quoting it verbatim. The
+  mechanical checks verify the reading (quotes resolve, the reviewed
+  text's hash matches, waivers answer recorded complaints) and never judge
+  prose. Findings resolve by rewriting and re-reading, or by a waiver with
+  grounds; waivers survive re-reads. Nothing in the review workflow can
+  fail a build. By default the reader runs through the Claude Code CLI;
+  `RESEARCH_READER_CMD` substitutes any agent command that accepts the
+  prompt file and prints the reader's JSON.
+- Verification blocks, a named section of a claim's report file: a claim
+  verified by reading rather than computation records its reader runs with
+  dates and verbatim quotes, and the validator
+  resolves every quote against its cited file.
+- Hooks for both supported agents. Claude Code: a `PostToolUse` hook
+  re-validates after every edit to the two record files, and a
+  `SessionStart` hook puts the `verify` report in front of every session at
+  its start, including the restart after context compaction, when the
+  session's history has just been summarised to fit its window. Codex: `.codex/hooks.json` wires the same two,
+  with an adapter that hashes the record files and validates only when
+  they changed. The installer wires the pre-commit gate automatically when
+  the target is already a git repository.
+- Release discipline: this changelog, `CONTRIBUTING.md`, a CI workflow
+  running `./check.sh` on pull requests and pushes to main, and
+  `.harness-version` stamped into every scaffold.
 
-### The clarity review channel
+### Changed
 
-- `review --run <file>`: an independent reader agent, with no shared
-  context, no tools, and only the document, reports every place it cannot
-  follow,
-  quoting verbatim. The mechanical checks verify the judging (quotes
-  resolve, the reviewed text's hash matches, waivers answer real
-  complaints), never the prose. `review` reports; `review --waive` records
-  a disagreement with grounds. Findings can stay open; nothing here fails
-  a build.
+- The plain-language contract in the research-log skill (one of the nine
+  skills 0.1.0 shipped): standard
+  vocabulary, no invented names, prose that stands without the codebase,
+  and clean-up that must move displaced information into the log or a
+  linked document before the words carrying it are deleted. The first
+  version of the vocabulary rule asked for a glossary of coined terms; it
+  now says to prefer rewriting in standard terms, with a glossary reserved
+  for names no description can replace.
+- The validator grew, each check added on measured evidence: checks
+  against telegraph shorthand; a 1,200-character limit on node text, calibrated on two real
+  project trees; rejection of malformed node ids and log entry headers,
+  which the old validator silently skipped; and rejection of node-shaped
+  lines inside code fences, which a red-team run had used to hide a
+  claim from every other check.
+- The documentation: the README shrank to what a visitor needs, five
+  documents under `docs/` carry the depth, and the deep material moved
+  there rather than being deleted.
 
-### Skills, hooks, install
+### Fixed
 
-- Nine agent skills installed under `.claude/skills/`, with `.agents/skills`
-  symlinked for other agents: research-ideation, research,
-  derive-from-sources, eval-design, experiment-engineering, falsify,
-  research-log, validate-claims, communicate-results. The research-log
-  skill carries the plain-language contract: standard vocabulary, no
-  invented names, complete sentences, prose that stands without the
-  codebase; the reader is your research partner, and the record is the one
-  place you actually meet.
-- Hooks: a `PostToolUse` hook re-validates after any edit to the two record
-  files; a `SessionStart` hook puts the verify report in front of every
-  fresh or just-compacted session; `hooks/pre-commit` blocks on `check.sh`
-  and prints non-blocking bookkeeping reminders.
-- `install.py` scaffolds all of it into a project, renders the templates,
-  wires the git hook when a repository exists, excludes the harness's lab
-  equipment, and stamps `.harness-version`.
-
-### Upgrading a project scaffolded before 0.2.0
-
-Re-run `install.py` over the project (it reports what it would overwrite),
-or copy `scripts/`, `.claude/`, and `hooks/` by hand. Then expect and work
-through, in order: node-length findings on any tree written without the
-1,200-character limit (move detail into `notes/` documents; the relocation
-recipe is in the research-log skill); malformed node ids the old validator
-silently skipped, now rejected by name; and the first `review --run` of each
-record file, which will report real findings; fix or waive them through the
-tool. The emotion-vectors migration in the meta record is the worked example
-of exactly this upgrade.
+- Re-reading a document no longer deletes its recorded waivers.
+- A reader that tried to open the files a record cites died and looked
+  like an interface error; it now recovers from the denied attempt and
+  answers from the text alone.
+- Usability defects found by reading agent transcripts: silent evidence
+  loss on a rejected write, dry runs that reported nothing, and the
+  rejection that made agents abandon the tool and edit the markdown by
+  hand.
 
 ## [0.1.0] - 2026-07-27
 
 Initial release, archived on Zenodo (version DOI 10.5281/zenodo.21617975):
 the nine agent skills, the two record templates, the mechanical validator
-for both files, `install.py`, the pre-commit gate, and lanorme with the
-harness's own plugins. Everything in 0.2.0 was built on and measured
+for both files, `install.py`, the pre-commit gate, and
+[lanorme](https://github.com/lanorme/lanorme), the code checker the
+harness builds on, with the harness's own checks as its plugins. Everything in 0.2.0 was built on and measured
 against this state.
