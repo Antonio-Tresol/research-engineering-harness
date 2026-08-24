@@ -46,6 +46,11 @@ the same command: fix the text and read again, or keep it and record why
 with `--waive`. A waiver must answer a real complaint, and waivers survive
 re-reads.
 
+The reader is spawned through an agent command-line tool: the Claude Code
+CLI by default. To use another agent, set `RESEARCH_READER_CMD` to a shell
+command; it receives the reader prompt at `{prompt_file}` and must print
+the reader's JSON object on standard output.
+
 Nothing in this channel can fail a build. A semantic verdict that can block
 gets bypassed once and then forever, so the reader's findings are advisory,
 and leaving one open is an honest recorded state, like an unvalidated claim.

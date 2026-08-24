@@ -56,13 +56,20 @@ belief worth recording.
 
 ## Hooks
 
-In Claude Code sessions the project settings wire two hooks. A `PostToolUse`
+Both supported agents get the same two hooks. In Claude Code the project
+settings wire them; in Codex, `.codex/hooks.json` does, with a small
+adapter (`.codex/hooks/validate_record_hook.py`) that hashes the two
+record files and runs the validator only when they changed, because Codex
+sends different event payloads per tool. The Codex wiring follows the
+documented hook contract and has not yet been exercised in a live Codex
+session; if it misbehaves, delete `.codex/hooks.json` and rely on the
+session ritual instead. The `PostToolUse`
 hook re-runs the validator after every edit to `TREE.md` or
 `RESEARCH_LOG.md`, so failures land straight back in the agent's context. In
-behaviour runs, agents reliably fixed what the validator showed them; the
-hook removes the need to remember to run it. A `SessionStart` hook puts the
-`verify` report in front of every fresh or just-compacted session, so the
-record's health is the first thing a session sees.
+measured runs, agents reliably fixed what the validator showed them; the
+hook removes the need to remember to run it. The `SessionStart` hook puts
+the `verify` report in front of every fresh or just-compacted session, so
+the record's health is the first thing a session sees.
 
 The optional pre-commit hook (`./hooks/install.sh`) blocks a commit when
 checks fail, then lists what the change implies without blocking: results

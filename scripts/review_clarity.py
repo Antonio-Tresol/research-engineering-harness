@@ -52,6 +52,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -160,6 +162,30 @@ def _extract_json(raw: str) -> dict[str, Any] | None:
     return None
 
 
+def _run_override_reader(
+    override: str, prompt: str, neutral: Path, timeout: int
+) -> dict[str, Any] | None:
+    """Run the RESEARCH_READER_CMD agent command instead of the Claude CLI.
+
+    The override is split into arguments without a shell, and each token's
+    ``{prompt_file}`` is replaced with the path of a file holding the reader
+    prompt. The command must print the reader's JSON object on stdout.
+    """
+    prompt_file = neutral / "prompt.txt"
+    prompt_file.write_text(prompt, encoding="utf-8")
+    argv = [token.replace("{prompt_file}", str(prompt_file)) for token in shlex.split(override)]
+    done = subprocess.run(
+        argv, capture_output=True, text=True, timeout=timeout, check=False, cwd=neutral
+    )
+    if done.returncode != 0:
+        print(
+            f"reader command failed (exit {done.returncode}): {done.stderr[:200]}",
+            file=sys.stderr,
+        )
+        return None
+    return _extract_json(done.stdout)
+
+
 def _one_reader_attempt(prompt: str, model: str, timeout: int) -> dict[str, Any] | None:
     """A single reader process, or None on any failure.
 
@@ -178,26 +204,39 @@ def _one_reader_attempt(prompt: str, model: str, timeout: int) -> dict[str, Any]
     reads of one document died this way reporting what looked like API
     errors until the trace was read.
     """
-    cmd = [
-        "claude",
-        "-p",
-        prompt,
-        "--output-format",
-        "json",
-        "--model",
-        model,
-        "--max-turns",
-        "4",
-        "--allowedTools",
-        "",
-    ]
+    override = os.environ.get("RESEARCH_READER_CMD", "").strip()
     try:
         with tempfile.TemporaryDirectory(prefix="clarity-reader-") as neutral:
+            if override:
+                return _run_override_reader(override, prompt, Path(neutral), timeout)
+            cmd = [
+                "claude",
+                "-p",
+                prompt,
+                "--output-format",
+                "json",
+                "--model",
+                model,
+                "--max-turns",
+                "4",
+                "--allowedTools",
+                "",
+            ]
             done = subprocess.run(
                 cmd, capture_output=True, text=True, timeout=timeout, check=False, cwd=neutral
             )
-    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+    except subprocess.TimeoutExpired as exc:
         print(f"reader failed: {exc}", file=sys.stderr)
+        return None
+    except FileNotFoundError:
+        print(
+            "The independent reader is run by an agent command-line tool, and "
+            "none was found. By default it uses the Claude Code CLI (claude). "
+            "Install that, or set RESEARCH_READER_CMD to a shell command for "
+            "another agent: it receives the reader prompt at {prompt_file} "
+            "and must print the reader's JSON object on standard output.",
+            file=sys.stderr,
+        )
         return None
     try:
         envelope = json.loads(done.stdout)

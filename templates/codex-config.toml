@@ -10,3 +10,12 @@
 
 model_auto_compact_token_limit = 200000
 model_auto_compact_token_limit_scope = "total"
+
+# Lifecycle hooks: .codex/hooks.json wires the same two hooks the Claude
+# Code settings wire — the record validator after tool calls, and the
+# record health report at session start. Newer Codex versions load hooks
+# by default; on a version that gates them behind a feature flag,
+# uncomment the two lines below.
+#
+# [features]
+# codex_hooks = true

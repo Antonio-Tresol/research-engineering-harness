@@ -200,3 +200,11 @@ def test_scaffold_is_stamped_with_the_harness_version(installed: Path) -> None:
     assert f"## [{stamp}]" in changelog, (
         "the shipped version must have a section in CHANGELOG.md"
     )
+
+
+def test_codex_gets_the_same_two_hooks(installed: Path) -> None:
+    """Cross-agent support is shipped wiring, not a promise in prose."""
+    wiring = json.loads((installed / ".codex" / "hooks.json").read_text(encoding="utf-8"))
+    assert set(wiring["hooks"]) == {"SessionStart", "PostToolUse"}
+    assert (installed / ".codex" / "hooks" / "validate_record_hook.py").is_file()
+    assert (installed / ".claude" / "hooks" / "session_verify_hook.py").is_file()

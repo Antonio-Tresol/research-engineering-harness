@@ -85,6 +85,8 @@ COPY_AS = [
     ("templates/lanorme.toml", "lanorme.toml"),
     ("templates/claude-settings.json", ".claude/settings.json"),  # team-shared Claude Code config
     ("templates/codex-config.toml", ".codex/config.toml"),  # team-shared Codex config
+    ("templates/codex-hooks.json", ".codex/hooks.json"),  # same two hooks, Codex contract
+    ("templates/codex_validate_record_hook.py", ".codex/hooks/validate_record_hook.py"),
     ("check.sh", "check.sh"),
 ]
 # Directories to create empty.
