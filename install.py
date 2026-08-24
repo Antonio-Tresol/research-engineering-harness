@@ -55,7 +55,14 @@ COPY_TREE = [".claude", "scripts", "lanorme_plugins", "hooks", "tests"]
 # the harness's own settings shadowed that template until the two diverged.
 COPY_IGNORE = {
     ".claude": ("settings.json", "settings.local.json"),
-    "scripts": ("run_*", "analyse_*", "skill_eval_*", "plain_language_*", "redteam_*"),
+    "scripts": (
+        "run_*",
+        "analyse_*",
+        "skill_eval_*",
+        "plain_language_*",
+        "redteam_*",
+        "falsify_*",
+    ),
     "tests": ("test_install.py",),
 }
 # Reference material worth having in every project (read-only evidence base).
