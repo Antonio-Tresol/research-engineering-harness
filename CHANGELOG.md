@@ -30,26 +30,27 @@ with sources.
   hypotheses → experiments → claims, each with a status and evidence links)
   and `RESEARCH_LOG.md` (dated entries, newest first, four fixed questions).
   The files are the database; everything else is derived from them on read.
-- `scripts/validate_research.py`: the mechanical validator — structure,
-  statuses, evidence files exist, claim statuses only change with a
+- `scripts/validate_research.py`: the mechanical validator. It checks
+  structure, statuses, that evidence files exist, claim statuses only change with a
   falsification report, node text under 1,200 characters, no telegraph
   shorthand, no node-shaped lines hidden in code fences, malformed node ids
   and log headers rejected by name.
 - `scripts/research_graph.py`: one command-line tool over the whole record.
   Reads: `tree`, `show`, `search`, `path`, `evidence`, `orphans`, `json`,
   `mermaid`. Writes: `add`, `set-status`, `set-text`, `add-evidence`, `log`,
-  `add-note` — every write is validated before it lands and rolled back
+  `add-note`. Every write is validated before it lands, and rolled back
   byte-identical when it would break the record. `verify` re-derives the
   record's health from disk; `pin` records commit, date, and a hash of every
   evidence file behind a decided claim, so later drift is detectable.
 - Verification blocks: claims verified by reading (traces, literature) carry
-  a machine-checkable block — reader runs with dates and verbatim quotes
+  a machine-checkable block: reader runs with dates, and verbatim quotes
   that must resolve in the cited files.
 
 ### The clarity review channel
 
-- `review --run <file>`: an independent reader agent — no shared context,
-  no tools, only the document — reports every place it cannot follow,
+- `review --run <file>`: an independent reader agent, with no shared
+  context, no tools, and only the document, reports every place it cannot
+  follow,
   quoting verbatim. The mechanical checks verify the judging (quotes
   resolve, the reviewed text's hash matches, waivers answer real
   complaints), never the prose. `review` reports; `review --waive` records
@@ -79,10 +80,10 @@ with sources.
 Re-run `install.py` over the project (it reports what it would overwrite),
 or copy `scripts/`, `.claude/`, and `hooks/` by hand. Then expect and work
 through, in order: node-length findings on any tree written without the
-1,200-character limit (move detail into `notes/` documents — the relocation
+1,200-character limit (move detail into `notes/` documents; the relocation
 recipe is in the research-log skill); malformed node ids the old validator
 silently skipped, now rejected by name; and the first `review --run` of each
-record file, which will report real findings — fix or waive them through the
+record file, which will report real findings; fix or waive them through the
 tool. The emotion-vectors migration in the meta record is the worked example
 of exactly this upgrade.
 
