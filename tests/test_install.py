@@ -94,6 +94,8 @@ def test_shipped_scripts_are_exactly_the_record_tooling(installed: Path) -> None
         "research_graph_model.py",
         "research_graph_write.py",
         "research_graph_checks.py",
+        "research_graph_txn.py",
+        "research_graph_views.py",
     }
 
 

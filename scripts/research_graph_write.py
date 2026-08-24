@@ -5,12 +5,12 @@
 # ///
 """Operations layer: the write commands that record new content in the research record.
 
-Every write follows one contract, implemented once in `write_transaction` and reused
+Every write follows one contract, implemented once in `research_graph_txn` and reused
 by all of them: take a snapshot of the files about to change, apply the edit, run the
 project's validator as a separate process, and then either keep the change or put the
 files back exactly as they were. The markdown files are the database, so a write that
 would leave the record invalid never survives on disk. Each command also accepts
-`dry_run`, which prints the lines it would write and touches nothing.
+`dry_run`, which rehearses the write and then restores the files untouched.
 """
 
 from __future__ import annotations
@@ -36,10 +36,14 @@ import validate_research as grammar  # noqa: E402
 # mistakes, which argparse reports in the command-line interface before any function
 # here is called.
 from research_graph_model import INVALID, OK  # noqa: E402
+from research_graph_txn import (  # noqa: E402
+    REJECTION_LINE,
+    write_transaction,
+)
+from research_graph_txn import missing_file as _missing_file  # noqa: E402
+from research_graph_txn import refuse as _refuse  # noqa: E402
+from research_graph_txn import reject_joined_paths as _reject_joined_paths  # noqa: E402
 
-REJECTION_LINE: Final[str] = "Rejected — the record would become invalid; nothing was written:"
-
-# The word an author types on the command line, and the letter the record uses for it.
 TYPE_LETTERS: Final[dict[str, str]] = {
     "question": "Q",
     "hypothesis": "H",
@@ -55,19 +59,6 @@ NEW_NODE_STATUS: Final[dict[str, str]] = {
 }
 
 FENCES: Final[tuple[str, ...]] = ("```", "~~~")
-
-
-def _refuse(message: str) -> int:
-    """Print a plain-language refusal and return the failure exit code."""
-    print(message)
-    return INVALID
-
-
-def _missing_file(path: Path) -> int:
-    return _refuse(
-        f"There is no {path.name} in this project (looked for {path}). Copy the file from "
-        "the research harness templates and fill it in before recording anything."
-    )
 
 
 def _no_such_node(node_id: str) -> int:
@@ -88,62 +79,6 @@ def _sentence(text: str) -> str:
     if trimmed and trimmed[-1] not in ".!?":
         trimmed += "."
     return trimmed
-
-
-# --------------------------------------------------------------------------------------
-# The one transaction contract: snapshot, write, validate, then keep or restore.
-# --------------------------------------------------------------------------------------
-
-
-def write_transaction(
-    root: Path,
-    files: dict[Path, str],
-    preview: list[str],
-    confirmation: str,
-    dry_run: bool = False,
-) -> int:
-    """Write the given files together, keeping them only if the validator accepts them.
-
-    Files are written in the order they appear, which matters when one of them is
-    evidence for another. On failure every file goes back to its previous content, and
-    a file that did not exist before is removed again.
-    """
-    if dry_run:
-        print("Dry run — nothing was written. These are the lines the command would write:")
-        for line in preview:
-            print(line)
-        return OK
-    validator = root / "scripts" / "validate_research.py"
-    if not validator.exists():
-        return _refuse(
-            f"There is no validator at {validator}, so this write cannot be checked. Copy "
-            "scripts/validate_research.py into the project and run the command again."
-        )
-    snapshot: dict[Path, bytes | None] = {
-        path: (path.read_bytes() if path.exists() else None) for path in files
-    }
-    for path, text in files.items():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
-    result = subprocess.run(
-        [sys.executable, str(validator)], cwd=root, capture_output=True, text=True, check=False
-    )
-    if result.returncode == 0:
-        print(confirmation)
-        return OK
-    _restore(snapshot)
-    print(REJECTION_LINE)
-    print((result.stdout + result.stderr).rstrip())
-    return INVALID
-
-
-def _restore(snapshot: dict[Path, bytes | None]) -> None:
-    """Put every file back exactly as it was before the write."""
-    for path, original in snapshot.items():
-        if original is None:
-            path.unlink(missing_ok=True)
-        else:
-            path.write_bytes(original)
 
 
 # --------------------------------------------------------------------------------------
@@ -296,6 +231,9 @@ def add_node(
     dry_run: bool = False,
 ) -> int:
     """Add one question, hypothesis, experiment, or claim to TREE.md under its parent."""
+    joined = _reject_joined_paths(evidence)
+    if joined is not None:
+        return joined
     letter = TYPE_LETTERS.get(node_type)
     if letter is None:
         return _refuse(
@@ -333,6 +271,9 @@ def add_node(
 
 def add_evidence(root: Path, node_id: str, paths: list[str], dry_run: bool = False) -> int:
     """Link one or more evidence files to a node that is already in the tree."""
+    joined = _reject_joined_paths(paths)
+    if joined is not None:
+        return joined
     tree_path = root / "TREE.md"
     if not tree_path.exists():
         return _missing_file(tree_path)
@@ -379,6 +320,9 @@ def set_status(
     dry_run: bool = False,
 ) -> int:
     """Change a node's status, optionally adding evidence and a log date in the same write."""
+    joined = _reject_joined_paths(evidence)
+    if joined is not None:
+        return joined
     tree_path = root / "TREE.md"
     if not tree_path.exists():
         return _missing_file(tree_path)

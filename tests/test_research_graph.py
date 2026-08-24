@@ -453,6 +453,86 @@ def test_write_rollback_restores_file_byte_identical_on_invalid_write(
     assert "Rejected — the record would become invalid; nothing was written:" in out
 
 
+def test_dry_run_reports_a_write_that_would_be_rejected(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A dry run must rehearse the write, not just print it.
+
+    Two measured runs saw a clean preview and then a hard rejection from the
+    identical command a moment later, because the preview never ran the
+    validator. A preview that says "this will work" and is wrong is worse than
+    no preview: it spends the author's trust before spending their time.
+    """
+    root = build_fixture_project(tmp_path)
+    before = (root / "TREE.md").read_bytes()
+    exit_code = add_node(
+        root, "Q1", "hypothesis", "A hypothesis written w/o full words.", None, [], dry_run=True
+    )
+    assert exit_code == 1
+    assert (root / "TREE.md").read_bytes() == before, "a dry run must never leave a change behind"
+    out = capsys.readouterr().out
+    assert "Dry run — nothing was written" in out
+    assert "would be REJECTED" in out
+
+
+def test_dry_run_confirms_a_write_that_would_be_accepted(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The other half of the contract: a valid write previews as valid and
+    still writes nothing."""
+    root = build_fixture_project(tmp_path)
+    before = (root / "TREE.md").read_bytes()
+    exit_code = add_node(
+        root, "Q1", "hypothesis", "Probe accuracy holds on a second layer.", None, [], dry_run=True
+    )
+    assert exit_code == 0
+    assert (root / "TREE.md").read_bytes() == before
+    out = capsys.readouterr().out
+    assert "would still be valid" in out
+
+
+def test_rejection_says_when_the_record_was_already_invalid(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A refusal caused by a pre-existing violation must say so.
+
+    An over-long node already in the tree makes every write fail, including
+    the relocation write that would fix it. Without this note the refusal
+    reads as "your command was wrong": one measured run abandoned the writing
+    commands entirely after exactly that misreading.
+    """
+    root = build_fixture_project(tmp_path)
+    tree = (root / "TREE.md").read_text()
+    bloated = tree.replace(
+        "Repeat the probe training on layer 20 activations to check whether the "
+        "effect is specific to one layer",
+        "Repeat the probe training on layer 20. " + ("Protocol detail. " * 90),
+    )
+    (root / "TREE.md").write_text(bloated, encoding="utf-8")
+    exit_code = add_note(root, "protocol", "Protocol", "The relocated protocol text.", "Q1.H1.E2")
+    assert exit_code == 1
+    out = capsys.readouterr().out
+    assert "ALREADY invalid before this command ran" in out
+    assert not (root / "notes/protocol.md").exists()
+
+
+@pytest.mark.parametrize("joined", ["results/a.json,results/b.json", "results/a.json,"])
+def test_comma_joined_evidence_path_is_refused_by_name(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], joined: str
+) -> None:
+    """Evidence is stored comma-separated, so a comma inside one path splits it
+    into two paths that do not exist. Authors reach for the joined form because
+    the record's own format looks like a list; the refusal names the fix."""
+    root = build_fixture_project(tmp_path)
+    before = (root / "TREE.md").read_bytes()
+    exit_code = add_evidence(root, "Q1.H1.E2", [joined])
+    assert exit_code == 1
+    assert (root / "TREE.md").read_bytes() == before
+    out = capsys.readouterr().out
+    assert "contains a comma" in out
+    assert "separated by spaces" in out
+
+
 def test_add_note_link_rolls_back_both_files_on_invalid_result(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
