@@ -116,7 +116,10 @@ Do NOT report:
   this project more than it is worth, because a reader who cries wolf gets
   ignored and takes their real findings with them."""
 
-_OUTPUT_CONTRACT: Final[str] = """Reply with one JSON object and nothing else:
+_OUTPUT_CONTRACT: Final[str] = """You have no tools in this session, deliberately:
+you are reading as the research partner who has only this document. Do not try
+to open files or run commands — reply with one JSON object directly and
+nothing else:
 
 {"verdict": "clear" | "needs-work",
  "findings": [{"excerpt": "<the exact words from the document, copied \
@@ -166,6 +169,14 @@ def _one_reader_attempt(prompt: str, model: str, timeout: int) -> dict[str, Any]
     started inside the reviewed project would load that project's settings,
     instructions, and skills — exactly the context the intended reader does
     not have, quietly restored by a working directory.
+
+    The turn budget is above one because readers of a record that names its
+    evidence files sometimes try to open them — a sound instinct the sandbox
+    must absorb rather than punish. The attempt is denied (every tool is),
+    the denial comes back as feedback, and the reader answers from the text
+    alone; with a single turn, that first attempt killed the read, and six
+    reads of one document died this way reporting what looked like API
+    errors until the trace was read.
     """
     cmd = [
         "claude",
@@ -176,7 +187,7 @@ def _one_reader_attempt(prompt: str, model: str, timeout: int) -> dict[str, Any]
         "--model",
         model,
         "--max-turns",
-        "1",
+        "4",
         "--allowedTools",
         "",
     ]
