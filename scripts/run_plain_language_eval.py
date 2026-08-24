@@ -290,7 +290,12 @@ def cli_metrics(transcript_text: str) -> dict[str, Any]:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        content = event.get("message", {}).get("content", [])
+        # System and error events carry a plain-string "message"; only the
+        # assistant/user turn events have the dict shape scanned here.
+        message = event.get("message")
+        if not isinstance(message, dict):
+            continue
+        content = message.get("content", [])
         if not isinstance(content, list):
             continue
         for block in content:
