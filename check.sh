@@ -7,10 +7,13 @@
 #   pytest   — the checks' own tests, including a false-positive suite. A checker
 #              that cries wolf gets bypassed, so quiet-on-clean-input is tested
 #              as carefully as fires-on-bad-input.
-#   validate_research.py — the research-integrity gate. Deliberately standalone
-#              and dependency-free: a project that never installs lanorme must
-#              still have every integrity guarantee. Skipped in the harness repo
-#              itself, which is not a research project and has no TREE.md.
+#   research gate — validate_research.py, run through research_graph.py verify
+#              where that CLI exists (same validator, plus evidence drift
+#              against provenance pins and orphaned notes/). Deliberately
+#              standalone and dependency-free: a project that never installs
+#              lanorme must still have every integrity guarantee. Skipped in
+#              the harness repo itself, which is not a research project and
+#              has no TREE.md.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -24,7 +27,11 @@ if [[ -d tests ]]; then
 fi
 
 if [[ -f TREE.md ]]; then
-    uv run scripts/validate_research.py
+    if [[ -f scripts/research_graph.py ]]; then
+        uv run scripts/research_graph.py verify
+    else
+        uv run scripts/validate_research.py
+    fi
 else
     echo "No TREE.md — skipping research-integrity gate (not a research project)."
 fi

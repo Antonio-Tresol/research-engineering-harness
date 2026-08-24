@@ -1,6 +1,6 @@
 ---
 name: research-log
-description: Maintain the project's research tree (TREE.md) and daily research log (RESEARCH_LOG.md), and validate both mechanically. Use at the start and end of every work session, after any experiment produces results, and whenever a claim's status changes. Run scripts/validate_research.py before every commit or deliverable.
+description: Maintain the project's research tree (TREE.md) and daily research log (RESEARCH_LOG.md), and validate both mechanically. Use at the start and end of every work session, after any experiment produces results, and whenever a claim's status changes. Read and write the record through the scripts/research_graph.py CLI; run its verify command (or scripts/validate_research.py) before every commit or deliverable.
 ---
 
 # Research log + tree
@@ -16,6 +16,37 @@ Two append-friendly documents plus one validator keep the project honest:
 The tree is the **state** (what we believe now and on what evidence); the log is the
 **history** (what was done and learned, frozen per day). Never encode state only in
 the log or history only in the tree.
+
+## The record CLI (one way to read, one way to write)
+
+`scripts/research_graph.py` is the typed interface to the tree, the log, and
+`notes/` as one connected record:
+
+```bash
+uv run scripts/research_graph.py help          # every command, plus recipes
+uv run scripts/research_graph.py tree          # the whole tree, one line per node
+uv run scripts/research_graph.py show Q1.H1    # one node: text, status, evidence, mentions
+uv run scripts/research_graph.py search fp32   # find nodes, log entries, notes by term
+uv run scripts/research_graph.py verify        # validator + evidence exists + drift + orphans
+```
+
+Write through it rather than by hand wherever a command fits: `add`,
+`add-evidence`, `set-status`, `log`, and `add-note` compose the grammar for
+you (next free id, insertion point, status vocabulary, newest-first log
+order), run the full validator before anything lands, and on failure restore
+the files untouched and print what was missing. `--dry-run` previews any
+write. The files stay plain markdown and hand-editing them remains
+legitimate — the human collaborator reads and writes them directly — but the
+CLI turns most validator errors into errors that never happen.
+
+Two commands are session rituals:
+
+- **`verify` at session start and after any compaction.** It re-derives the
+  record's health from the files on disk — the one source of truth that
+  survives context loss.
+- **`pin` when a claim graduates** (the falsify skill has the full step): it
+  hashes the claim's evidence files into the scorecard, so a later `verify`
+  detects when a file a graduated claim rests on has changed.
 
 ## Plain language (both files)
 
@@ -170,7 +201,8 @@ tripwire as node text; fenced blocks and inline code are exempt).
 
 ## Workflow
 
-- **Session start**: read TREE.md + latest log entry. State out loud which node(s)
+- **Session start**: run `uv run scripts/research_graph.py verify`, then read
+  TREE.md (or its `tree` view) + latest log entry. State out loud which node(s)
   today's work targets before writing code.
 - **After results land**: update the experiment node to `done` with evidence paths;
   add claims as `unvalidated`. **A null or infeasible result recorded with
@@ -179,10 +211,10 @@ tripwire as node text; fenced blocks and inline code are exempt).
   produce a positive result, only to record what happened.
 - **Before claims graduate**: run `falsify` (statistical destruction) and/or
   `validate-claims` (traceability); update claim statuses per the outcome, linking
-  the scorecard.
+  the scorecard — with the `pin` provenance block embedded in it (falsify Step 6).
 - **Session end**: append the day's log entry, update statuses, and reread both
   files as the outside reader (Plain language above). Then run
-  `python scripts/validate_research.py` and fix every error before stopping.
+  `uv run scripts/research_graph.py verify` and fix every error before stopping.
 - **Pivots**: never delete a node — mark it `abandoned` with a log-date pointing at
   the entry explaining why. The tree's job is to never lie about what was tried.
 

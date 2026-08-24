@@ -47,6 +47,17 @@ HARNESS = Path(__file__).resolve().parent
 
 # Files/dirs copied verbatim (portable, no placeholders).
 COPY_TREE = [".claude", "scripts", "lanorme_plugins", "hooks", "tests"]
+# Harness-internal files that never reach a project. scripts/: the eval
+# runners and graders are lab equipment for measuring agent behaviour ON the
+# harness; projects need the validator and research_graph tooling only.
+# tests/: test_install.py needs install.py and templates/, which do not ship.
+# .claude/: settings come from templates/claude-settings.json (COPY_AS below);
+# the harness's own settings shadowed that template until the two diverged.
+COPY_IGNORE = {
+    ".claude": ("settings.json", "settings.local.json"),
+    "scripts": ("run_*", "analyse_*", "skill_eval_*", "plain_language_*"),
+    "tests": ("test_install.py",),
+}
 # Reference material worth having in every project (read-only evidence base).
 COPY_REFERENCE = ["references", "research"]
 # Templates rendered with placeholder substitution: (template_src, dest_in_project).
@@ -222,6 +233,28 @@ class Installer:
             return
         self.actions.append("linked .agents/skills -> ../.claude/skills")
 
+    def install_git_hooks(self) -> None:
+        """Copy hooks/pre-commit into .git/hooks when the target is already a git repo.
+
+        Most installs run before ``git init`` (the printed next steps put init
+        after install), and then this is a silent no-op — those steps say to run
+        ./hooks/install.sh once the repo exists. An existing hook is never
+        replaced, even under --force: --force is consent to overwrite project
+        files, and .git/hooks may hold machinery this installer did not put there.
+        """
+        hook_src = self.plan.target / "hooks" / "pre-commit"
+        git_dir = self.plan.target / ".git"
+        if not (hook_src.is_file() and git_dir.is_dir()):
+            return
+        dest = git_dir / "hooks" / "pre-commit"
+        if dest.exists():
+            self.actions.append("SKIP (exists, left untouched): .git/hooks/pre-commit")
+            return
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(hook_src, dest)
+        dest.chmod(0o755)
+        self.actions.append("installed .git/hooks/pre-commit (bypass once: git commit --no-verify)")
+
     def make_dirs(self) -> None:
         for rel in MKDIRS:
             directory = self.plan.target / rel
@@ -232,11 +265,7 @@ class Installer:
     def run(self) -> list[str]:
         self.plan.target.mkdir(parents=True, exist_ok=True)
         for rel in COPY_TREE:
-            # The project's settings come from templates/claude-settings.json
-            # (COPY_AS below). Copying the harness's own settings here would
-            # shadow that template — and silently did, until the two diverged.
-            ignore = ("settings.json", "settings.local.json") if rel == ".claude" else ()
-            self.copy_dir(rel, ignore=ignore)
+            self.copy_dir(rel, ignore=COPY_IGNORE.get(rel, ()))
         if self.plan.with_reference:
             for rel in COPY_REFERENCE:
                 self.copy_dir(rel, label=" (reference)")
@@ -245,6 +274,7 @@ class Installer:
         for src_rel, dest_rel in RENDER:
             self.render_file(src_rel, dest_rel)
         self.link_codex_skills()
+        self.install_git_hooks()
         self.make_dirs()
         self.write_text_file(".gitignore", GITIGNORE)
         self.write_text_file("CLAUDE.local.md", LOCAL_POINTERS_TEXT)
@@ -319,8 +349,9 @@ def main() -> int:
     print(
         f"  cd {args.target} && git init && git add -A && git commit -m 'Scaffold from research-harness'"
     )
+    print("  ./hooks/install.sh  (wires the pre-commit gate; automatic when .git already exists)")
     print("  Write your gitignored CLAUDE.local.md pointers, then start on Q1.")
-    print("  Verify: uv run scripts/validate_research.py")
+    print("  Verify: uv run scripts/research_graph.py verify")
     return 0
 
 

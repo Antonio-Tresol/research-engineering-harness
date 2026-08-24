@@ -79,5 +79,92 @@ def test_fresh_project_validates(installed: Path) -> None:
     assert done.returncode == 0, done.stdout
 
 
+def test_shipped_scripts_are_exactly_the_record_tooling(installed: Path) -> None:
+    """Every scripts/ file is a conscious shipping decision.
+
+    The eval runners and graders are the harness's lab equipment (they measure
+    agent behaviour ON the harness) and must stay home. A new script failing
+    this test is the forcing function: either it ships (add it here) or it is
+    lab equipment (make it match a COPY_IGNORE pattern in install.py).
+    """
+    shipped = {p.name for p in (installed / "scripts").glob("*.py")}
+    assert shipped == {
+        "validate_research.py",
+        "research_graph.py",
+        "research_graph_model.py",
+        "research_graph_write.py",
+        "research_graph_checks.py",
+    }
+
+
+def test_harness_only_tests_stay_home(installed: Path) -> None:
+    """test_install.py needs install.py and templates/, which do not ship."""
+    shipped = {p.name for p in (installed / "tests").glob("*.py")}
+    assert "test_install.py" not in shipped
+    assert {"test_validate_research.py", "test_research_graph.py"} <= shipped
+
+
+def test_graph_verify_passes_in_fresh_project(installed: Path) -> None:
+    done = subprocess.run(
+        [sys.executable, "scripts/research_graph.py", "verify"],
+        cwd=installed,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    assert done.returncode == 0, done.stdout + done.stderr
+    assert "record verified" in done.stdout
+
+
+def _run_installer(target: Path, *extra: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            str(HARNESS / "install.py"),
+            str(target),
+            "--name",
+            "Hook Test",
+            "--no-input",
+            "--no-reference",
+            *extra,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+
+
+@pytest.fixture()
+def git_target(tmp_path: Path) -> Path:
+    """A target directory that is already a git repository before install runs."""
+    target = tmp_path / "proj"
+    target.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=target, check=True, timeout=60)
+    return target
+
+
+def test_pre_commit_wired_into_existing_git_repo(git_target: Path) -> None:
+    done = _run_installer(git_target)
+    assert done.returncode == 0, done.stderr
+    hook = git_target / ".git" / "hooks" / "pre-commit"
+    assert hook.is_file()
+    assert hook.stat().st_mode & 0o111, "the hook must be executable"
+    assert hook.read_bytes() == (HARNESS / "hooks" / "pre-commit").read_bytes()
+
+
+def test_existing_pre_commit_is_never_replaced(git_target: Path) -> None:
+    """Even --force must not reach into .git: the hook there may be someone else's."""
+    sentinel = "#!/bin/sh\n# somebody else's machinery\n"
+    hook = git_target / ".git" / "hooks" / "pre-commit"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    hook.write_text(sentinel)
+    done = _run_installer(git_target, "--force")
+    assert done.returncode == 0, done.stderr
+    assert hook.read_text() == sentinel
+    assert "SKIP" in done.stdout and ".git/hooks/pre-commit" in done.stdout
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))

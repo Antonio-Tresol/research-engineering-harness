@@ -150,6 +150,29 @@ attribution, a citation) survived in all runs, with a fresh cheap reader
 recovering detail answers from the relocation documents at 40% of the
 original tree's reading cost ([meta Q2.H2–H3][meta]).
 
+### Writes go through a validating pen; the graph is derived, never stored
+
+The record's structure — nodes, evidence links, log cross-references, notes
+documents — is parsed fresh from the markdown files on every read
+(`scripts/research_graph_model.py`), and the CLI's write commands
+(`scripts/research_graph.py`) compose a change, run the full validator, and
+restore the files byte-for-byte when it fails. Both halves answer documented
+failures. Design-rationale tools from gIBIS through Compendium found that
+formal structure imposed at capture time gets bypassed — Shipman and
+Marshall's "Formality Considered Harmful" is the canonical post-mortem — so
+the formal graph here is computed from what writers already produce, never a
+second representation that can drift from it. And the harness's own probes
+located the binding constraint in validator *coverage*, not validator
+adoption (agents ran it unprompted in 24/24 runs), so validation moved to the
+moment of writing, where a rejected write names what is missing while the
+writer still has the context to fix it. When a claim graduates, its evidence
+files are pinned — commit hash and per-file sha256, embedded in the scorecard
+by the `pin` command — and `verify` reports drift when a pinned file later
+changes: the integrity failure that is otherwise invisible exactly when it
+matters, because nothing else re-reads certified evidence
+([meta Q3.H1][meta]; the full design note is `notes/record-cli-design.md`
+there).
+
 ### Code quality applies to promoted code only
 
 42% of The AI Scientist's experiments failed on coding errors

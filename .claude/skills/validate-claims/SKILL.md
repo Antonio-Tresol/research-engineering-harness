@@ -48,6 +48,10 @@ to have `PROV-003` warn about statistics that carry no marker at all.
 - Data file paths referenced in reports (do they exist?)
 - Calculation methods (does "mean of others" exclude the right things?)
 - Rounding consistency (don't say 0.14 if the data shows 0.136)
+- Provenance pins: run `uv run scripts/research_graph.py verify` — a drift
+  ERROR means an evidence file changed after its claim graduated, so the
+  claim may describe data that no longer exists in that form; re-run the
+  falsify gate for it or record in the log why the change is benign
 
 ## Common failure modes caught by this protocol
 
