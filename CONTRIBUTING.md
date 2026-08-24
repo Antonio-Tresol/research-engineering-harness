@@ -15,7 +15,7 @@ the companion `research-harness-meta` repository.
 - **Gate only on facts.** A mechanical check may fail a build only for
   something with no false-positive risk: a file that does not exist, a
   quote that does not resolve, a status that changed without its report.
-  Judgement — is this clear, is this well designed — is advisory, or
+  Judgement (is this clear, is this well designed) is advisory, or
   delegated to an independent reader whose verdicts are themselves
   checkable. A checker that cries wolf gets bypassed and takes its true
   positives with it; this is measured, not asserted.
@@ -23,8 +23,9 @@ the companion `research-harness-meta` repository.
   to cut corners; the mechanisms catch the mistakes honesty does not
   prevent. Red-teaming found each catching what the other misses, so a
   change that trades one for the other needs new evidence, not taste.
-- **Plain language, no invented names.** Shared artefacts — skills,
-  documentation, templates, every message a tool prints — use standard
+- **Plain language, no invented names.** Shared artefacts, meaning the
+  skills, the documentation, the templates, and every message a tool
+  prints, use standard
   AI/ML/software vocabulary and describe anything that has no standard
   name. The reader channel (`research_graph.py review`) is the check;
   run it on prose you touch.
@@ -34,8 +35,8 @@ the companion `research-harness-meta` repository.
   work runs in fenced workspaces outside any real repository.
 - **Evidence before shipping.** A mechanism earns its place through a
   registered-prediction eval: predictions written before the runs, every
-  condition run more than once, transcripts read by hand — the numbers
-  mislead until the traces are read. `experiment-engineering` and
+  condition run more than once, transcripts read by hand, because the
+  numbers mislead until the traces are read. `experiment-engineering` and
   `eval-design` in `.claude/skills/` carry the method.
 - **Shipped scripts are self-contained.** PEP 723 uv scripts with inline
   dependencies; the validator stays dependency-free so a project that
@@ -54,7 +55,7 @@ build; every script declares its own dependencies.
 - **A validator or graph check**: add it to the module that owns the layer
   (`validate_research.py` for the grammar, `research_graph_checks.py` and
   friends for the derived record). Every check needs tests on both sides:
-  fires on the defect, stays quiet on clean input — the false-positive
+  fires on the defect, stays quiet on clean input. The false-positive
   suite is as load-bearing as the true-positive one.
 - **A CLI command**: writes go through the write transaction (snapshot,
   write, validate, keep or roll back byte-identical) and take `--dry-run`.
@@ -65,7 +66,7 @@ build; every script declares its own dependencies.
   checks the format; the trigger evals in the meta repository are the
   measure of whether it fires.
 - **Anything user-facing**: update `CHANGELOG.md` under `[Unreleased]` in
-  the same commit — the pre-commit reminder will point it out if you
+  the same commit; the pre-commit reminder will point it out if you
   forget. Narrate the why, not just the what, and include upgrade steps
   when an installed project must act.
 
