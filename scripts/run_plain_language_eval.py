@@ -270,7 +270,7 @@ CLI_CALL_RE: Final[re.Pattern[str]] = re.compile(
     r"research_graph\.py(?:\s+--root\s+\S+)?\s+(--help|-h|[a-z][a-z-]*)"
 )
 CLI_WRITE_SUBCOMMANDS: Final[frozenset[str]] = frozenset(
-    {"add", "add-evidence", "set-status", "log", "add-note"}
+    {"add", "add-evidence", "set-status", "set-text", "log", "add-note"}
 )
 
 
@@ -338,6 +338,13 @@ def cli_metrics(transcript_text: str) -> dict[str, Any]:
     out["cli_rejections"] = results.count("the record would become invalid")
     out["cli_usage_errors"] = results.count("research_graph.py: error:")
     out["cli_unknown_id_errors"] = results.count("Error: no node with id")
+    # Signals specific to the fixes under test in the re-run. Each counts a
+    # message only the fixed build can emit, so a zero means the path was
+    # never hit rather than that the fix silently failed.
+    out["cli_set_text_calls"] = out["cli_subcommands"].count("set-text")
+    out["cli_comma_refusals"] = results.count("contains a comma")
+    out["cli_preexisting_notes"] = results.count("ALREADY invalid before this command ran")
+    out["cli_dry_run_rejections"] = results.count("would be REJECTED")
     return out
 
 
