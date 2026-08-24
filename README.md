@@ -17,7 +17,8 @@ Every principle here is enforced mechanically where that is possible. What a
 script cannot check is written where an agent will actually pick it up: the
 skills, the MCP config, and `AGENTS.md`.
 
-In practice you get nine agent skills, two structured project files, and a set of
+In practice you get nine agent skills, two structured project files, a typed
+CLI that reads and writes them as one graph, and a set of
 checks that fail your build when the audit trail breaks: when a claim cites
 evidence that does not exist, when a number in a write-up disagrees with the
 results file it came from, or when a claim is marked "survived" without a
@@ -98,9 +99,22 @@ dialect — because their whole job is to be read by someone without the writer'
 context: a collaborator, a reviewer, the next agent session. A validator
 tripwire catches the worst telegraph shorthand; the skill carries the contract.
 
+**The record CLI.** `scripts/research_graph.py` reads and writes the record as
+a typed graph: `tree`, `show`, `search`, and `path` to navigate it; `add`,
+`set-status`, `add-evidence`, `log`, and `add-note` to change it, with every
+write validated before it lands and rolled back with an explanation when it
+would break the record; `json` and `mermaid` to export it for tooling and
+visualisation. `verify` re-checks everything from disk — structure, evidence
+files, drift against provenance pins, orphaned notes — and is the first
+command an agent runs in a fresh session. The markdown files stay canonical
+and hand-editable; the CLI is a paved road over them, never a second store.
+
 **Claim graduation.** Every claim starts `unvalidated`. It can only become
 `survived`, `weakened`, or `failed` once a falsification or validation run has
-produced a scorecard file, which the checker requires by name. `failed` is a
+produced a scorecard file, which the checker requires by name. At graduation
+the evidence is pinned — commit hash and a per-file sha256 embedded in the
+scorecard — so a later `verify` catches evidence files that changed after
+certification. `failed` is a
 normal outcome: retracting a claim before it ships is the system working.
 
 **Skills** are `SKILL.md` files carrying the method: how to run a literature
@@ -145,7 +159,7 @@ runs two things:
 | | Covers |
 |---|---|
 | `lanorme` + harness plugins | Python quality, Agent Skills spec, tensor shape discipline (`TENSOR-*`), skill portability (`HSKILL-*`), claim provenance (`PROV-*`), bookkeeping staleness (`STALE-*`) |
-| `scripts/validate_research.py` | Tree and log structure, evidence files exist, scorecard-gated graduation, tree-to-log cross-references, plain-language tripwires (no telegraph shorthand, nothing but nodes in the tree) |
+| `scripts/validate_research.py` — run via `scripts/research_graph.py verify` in projects | Tree and log structure, evidence files exist, scorecard-gated graduation, tree-to-log cross-references, plain-language tripwires (no telegraph shorthand, nothing but nodes in the tree); `verify` adds evidence drift against provenance pins and orphaned `notes/` documents |
 
 The integrity gate is a zero-dependency script, so a project that never installs
 [lanorme](https://github.com/lanorme/lanorme) still gets every guarantee about

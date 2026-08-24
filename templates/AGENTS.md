@@ -28,10 +28,23 @@ only to record what is true.
   `.claude/settings.json`) also runs it after every edit to `TREE.md` or
   `RESEARCH_LOG.md` and feeds failures straight back; agents without hook
   support rely on the session-end run alone.
+- `uv run scripts/research_graph.py`: the typed CLI over the whole record
+  (tree + log + `notes/`). Read with `tree`, `show`, `search`, `path`,
+  `evidence`; write with `add`, `set-status`, `add-evidence`, `log`,
+  `add-note` — every write is validated before it lands and rolled back with
+  an explanation when it would break the record. Run `verify` at session
+  start and after any compaction (the validator plus evidence drift,
+  verification quote anchors, and orphaned notes), `pin` when a claim graduates, and `help` for the guide
+  with recipes. Hand-editing the markdown stays fine; the CLI and validator
+  hold both paths to the same rules.
 - `./check.sh`: every mechanical check. `lanorme` (code quality, Agent Skills
   spec, plus the harness plugins `tensors` for jaxtyping/einops discipline and
   `skill_portability`) followed by the research-integrity gate. Run after
   editing any skill, script, or pipeline.
+- `./hooks/install.sh`: wires `hooks/pre-commit` into `.git/hooks` (the
+  installer does this automatically when the project is already a git repo).
+  A commit then blocks on `./check.sh` and prints non-blocking bookkeeping
+  reminders; bypass a single commit with `git commit --no-verify`.
 
 All scripts are self-contained PEP 723 uv scripts (inline dependencies, no venv
 to manage) and use type hints throughout. New scripts in this project should

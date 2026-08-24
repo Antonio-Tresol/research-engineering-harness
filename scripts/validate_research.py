@@ -254,7 +254,26 @@ def validate_tree(report: Report) -> list[Node]:
             in_fence = not in_fence  # fenced examples document the grammar
             continue
         stripped = line.strip()
-        if in_fence or not stripped:
+        if not stripped:
+            continue
+        if in_fence:
+            # A fence hides everything inside it from every check below, which
+            # is what makes it a place to hide a node: the line still reads as
+            # a recorded claim to a person opening the file, while the status,
+            # evidence, scorecard, and length rules never see it. Found by a
+            # red-team run that graduated a claim to [survived] with no
+            # evidence by wrapping it in a fence, past a green validator.
+            # Only fences among the nodes are policed: the preamble's fenced
+            # grammar example is documentation a reader never mistakes for the
+            # tree, and policing it would fire on every template.
+            if nodes and is_node_line(stripped):
+                report.add_tree(
+                    lineno,
+                    f"node-shaped line inside a fenced block: {stripped[:60]!r} — "
+                    "fenced content is skipped by every check, so a node hidden here "
+                    "reads as recorded but is never validated; unfence it to make it "
+                    "a real node, or move the example into the preamble above the tree",
+                )
             continue
         if not is_node_line(stripped):
             ghost = GHOST_ID_RE.match(stripped)

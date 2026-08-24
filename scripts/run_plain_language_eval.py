@@ -54,14 +54,41 @@ from pathlib import Path
 from typing import Any, Final
 
 from plain_language_graders import grade
+from plain_language_tasks import (
+    DESCRIPTION,
+    FIXTURES,
+    NAME,
+    QUESTION,
+    SEED_DATE,
+    SUMMARY,
+    TASKS,
+)
 
 HARNESS: Final[Path] = Path(__file__).resolve().parent.parent
-BASE_REV: Final[str] = "main"
+# Pinned pre-intervention commit. This was "main" while the intervention lived
+# on a branch; once the branch merged, "main" would silently become the
+# intervention itself and the base arm would measure nothing.
+BASE_REV: Final[str] = "3cc8ff3"
 NEW_REV: Final[str] = "HEAD"
 # The intervention branch just before the altitude commit: plain-language
 # rules and the hook, but no node-length gate. Pinned so the prealt/alt pair
 # differs in exactly one thing.
 PRE_ALTITUDE_REV: Final[str] = "da766f7"
+# The record-CLI commit's parent: the full altitude stack before the CLI
+# shipped and the docs began teaching it. Pinned for the same reason as
+# BASE_REV — HEAD after the CLI shipped would make an unpinned "alt" arm
+# incoherent (docs teaching a CLI the workspace does not contain).
+PRE_CLI_REV: Final[str] = "3893353"
+# The record CLI and its libraries, shipped only into "cli"-flagged arms.
+CLI_MODULES: Final[tuple[str, ...]] = (
+    "scripts/research_graph.py",
+    "scripts/research_graph_model.py",
+    "scripts/research_graph_write.py",
+    "scripts/research_graph_checks.py",
+    "scripts/research_graph_txn.py",
+    "scripts/research_graph_views.py",
+    "scripts/research_graph_verification.py",
+)
 
 # Scoped grants instead of --dangerously-skip-permissions: everything a
 # session-end tree/log update plausibly needs, nothing more. Denials are
@@ -70,237 +97,16 @@ ALLOWED_TOOLS: Final[str] = (
     "Read,Write,Edit,MultiEdit,Glob,Grep,TodoWrite,"
     "Bash(uv:*),Bash(python3:*),Bash(python:*),Bash(ls:*),Bash(cat:*),"
     "Bash(mkdir:*),Bash(echo:*),Bash(git:*),Bash(date:*),Bash(head:*),"
-    "Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(rg:*),Bash(sed:*)"
+    "Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(rg:*),Bash(sed:*),"
+    "Bash(awk:*),Bash(cut:*),Bash(sort:*),Bash(uniq:*),Bash(cp:*),"
+    "Bash(mv:*),Bash(touch:*),Bash(for:*),Bash(while:*),"
+    # Direct script invocation (both scripts ship executable). Granted to every
+    # arm identically so a permission denial can never masquerade as low CLI
+    # adoption in the cli arm.
+    "Bash(scripts/*),Bash(./scripts/*)"
 )
 
 log = logging.getLogger("plain-language-eval")
-
-# ---------------------------------------------------------------- seed content
-NAME: Final[str] = "Refusal Direction Transfer"
-DESCRIPTION: Final[str] = "Does the Gemma-2 refusal direction steer Llama-3-8B refusals?"
-QUESTION: Final[str] = (
-    "Does activation steering with the Gemma-2 refusal direction "
-    "raise the refusal rate of Llama-3-8B?"
-)
-SUMMARY: Final[str] = (
-    "Testing whether the refusal direction extracted from Gemma-2 steers refusal "
-    "behaviour in Llama-3-8B. Solo project, one-week timebox. Current state: "
-    "steering sweep implemented; first runs in progress."
-)
-SEED_DATE: Final[str] = "2026-08-22"
-
-FIXTURES: Final[dict[str, str]] = {
-    "results/steering_v1.json": json.dumps(
-        {
-            "config": "v1",
-            "steering_coefficient": 4.0,
-            "n_prompts": 200,
-            "refusal_rate_baseline": 0.62,
-            "refusal_rate_steered": 0.62,
-            "seed": 0,
-        },
-        indent=2,
-    ),
-    "results/steering_v2.json": json.dumps(
-        {
-            "config": "v2",
-            "steering_coefficient": 8.0,
-            "n_prompts": 200,
-            "refusal_rate_baseline": 0.62,
-            "refusal_rate_steered": 0.71,
-            "seed": 0,
-        },
-        indent=2,
-    ),
-}
-
-CLEAN_NODES: Final[str] = (
-    f"- Q1: {QUESTION} [open]\n"
-    "  - Q1.H1: The refusal direction transfers across model families [open]\n"
-    "    - Q1.H1.E1: Steer Llama-3-8B with the scaled Gemma-2 direction and "
-    "measure refusal rate on 200 held-out prompts [running]\n"
-)
-CLEAN_ENTRY: Final[str] = f"""### {SEED_DATE}
-
-* What I did: Implemented the steering sweep script and ran the version-1 configuration (steering coefficient 4.0); wrote per-prompt outputs to results/steering_v1.json. Launched the version-2 run (coefficient 8.0) before stopping.
-* What I expected vs what happened: Expected a small rise in refusal rate at coefficient 4.0; the steered rate matched baseline exactly (0.62 vs 0.62), a null for the version-1 configuration.
-* What this changes about my thinking: The direction alone is not enough at low strength; the version-2 run will show whether a stronger coefficient moves refusals.
-* What I will do next: Read the version-2 results, record the outcome in the tree, and append the log entry.
-"""
-
-DIRTY_NODES: Final[str] = (
-    f"- Q1: {QUESTION} [open]\n"
-    "  - Q1.H1: xfer works b/c refusal dirs r shared across fams [open]\n"
-    "    - Q1.H1.E1: steer w/ scaled dir @ coef 8.0 → refusal Δ on 200 heldout [running]\n"
-    "\n"
-    "## Scratch\n"
-    "v2 cfg = coef 8.0 (see convo 8/21) — DED pipeline handles batching, "
-    "do NOT use the old runner\n"
-)
-DIRTY_ENTRY: Final[str] = f"""### {SEED_DATE}
-
-* What I did: impl'd the sweep + kicked off v2 run w/ coef 8.0 (v1 @ 4.0 was flat, 0.62 vs 0.62) → results/steering_v1.json
-* What I expected vs what happened: expected ↑ w/ bigger coef, tbd
-* What this changes about my thinking: v1 flat = coef too small imo
-* What I will do next: check v2 → tree+log
-"""
-
-# A registered-protocol node in the accreted state observed in a real tree
-# (registration + reads + verdict ladder + one dated amendment, inlined into
-# a single node line). One line by construction, ~1.5k characters: the
-# pre-altitude validator accepts it, the altitude validator does not.
-ACCRETED_NODE: Final[str] = (
-    "    - Q1.H1.E2: Dose-response protocol for steering strength — REGISTERED "
-    "2026-08-20 before any scoring: coefficients {2.0, 4.0, 8.0, 16.0} on the same "
-    "200 held-out prompts, three seeds per cell, refusal judged by the fixed "
-    "classifier; per-cell noise standard deviation measured at 0.0021 from 24 "
-    "random-direction control runs, which form the null band for every read. READS "
-    "registered: (D, gate) dose-response slope — refusal rate regressed on log "
-    "coefficient, bar: slope positive with permutation p < 0.001 over 10,000 "
-    "shuffles of the coefficient labels; (S) saturation — verdict saturating if the "
-    "fitted curve's rise completes within one coefficient doubling, with a "
-    "bootstrap interval excluding two doublings; (F) fluency guard — mean "
-    "perplexity of steered completions within 1.5x baseline, else the refusal rise "
-    "is discounted as degeneration. VERDICT LADDER registered so a middling result "
-    "cannot be argued sideways: T3 monotonic dose-response with intact fluency > "
-    "T2 rise at high coefficient only, fluency intact > T1 rise with fluency "
-    "degradation > T0 null. AMENDED 2026-08-21: shuffled-prompt control added — "
-    "the same scoring on prompts with shuffled word order; any dose-response "
-    "statistic must not survive it. INSTRUMENT VALIDATION ran 2026-08-21 "
-    "(simulation at matched noise, before any true scoring): the slope estimator "
-    "recovers planted slopes within its bootstrap interval at all four "
-    "coefficients, never reports a positive slope on null simulations (0 of 500), "
-    "and the saturation read is decidable only when the rise amplitude exceeds "
-    "four times the per-cell noise, so an undecided saturation verdict at small "
-    "amplitude is insufficient signal, not evidence against saturation "
-    "[running]\n"
-)
-
-REGISTRATION_DOC: Final[str] = """# Dose-response protocol — registration
-
-Registered 2026-08-20, before any scoring. Coefficients {2.0, 4.0, 8.0, 16.0}
-on the same 200 held-out prompts, three seeds per cell; per-cell noise
-standard deviation 0.0021 from 24 random-direction control runs (the null
-band for every read).
-
-## Reads
-
-- Gate (D): dose-response slope — refusal rate regressed on log coefficient;
-  bar: slope positive with permutation p < 0.001 over 10,000 shuffles.
-- Saturation (S): saturating if the fitted rise completes within one
-  coefficient doubling (bootstrap interval excluding two doublings).
-- Fluency guard (F): mean perplexity of steered completions within 1.5x
-  baseline, else the refusal rise is discounted as degeneration.
-
-## Verdict ladder
-
-- T3: monotonic dose-response with intact fluency.
-- T2: rise at high coefficient only, fluency intact.
-- T1: rise with fluency degradation.
-- T0: null.
-
-Amended 2026-08-21: shuffled-prompt control added — the same scoring on
-prompts with shuffled word order; no dose-response statistic may survive it.
-"""
-
-TRANCHE_RESULT: Final[str] = json.dumps(
-    {
-        "read": "D_gate",
-        "slope_per_log2_coefficient": 0.031,
-        "permutation_p": 0.0004,
-        "n_shuffles": 10000,
-        "fluency_ratio": 1.2,
-        "saturation": "undecided",
-        "tier": "T2",
-        "cells_scored": 8,
-        "cells_total": 12,
-        "seed": 0,
-    },
-    indent=2,
-)
-
-TASKS: Final[dict[str, dict[str, Any]]] = {
-    "dictation": {
-        "nodes": CLEAN_NODES,
-        "entries": CLEAN_ENTRY,
-        "prompt": (
-            "quick update b4 i sign off — reran the sweep w/ the v2 cfg (coef 8.0 "
-            "instead of 4.0), refusal went 0.62 → 0.71 on the 200 heldout, file's at "
-            "results/steering_v2.json. v1 run (coef 4.0) was flat btw, 0.62 vs 0.62, "
-            "that one's results/steering_v1.json. pls update TREE.md + RESEARCH_LOG.md: "
-            "E1 done w/ evidence, add the claim (keep it unvalidated, no falsify pass "
-            "yet), + today's log entry. conventions are in "
-            ".claude/skills/research-log/SKILL.md — read that first & follow it."
-        ),
-    },
-    "inheritance": {
-        "nodes": DIRTY_NODES,
-        "entries": DIRTY_ENTRY,
-        "prompt": (
-            "The version-2 steering run finished; its results are in "
-            "results/steering_v2.json (the flat version-1 comparison is in "
-            "results/steering_v1.json). Please do the session-end update for this "
-            "research project: record the experiment outcome in TREE.md with evidence, "
-            "add the resulting claim as unvalidated, and append today's entry to "
-            "RESEARCH_LOG.md. The conventions are in "
-            ".claude/skills/research-log/SKILL.md — read it first and follow it."
-        ),
-    },
-    "accretion": {
-        "nodes": (
-            f"- Q1: {QUESTION} [open]\n"
-            "  - Q1.H1: The refusal direction transfers across model families [open]\n"
-            "    - Q1.H1.E1: Steer Llama-3-8B with the scaled Gemma-2 direction and "
-            "measure refusal rate on 200 held-out prompts [done] | "
-            "evidence: results/steering_v1.json, results/steering_v2.json\n" + ACCRETED_NODE
-        ),
-        "entries": CLEAN_ENTRY,
-        "extra_files": {
-            "notes/runpod-setup.md": (
-                "# GPU box setup\n\nPod template and mount points for the steering "
-                "sweeps; rebuild with the standard image before each batch.\n"
-            ),
-            "results/tranche1.json": TRANCHE_RESULT,
-        },
-        "canaries": ["0.0021", "10,000", "shuffled-prompt", "perplexity"],
-        "must_mention": ["paraphras", "0.031"],
-        "done_id": "Q1.H1.E1",
-        "prompt": (
-            "The first tranche of the dose-response protocol scored; results are in "
-            "results/tranche1.json — the gate read passes its registered bar, "
-            "saturation is undecided, fluency is intact, which the registered ladder "
-            "calls tier T2. Also record the design amendment we agreed: a "
-            "paraphrased-prompt control arm is added (same prompts, "
-            "meaning-preserving paraphrases), and any dose-response statistic must "
-            "also survive it. Please do the session-end update of TREE.md and "
-            "RESEARCH_LOG.md following the conventions in "
-            ".claude/skills/research-log/SKILL.md — read it first."
-        ),
-    },
-    "codename": {
-        "nodes": (
-            f"- Q1: {QUESTION} [open]\n"
-            "  - Q1.H1: The refusal direction transfers across model families [open]\n"
-            "    - Q1.H1.E2: Run the registered dose-response protocol over four "
-            "steering coefficients (registration: notes/dose-response-registration.md) "
-            "[running]\n"
-        ),
-        "entries": CLEAN_ENTRY,
-        "extra_files": {
-            "notes/dose-response-registration.md": REGISTRATION_DOC,
-            "results/tranche1.json": TRANCHE_RESULT,
-        },
-        "must_mention": ["0.031"],
-        "done_id": "Q1.H1.E2",
-        "prompt": (
-            "The dose-response scoring finished; results are in results/tranche1.json "
-            "— the gate read passes, saturation is undecided, fluency intact: tier T2 "
-            "on the registered ladder. Mark the experiment done with evidence, add "
-            "the resulting claim as unvalidated, and append today's entry, following "
-            "the conventions in .claude/skills/research-log/SKILL.md — read it first."
-        ),
-    },
-}
 
 ARMS: Final[dict[str, dict[str, Any]]] = {
     "base": {"docs_rev": BASE_REV, "validator_rev": BASE_REV, "hook": False},
@@ -311,7 +117,11 @@ ARMS: Final[dict[str, dict[str, Any]]] = {
     # docs and validator carry the altitude rules (node-length gate, notes/
     # relocation contract, codename hygiene).
     "prealt": {"docs_rev": PRE_ALTITUDE_REV, "validator_rev": PRE_ALTITUDE_REV, "hook": True},
-    "alt": {"docs_rev": NEW_REV, "validator_rev": NEW_REV, "hook": True},
+    "alt": {"docs_rev": PRE_CLI_REV, "validator_rev": PRE_CLI_REV, "hook": True},
+    # CLI usability A/B against alt: identical hooked altitude stacks, but the
+    # record CLI ships in the workspace and the docs/skill teach it. The task
+    # prompts never mention the CLI — adoption must come from the docs.
+    "cli": {"docs_rev": NEW_REV, "validator_rev": NEW_REV, "hook": True, "cli": True},
 }
 
 HOOK_SCRIPT: Final[str] = '''#!/usr/bin/env python3
@@ -437,19 +247,104 @@ def build_workspace(task_id: str, arm: str, key: str) -> Path:
     if spec["hook"]:
         files[".claude/hooks/validate_hook.py"] = HOOK_SCRIPT
         files[".claude/settings.json"] = json.dumps(HOOK_SETTINGS, indent=2)
+    if spec.get("cli"):
+        for rel in CLI_MODULES:
+            files[rel] = git_show(spec["validator_rev"], rel)
     for rel, content in files.items():
         target = workspace / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content)
     (workspace / "scripts" / "validate_research.py").chmod(0o755)
+    if spec.get("cli"):
+        (workspace / "scripts" / "research_graph.py").chmod(0o755)
     identity = ["-c", "user.email=eval@local", "-c", "user.name=eval"]
     for args in (["init", "-q"], ["add", "-A"], [*identity, "commit", "-q", "-m", "seed"]):
         subprocess.run(["git", *args], cwd=workspace, capture_output=True, check=False, timeout=30)
     return workspace
 
 
+# ------------------------------------------------------------- cli metrics
+# A record-CLI invocation and its subcommand: the only global flag is --root,
+# so the first non-flag token after the script name is the subcommand.
+CLI_CALL_RE: Final[re.Pattern[str]] = re.compile(
+    r"research_graph\.py(?:\s+--root\s+\S+)?\s+(--help|-h|[a-z][a-z-]*)"
+)
+CLI_WRITE_SUBCOMMANDS: Final[frozenset[str]] = frozenset(
+    {"add", "add-evidence", "set-status", "log", "add-note"}
+)
+
+
+def _scan_cli_tool_use(block: dict[str, Any], out: dict[str, Any]) -> None:
+    """Count one tool_use block as CLI calls or as a hand edit of the record."""
+    tool_input = block.get("input", {})
+    if block.get("name") == "Bash":
+        for raw in CLI_CALL_RE.findall(str(tool_input.get("command", ""))):
+            sub = "help" if raw in ("-h", "--help") else raw
+            out["cli_calls"] += 1
+            out["cli_subcommands"].append(sub)
+            out["cli_write_calls"] += sub in CLI_WRITE_SUBCOMMANDS
+            out["cli_help_calls"] += sub == "help"
+    elif block.get("name") in ("Write", "Edit", "MultiEdit") and str(
+        tool_input.get("file_path", "")
+    ).endswith(("TREE.md", "RESEARCH_LOG.md")):
+        out["hand_edits"] += 1
+
+
+def _result_text(block: dict[str, Any]) -> list[str]:
+    """The text of one tool_result block, whose content may be string or list."""
+    inner = block.get("content")
+    if isinstance(inner, str):
+        return [inner]
+    if isinstance(inner, list):
+        return [str(item.get("text", "")) for item in inner if isinstance(item, dict)]
+    return []
+
+
+def cli_metrics(transcript_text: str) -> dict[str, Any]:
+    """How the agent used (or avoided) the record CLI, from the transcript.
+
+    Descriptive measurements for the usability read. They live in the runner,
+    not the pinned graders: they record what happened, they never score it.
+    """
+    out: dict[str, Any] = {
+        "cli_calls": 0,
+        "cli_write_calls": 0,
+        "cli_help_calls": 0,
+        "cli_subcommands": [],
+        "hand_edits": 0,
+    }
+    result_chunks: list[str] = []
+    for line in transcript_text.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        # System and error events carry a plain-string "message"; only the
+        # assistant/user turn events have the dict shape scanned here.
+        message = event.get("message")
+        if not isinstance(message, dict):
+            continue
+        content = message.get("content", [])
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if not isinstance(block, dict):
+                continue
+            if event.get("type") == "assistant" and block.get("type") == "tool_use":
+                _scan_cli_tool_use(block, out)
+            elif event.get("type") == "user" and block.get("type") == "tool_result":
+                result_chunks.extend(_result_text(block))
+    results = "\n".join(result_chunks)
+    out["cli_rejections"] = results.count("the record would become invalid")
+    out["cli_usage_errors"] = results.count("research_graph.py: error:")
+    out["cli_unknown_id_errors"] = results.count("Error: no node with id")
+    return out
+
+
 # ---------------------------------------------------------------- running
-def run_claude_scoped(prompt: str, cwd: Path, model: str, timeout: int) -> dict[str, Any]:
+def run_claude_scoped(
+    prompt: str, cwd: Path, model: str, timeout: int, max_turns: int = 40
+) -> dict[str, Any]:
     cmd = [
         "claude",
         "-p",
@@ -460,7 +355,7 @@ def run_claude_scoped(prompt: str, cwd: Path, model: str, timeout: int) -> dict[
         "--model",
         model,
         "--max-turns",
-        "40",
+        str(max_turns),
         "--setting-sources",
         "project",
         "--allowedTools",
@@ -521,6 +416,7 @@ def run_one(task_id: str, arm: str, run_idx: int, args: argparse.Namespace) -> d
     }
     task = TASKS[task_id]
     row.update(grade(workspace, transcript, SEED_DATE, canaries=tuple(task.get("canaries", ()))))
+    row.update(cli_metrics(transcript))
     everything = "\n".join(
         (workspace / rel).read_text()
         for rel in ("TREE.md", "RESEARCH_LOG.md")

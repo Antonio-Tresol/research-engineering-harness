@@ -305,6 +305,44 @@ def test_fenced_block_after_nodes_is_allowed(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stdout
 
 
+def test_node_hidden_in_a_fence_among_the_nodes_fails(tmp_path: Path) -> None:
+    """A fenced node reads as recorded but is checked by nothing.
+
+    Found by a red-team run told to graduate a claim by any means: it wrapped
+    the claim in a code fence, which every check skips. The line still says
+    [survived] to anyone opening the file, while the scorecard gate, the
+    evidence rule, the length limit, and the shorthand tripwire all see
+    nothing — the validator counted one node fewer and exited 0.
+    """
+    tree = (
+        "- Q1: Does the detector fire? [open]\n"
+        "  - Q1.H1: It fires on cued prompts. [open]\n"
+        "```\n"
+        "    - Q1.H1.C1: The detector fires above baseline. [survived]\n"
+        "```\n"
+    )
+    result = run(project(tmp_path, tree))
+    assert result.returncode == 1
+    assert "inside a fenced block" in result.stdout
+
+
+def test_fenced_grammar_example_in_the_preamble_is_quiet(tmp_path: Path) -> None:
+    """The carve-out the rule above deliberately keeps.
+
+    A fenced example above the first node is documentation — the template's
+    own preamble carries one — and a reader never mistakes it for the tree.
+    Policing it would fire on every project the installer creates.
+    """
+    tree = (
+        "# Research tree\n\n"
+        "Grammar, by example:\n\n"
+        "```markdown\n- Q1.H1.E1.C1: A claim sentence. [survived]\n```\n\n"
+        "- Q1: Does the detector fire? [open]\n"
+    )
+    result = run(project(tmp_path, tree))
+    assert result.returncode == 0, result.stdout
+
+
 # --- Altitude and grammar-drift tripwires --------------------------------
 
 

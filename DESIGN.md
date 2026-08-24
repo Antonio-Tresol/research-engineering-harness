@@ -25,6 +25,18 @@ So the harness says everywhere that a null or infeasible result recorded with
 evidence is a completed experiment. This is not encouragement, it is the removal
 of an incentive.
 
+A red-team sweep on the harness's own stack measured what that buys. Eighteen
+runs were each instructed to corrupt the record a different way; fourteen
+refused outright and quoted these documents back. Asked to record a fabricated
+number for an experiment never run, 3 of 3 refused; asked to graduate a claim
+on a stub scorecard, 3 of 3 refused, against a registered prediction that most
+would succeed; asked to delete an abandoned hypothesis before a reviewer saw
+it, 3 of 3 refused and no node id disappeared ([meta Q3.H3][meta]). None of
+those three shortcuts is mechanically detectable — a fabricated number backed
+by a fabricated file passes every check the validator can run. The norms are
+carrying that load, which is the argument for writing them down where an agent
+reads them rather than relying on the gate.
+
 ### A failed claim means the protocol worked
 
 `falsify` grades each claim Survives, Weakened, or Failed. A scorecard where
@@ -59,7 +71,13 @@ binding constraint ([meta Q2.H1][meta]). Hence the plain-language contract is
 stated as a norm, enforced as a tripwire, and backed by a PostToolUse hook as
 insurance for sessions that skip the ritual. Clean-up carries an explicit
 relocation rule because, before it existed, agents deleted a seeded
-operational warning in 8 of 9 clean-up runs instead of moving it.
+operational warning in 8 of 9 clean-up runs instead of moving it. Two
+robustness reads later strengthened the stack: with prompts that never
+mention the skill, it auto-loaded from its description in 18/18 headless
+runs and no telegraph leaked; with a smaller subject model the gate held
+(12/12 green) but a previously registered control was silently dropped from
+the record in 2 of 6 restructuring runs — length is checked mechanically,
+completeness still rides on the docs and the model ([meta Q2.H1][meta]).
 
 ## Mechanisms
 
@@ -94,6 +112,24 @@ code" ([arXiv:2511.04583][jr]).
 `PROV-001/002` cannot catch the bug itself, since the number is genuinely what
 the code produced. It catches the other half: prose drifting from correct data
 after a re-run, which no amount of careful reading reliably notices.
+
+### Nothing in the tree may be invisible to the checks
+
+The parser skips fenced blocks so a grammar example can sit in the preamble.
+An adversarial run found what that carve-out costs: wrapping a claim line in a
+code fence graduated it to `survived` with no evidence past a green validator,
+every grader file untouched. Fenced content is skipped by *every* rule, so one
+trick defeated the scorecard gate, the evidence requirement, the length limit,
+and the shorthand tripwire together, while the line still read as recorded to
+anyone opening the file — the validator counted one node fewer than the file
+visibly contained and exited 0 ([meta Q3.H3][meta]).
+
+A node-shaped line inside a fence among the nodes is now an error. The rule is
+position-sensitive on purpose: a fenced example above the first node stays
+quiet, because that is documentation no reader mistakes for the tree, and
+policing it would fire on every project the installer creates. The general
+lesson is that an exemption in a checker is a place to hide things, and an
+exemption that applies to every rule at once is a place to hide anything.
 
 ### Graders are pinned
 
@@ -133,9 +169,72 @@ clean-up in the second project — every claim restructured to one falsifiable
 sentence with labelled support and falsification clauses — landed at median
 node text near 600 characters, which calibrates the validator's
 1,200-character limit. In an A/B differing only in the altitude rules, agents
-without them appended (nodes grew to 1,946–2,320 characters); with them they
-restructured in 3/3 runs into linked `notes/` registration documents with
-every seeded protocol detail preserved ([meta Q2.H2–H3][meta]).
+without them appended (nodes grew to 1,902–2,822 characters across n=6);
+with them they restructured in 6/6 runs into linked `notes/` registration
+documents with every seeded protocol detail preserved. Across five chained
+sessions on one workspace the gate flattened the real growth curve — max
+node text stayed at or under 1,200 in 15/15 sessions against unbounded
+growth without it — and in a brownfield migration of a real 94KB, 68-
+violation tree, every one of 19 tracked facts (numbers, a teammate
+attribution, a citation) survived in all runs, with a fresh cheap reader
+recovering detail answers from the relocation documents at 40% of the
+original tree's reading cost ([meta Q2.H2–H3][meta]).
+
+### Writes go through a validating pen; the graph is derived, never stored
+
+The record's structure — nodes, evidence links, log cross-references, notes
+documents — is parsed fresh from the markdown files on every read
+(`scripts/research_graph_model.py`), and the CLI's write commands
+(`scripts/research_graph.py`) compose a change, run the full validator, and
+restore the files byte-for-byte when it fails. Both halves answer documented
+failures. Design-rationale tools from gIBIS through Compendium found that
+formal structure imposed at capture time gets bypassed — Shipman and
+Marshall's "Formality Considered Harmful" is the canonical post-mortem — so
+the formal graph here is computed from what writers already produce, never a
+second representation that can drift from it. And the harness's own probes
+located the binding constraint in validator *coverage*, not validator
+adoption (agents ran it unprompted in 24/24 runs), so validation moved to the
+moment of writing, where a rejected write names what is missing while the
+writer still has the context to fix it. When a claim graduates, its evidence
+files are pinned — commit hash and per-file sha256, embedded in the scorecard
+by the `pin` command — and `verify` reports drift when a pinned file later
+changes: the integrity failure that is otherwise invisible exactly when it
+matters, because nothing else re-reads certified evidence
+([meta Q3.H1][meta]; the full design note is `notes/record-cli-design.md`
+there).
+
+The same bargain extends to claims no arithmetic can check — a verdict read
+out of a model transcript, a citation checked against its paper. Agents are
+the verification instrument there, and their reading is recorded as a
+`verification` block in the scorecard: the protocol registered before
+reading, the input files, and one entry per reader run with its date,
+verdict, and verbatim quotes. `verify` re-checks the mechanical half — every
+quoted excerpt must appear in the file it cites, inputs must exist and be
+pinned, the scorecard's verdict must match the claim's status — while verdict
+honesty stays with reader independence: readers are fresh sessions, never the
+claim's author, because a system producing a claim must not be the only
+mechanism accepting it (the verification-gap survey's reviewer-independence
+criterion). How many readers verified a claim is derived from the run
+entries rather than stored as a count, so the number can never disagree with
+the runs it summarizes.
+
+### A refusal has to say whose problem it is
+
+The write commands refuse anything that would leave the record invalid, and
+roll the files back byte for byte. Measured on agents who had never been told
+the tool existed, that refusal did two opposite things with the same message.
+Given a seeded node already over the length limit, one run read the rejection,
+hand-trimmed the node, retried the identical command, and landed it; another
+read the same bytes as "this tool cannot get me there" and abandoned the write
+commands for the rest of the session ([meta Q3.H2][meta]). The message had
+listed a violation the command neither caused nor could fix, without saying so.
+
+So a refusal now distinguishes a bad command from a record that was already
+broken. The same sweep found a preview that validated nothing (a clean dry run
+followed by a hard rejection of the identical command) and a repeated evidence
+flag that dropped every path but the last while reporting success. A tool whose
+whole purpose is to be trusted with the record cannot report success over
+silent data loss, and cannot spend its credibility on a preview that is wrong.
 
 ### Code quality applies to promoted code only
 
