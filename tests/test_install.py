@@ -208,3 +208,10 @@ def test_codex_gets_the_same_two_hooks(installed: Path) -> None:
     assert set(wiring["hooks"]) == {"SessionStart", "PostToolUse"}
     assert (installed / ".codex" / "hooks" / "validate_record_hook.py").is_file()
     assert (installed / ".claude" / "hooks" / "session_verify_hook.py").is_file()
+
+
+def test_the_interpreter_pin_ships(installed: Path) -> None:
+    """Issue #3: without a pin, a downstream uv defaulting below 3.13 fails
+    check.sh's test step on a healthy repository."""
+    assert (installed / ".python-version").read_text(encoding="utf-8").strip() == "3.13"
+    assert (HARNESS / ".python-version").read_text(encoding="utf-8").strip() == "3.13"

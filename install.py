@@ -88,6 +88,9 @@ COPY_AS = [
     ("templates/codex-hooks.json", ".codex/hooks.json"),  # same two hooks, Codex contract
     ("templates/codex_validate_record_hook.py", ".codex/hooks/validate_record_hook.py"),
     ("check.sh", "check.sh"),
+    # The interpreter pin rides along, or a downstream uv defaulting below
+    # 3.13 fails check.sh's test step before running a single test (issue #3).
+    (".python-version", ".python-version"),
 ]
 # Directories to create empty.
 MKDIRS = ["data/papers", "results", "notes"]

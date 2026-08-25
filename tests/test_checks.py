@@ -397,3 +397,29 @@ def test_skill_checks_quiet_on_a_well_formed_skill(tmp_path: Path) -> None:
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))
+
+
+def test_glob_match_targets_must_be_posix_separated() -> None:
+    """Issue #2: on Windows, str(relative_to()) yields backslashes, which match
+    no /-separated config glob, so a check silently scans zero files and
+    passes. as_posix() is the contract for every glob match target; this
+    encodes both halves of the failure without needing Windows."""
+    from pathlib import PureWindowsPath
+
+    windows_form = str(PureWindowsPath("reports") / "sub" / "f.md")
+    assert not is_glob_match(windows_form, ["reports/**/*.md"])
+    assert is_glob_match(
+        PureWindowsPath(windows_form).as_posix(), ["reports/**/*.md"]
+    )
+
+
+def test_no_shipped_check_builds_a_match_target_with_str() -> None:
+    """A tripwire against the same silent failure returning: match targets in
+    the shipped plugins come from as_posix(), never str()."""
+    plugins = Path(__file__).resolve().parent.parent / "lanorme_plugins"
+    offenders = [
+        source.name
+        for source in plugins.glob("*.py")
+        if "str(path.relative_to" in source.read_text(encoding="utf-8")
+    ]
+    assert offenders == []
