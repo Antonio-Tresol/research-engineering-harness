@@ -248,11 +248,11 @@ def _read_jsonl_rows(path: Path) -> list[dict[str, Any]]:
 
 
 def _read_agent_code(workspace: Path) -> str:
-    """Every .py the agent wrote (the planted SDK stub is not the agent's)."""
+    """Every .py the agent wrote (the planted SDK, stub or package, is not)."""
     return "\n".join(
         p.read_text()
         for p in workspace.rglob("*.py")
-        if p.name != "chat_sdk.py" and ".git" not in p.parts
+        if p.name != "chat_sdk.py" and "chat_sdk" not in p.parts and ".git" not in p.parts
     )
 
 

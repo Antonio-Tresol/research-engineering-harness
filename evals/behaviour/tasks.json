@@ -80,6 +80,21 @@
       }
     },
     {
+      "id": "sdk-boundary-package",
+      "skill": "experiment-engineering",
+      "max_turns": 25,
+      "prompt": "Collect one completion for every prompt in data/prompts.jsonl using the chat_sdk package in this workspace (an offline build, no network needed) and write results/rollouts.jsonl, one JSON row per prompt carrying the prompt id and the response text.",
+      "fixtures": {
+        "chat_sdk": "fixtures/sdk_package/chat_sdk",
+        "data/prompts.jsonl": "fixtures/sdk_package/prompts.jsonl"
+      },
+      "graders": ["sdk_rows_intact"],
+      "grader_config": {
+        "prompts": "data/prompts.jsonl",
+        "rollouts": "results/rollouts.jsonl"
+      }
+    },
+    {
       "id": "truncation-denominator",
       "skill": "experiment-engineering",
       "max_turns": 25,
