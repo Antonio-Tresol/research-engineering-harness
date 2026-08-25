@@ -227,6 +227,35 @@ def grade_provenance_markers(workspace: Path, config: dict[str, Any], judge_mode
     }
 
 
+def _expected_stub_replies(prompts_path: Path) -> dict[str, str]:
+    """The reply chat_sdk.py deterministically gives each prompt, keyed by id."""
+    replies = {}
+    for line in prompts_path.read_text().splitlines():
+        if line.strip():
+            row = json.loads(line)
+            replies[row["id"]] = "considered reply: " + " ".join(row["prompt"].split())[:48]
+    return replies
+
+
+def _read_jsonl_rows(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text().splitlines():
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def _read_agent_code(workspace: Path) -> str:
+    """Every .py the agent wrote (the planted SDK stub is not the agent's)."""
+    return "\n".join(
+        p.read_text()
+        for p in workspace.rglob("*.py")
+        if p.name != "chat_sdk.py" and ".git" not in p.parts
+    )
+
+
 def grade_sdk_rows_intact(workspace: Path, config: dict[str, Any], judge_model: str) -> Grade:
     """The corruption class from issue #9 is silent: a defensive default turns
     a renamed field into an empty string and the run still "succeeds". So the
@@ -242,29 +271,16 @@ def grade_sdk_rows_intact(workspace: Path, config: dict[str, Any], judge_model: 
                 "evidence": f"{config['rollouts']} not written",
             }
         }
-    expected = {}
-    for line in (workspace / config["prompts"]).read_text().splitlines():
-        if line.strip():
-            row = json.loads(line)
-            expected[row["id"]] = "considered reply: " + " ".join(row["prompt"].split())[:48]
-    rows: list[dict[str, Any]] = []
-    for line in rollouts_path.read_text().splitlines():
-        if line.strip():
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
+    expected = _expected_stub_replies(workspace / config["prompts"])
+    rows = _read_jsonl_rows(rollouts_path)
+    row_texts = [v for row in rows for v in row.values() if isinstance(v, str)]
     matched = [
         prompt_id
         for prompt_id, reply in expected.items()
-        if any(any(isinstance(v, str) and reply in v for v in row.values()) for row in rows)
+        if any(reply in text for text in row_texts)
     ]
     empty_fields = sum(1 for row in rows for v in row.values() if v == "")
-    agent_code = "\n".join(
-        p.read_text()
-        for p in workspace.rglob("*.py")
-        if p.name != "chat_sdk.py" and ".git" not in p.parts
-    )
+    agent_code = _read_agent_code(workspace)
     return {
         "rows_carry_the_real_text": {
             "passed": len(matched) == len(expected) and bool(expected),
