@@ -10,7 +10,7 @@ authors:
     given-names: "Antonio"
     email: antonio1dbo@gmail.com
     orcid: "https://orcid.org/0009-0000-6891-1562"
-version: v0.2.1
+version: v0.3.0
 date-released: 2026-08-25
 repository-code: "https://github.com/Antonio-Tresol/research-engineering-harness"
 doi: "10.5281/zenodo.21617974"
