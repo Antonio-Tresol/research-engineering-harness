@@ -22,11 +22,10 @@ surface it holds.
 
 ## [0.2.0] - 2026-08-24
 
-Derived from the 40 commits between the July Zenodo deposit (version
-0.1.0, below) and today. The
-measurements each mechanism cites live in the companion (currently private)
-`research-harness-meta` repository; `DESIGN.md` summarises them with
-sources.
+Derived from the 40 commits between the July 2026 Zenodo deposit (version
+0.1.0) and today. The measurements each mechanism cites live in the
+companion (currently private) `research-harness-meta` repository;
+`DESIGN.md` summarises them with sources.
 
 ### Added
 
