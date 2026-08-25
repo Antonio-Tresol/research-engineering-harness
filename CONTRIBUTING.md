@@ -76,3 +76,26 @@ build; every script declares its own dependencies.
 
 Before pushing: `./check.sh` green, and reread what you wrote as the
 research partner who was not in the room when you wrote it.
+
+## Cutting a release
+
+Releases are archived on Zenodo automatically, so the release body is a
+permanent, citable record: write it as carefully as anything else here.
+
+1. Move the `[Unreleased]` entries into a new `## [X.Y.Z] - YYYY-MM-DD`
+   section. Raise the minor version for new capability or for a change
+   that requires an installed project to act, the patch version for fixes.
+2. Set the same version in `HARNESS_VERSION` in `install.py`, which stamps
+   it into every scaffold. A test fails if the shipped version has no
+   section in the changelog.
+3. Merge to `main` and wait for CI to pass on that exact commit.
+4. Publish the release, which creates the tag:
+
+       gh release create vX.Y.Z --target <commit> --title "vX.Y.Z" \
+           --notes-file <the new changelog section>
+
+5. A webhook tells Zenodo, which archives the release and mints a version
+   DOI under the project's permanent concept DOI. Record the new version
+   DOI in the list at the bottom of `CITATION.cff`, and set
+   `date-released` to the date Zenodo published, which is the release
+   timestamp in UTC and may fall a day later than your own.

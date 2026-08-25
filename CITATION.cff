@@ -11,10 +11,8 @@ authors:
     email: antonio1dbo@gmail.com
     orcid: "https://orcid.org/0009-0000-6891-1562"
 version: v0.2.0
-date-released: 2026-08-24
+date-released: 2026-08-25
 repository-code: "https://github.com/Antonio-Tresol/research-engineering-harness"
-# Concept DOI: resolves to the newest version. Version DOI for v0.1.0 is
-# 10.5281/zenodo.21617975.
 doi: "10.5281/zenodo.21617974"
 license: MIT
 keywords:
@@ -23,6 +21,9 @@ keywords:
   - reproducibility
   - agent skills
   - AI safety
-# The doi above is the concept DOI and always resolves to the newest
-# deposited version. Tagging a release deposits the new version on Zenodo,
-# which mints its version DOI; v0.1.0's is 10.5281/zenodo.21617975.
+# The doi above is the concept DOI: it always resolves to the newest
+# deposited version, which is what belongs in a bibliography. Publishing a
+# GitHub release deposits that version on Zenodo and mints a version DOI for
+# it. Version DOIs so far:
+#   v0.1.0  10.5281/zenodo.21617975
+#   v0.2.0  10.5281/zenodo.22089135
