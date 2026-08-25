@@ -216,7 +216,8 @@ def build_behaviour_workspace(task: dict[str, Any], arm: str, key: str) -> Path:
     for dest_rel, src_rel in task.get("fixtures", {}).items():
         dest = workspace / dest_rel
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(BEHAVIOUR_DIR / src_rel, dest)
+        source = BEHAVIOUR_DIR / src_rel
+        (shutil.copytree if source.is_dir() else shutil.copy2)(source, dest)
     if task.get("research_scaffold"):
         (workspace / "scripts").mkdir(exist_ok=True)
         shutil.copy2(
