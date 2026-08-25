@@ -18,7 +18,13 @@ raise the patch. This file follows the spirit of
 stamps `.harness-version` into every scaffold so a project knows which
 surface it holds.
 
-## [Unreleased]
+## [0.3.0] - 2026-08-25
+
+Every entry here traces to one downstream project's first day of real
+use (issues #4 to #12): a scaffolded repository whose gate was silently
+passing, and whose collection script exhibited three failure classes the
+experiment-engineering skill did not yet name. The minor version rises
+because the Added entries are new capability, per the rule above.
 
 ### Fixed
 
