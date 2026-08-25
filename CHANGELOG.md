@@ -20,6 +20,22 @@ surface it holds.
 
 ## [Unreleased]
 
+### Fixed
+
+- On Windows, two checks (`PROV-003` claim provenance, `STALE-002` stale
+  dates) built their glob match target with backslashes, matched no
+  /-separated config glob, silently scanned zero files, and passed. Both
+  now convert paths with `as_posix()`, a regression test encodes the
+  failure on every platform, and a tripwire test keeps `str()` match
+  targets out of the shipped checks. Reported as issue #2, with the fix
+  verified on Windows by the reporter.
+- A `.python-version` file pinning 3.13 now sits at the repository root
+  and ships with every scaffold, so `check.sh` works when uv's default
+  interpreter is older; without it, dependency resolution for the test
+  step failed on an otherwise healthy repository. Reported as issue #3;
+  `check.sh` had already gained an inline `--python 3.13` for its own
+  test step, and the shipped pin covers every other entry point.
+
 ## [0.2.0] - 2026-08-24
 
 Derived from the 40 commits between the July 2026 Zenodo deposit (version
