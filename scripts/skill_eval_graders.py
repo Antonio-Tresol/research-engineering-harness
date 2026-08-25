@@ -304,7 +304,9 @@ def _numbers_in(value: Any) -> list[float]:
     if isinstance(value, (int, float)):
         return [float(value)]
     if isinstance(value, str):
-        return [float(m) for m in re.findall(r"-?\d+(?:\.\d+)?", value)]
+        # No sign: accuracies are non-negative, and row ids like "t-20"
+        # would otherwise read as -20 and drown the evidence list.
+        return [float(m) for m in re.findall(r"\d+(?:\.\d+)?", value)]
     if isinstance(value, dict):
         return [n for v in value.values() for n in _numbers_in(v)]
     if isinstance(value, list):
@@ -350,7 +352,8 @@ def grade_truncation_denominator(
     return {
         "denominator_excludes_truncated": {
             "passed": aware,
-            "evidence": f"values found: {sorted(values)[:14]}; naive 0.6 present: {naive}",
+            "evidence": f"rate-like values: {sorted(v for v in values if v <= 1.2)[:14]}; "
+            f"naive 0.6 present: {naive}",
         },
         "truncation_surfaced": {
             "passed": surfaced,
