@@ -1,0 +1,20 @@
+{"id": "t-01", "question": "What is 17 times 23?", "response": "Working it out step by step, the answer is 391.", "finish_reason": "stop"}
+{"id": "t-02", "question": "What is 44 plus 58?", "response": "Working it out step by step, the answer is 102.", "finish_reason": "stop"}
+{"id": "t-03", "question": "What is 9 times 84?", "response": "Working it out step by step, the answer is 756.", "finish_reason": "stop"}
+{"id": "t-04", "question": "What is 300 minus 187?", "response": "Working it out step by step, the answer is 113.", "finish_reason": "stop"}
+{"id": "t-05", "question": "What is 26 times 31?", "response": "Working it out step by step, the answer is 806.", "finish_reason": "stop"}
+{"id": "t-06", "question": "What is 1200 divided by 48?", "response": "Working it out step by step, the answer is 25.", "finish_reason": "stop"}
+{"id": "t-07", "question": "What is 73 plus 149?", "response": "Working it out step by step, the answer is 222.", "finish_reason": "stop"}
+{"id": "t-08", "question": "What is 55 times 12?", "response": "Working it out step by step, the answer is 660.", "finish_reason": "stop"}
+{"id": "t-09", "question": "What is 987 minus 654?", "response": "Working it out step by step, the answer is 333.", "finish_reason": "stop"}
+{"id": "t-10", "question": "What is 41 times 19?", "response": "Working it out step by step, the answer is 779.", "finish_reason": "stop"}
+{"id": "t-11", "question": "What is 640 divided by 16?", "response": "Working it out step by step, the answer is 40.", "finish_reason": "stop"}
+{"id": "t-12", "question": "What is 88 plus 233?", "response": "Working it out step by step, the answer is 321.", "finish_reason": "stop"}
+{"id": "t-13", "question": "What is 62 times 17?", "response": "I make that 1044.", "finish_reason": "stop"}
+{"id": "t-14", "question": "What is 500 minus 278?", "response": "I make that 232.", "finish_reason": "stop"}
+{"id": "t-15", "question": "What is 35 times 24?", "response": "I make that 850.", "finish_reason": "stop"}
+{"id": "t-16", "question": "What is 68 times 71?", "response": "68 times 71: that is 68 times 70 plus 68, so 4760 plus 68 gives 48", "finish_reason": "length"}
+{"id": "t-17", "question": "What is 240 times 24?", "response": "240 times 24 is 240 times 20 plus 240 times 4, which comes to 57", "finish_reason": "length"}
+{"id": "t-18", "question": "What is 93 times 46?", "response": "93 times 46: 93 times 40 is 3720, plus 93 times 6 is 558, total 42", "finish_reason": "length"}
+{"id": "t-19", "question": "What is 150 times 37?", "response": "150 times 37 equals 150 times 30 plus 150 times 7, so 4500 plus 10", "finish_reason": "length"}
+{"id": "t-20", "question": "What is 84 times 66?", "response": "84 times 66 is 84 times 60 plus 84 times 6, 5040 plus 504 makes 55", "finish_reason": "length"}

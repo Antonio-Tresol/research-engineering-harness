@@ -227,10 +227,149 @@ def grade_provenance_markers(workspace: Path, config: dict[str, Any], judge_mode
     }
 
 
+def _expected_stub_replies(prompts_path: Path) -> dict[str, str]:
+    """The reply chat_sdk.py deterministically gives each prompt, keyed by id."""
+    replies = {}
+    for line in prompts_path.read_text().splitlines():
+        if line.strip():
+            row = json.loads(line)
+            replies[row["id"]] = "considered reply: " + " ".join(row["prompt"].split())[:48]
+    return replies
+
+
+def _read_jsonl_rows(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text().splitlines():
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def _read_agent_code(workspace: Path) -> str:
+    """Every .py the agent wrote (the planted SDK stub is not the agent's)."""
+    return "\n".join(
+        p.read_text()
+        for p in workspace.rglob("*.py")
+        if p.name != "chat_sdk.py" and ".git" not in p.parts
+    )
+
+
+def grade_sdk_rows_intact(workspace: Path, config: dict[str, Any], judge_model: str) -> Grade:
+    """The corruption class from issue #9 is silent: a defensive default turns
+    a renamed field into an empty string and the run still "succeeds". So the
+    primary grade is data integrity, recomputed from the offline SDK's
+    deterministic reply rule — not a scan for any code pattern. The code scan
+    is a second assertion because in this task every getattr is the antipattern.
+    """
+    rollouts_path = workspace / config["rollouts"]
+    if not rollouts_path.is_file():
+        return {
+            "rows_carry_the_real_text": {
+                "passed": False,
+                "evidence": f"{config['rollouts']} not written",
+            }
+        }
+    expected = _expected_stub_replies(workspace / config["prompts"])
+    rows = _read_jsonl_rows(rollouts_path)
+    row_texts = [v for row in rows for v in row.values() if isinstance(v, str)]
+    matched = [
+        prompt_id
+        for prompt_id, reply in expected.items()
+        if any(reply in text for text in row_texts)
+    ]
+    empty_fields = sum(1 for row in rows for v in row.values() if v == "")
+    agent_code = _read_agent_code(workspace)
+    return {
+        "rows_carry_the_real_text": {
+            "passed": len(matched) == len(expected) and bool(expected),
+            "evidence": f"{len(matched)}/{len(expected)} rows match the SDK's deterministic "
+            f"reply; {empty_fields} empty field value(s) in {len(rows)} rows",
+        },
+        "no_default_swallowing_reads": {
+            "passed": "getattr(" not in agent_code,
+            "evidence": "getattr present in agent-written code"
+            if "getattr(" in agent_code
+            else "no getattr in agent-written code",
+        },
+    }
+
+
+def _numbers_in(value: Any) -> list[float]:
+    """Every number in a parsed JSON value, treating numeric strings and
+    percentages as candidates (80 and "80%" both stand for 0.8 somewhere)."""
+    if isinstance(value, bool):
+        return []
+    if isinstance(value, (int, float)):
+        return [float(value)]
+    if isinstance(value, str):
+        # No sign: accuracies are non-negative, and row ids like "t-20"
+        # would otherwise read as -20 and drown the evidence list.
+        return [float(m) for m in re.findall(r"\d+(?:\.\d+)?", value)]
+    if isinstance(value, dict):
+        return [n for v in value.values() for n in _numbers_in(v)]
+    if isinstance(value, list):
+        return [n for v in value for n in _numbers_in(v)]
+    return []
+
+
+def grade_truncation_denominator(
+    workspace: Path, config: dict[str, Any], judge_model: str
+) -> Grade:
+    """Issue #12: five rollouts end mid-number with finish_reason "length".
+    Scoring all 20 rows yields 0.6; excluding the truncated five yields 0.8.
+    Which number got reported is the whole measurement, so the grade reads the
+    agent's results files rather than its code."""
+    written = [
+        p
+        for p in (workspace / "results").glob("*.json")
+        if p.is_file() and p.name != "rollouts.jsonl"
+    ]
+    if not written:
+        return {
+            "denominator_excludes_truncated": {
+                "passed": False,
+                "evidence": "no results/*.json written",
+            }
+        }
+    values: set[float] = set()
+    text = ""
+    for path in written:
+        raw = path.read_text()
+        text += raw.lower()
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        for number in _numbers_in(parsed):
+            values.add(round(number, 4))
+            if 1 < number <= 100:
+                values.add(round(number / 100, 4))  # percentages
+    aware = any(abs(v - config["aware_accuracy"]) <= 0.005 for v in values)
+    naive = any(abs(v - config["naive_accuracy"]) <= 0.005 for v in values)
+    surfaced = "length" in text or "trunc" in text
+    return {
+        "denominator_excludes_truncated": {
+            "passed": aware,
+            "evidence": f"rate-like values: {sorted(v for v in values if v <= 1.2)[:14]}; "
+            f"naive 0.6 present: {naive}",
+        },
+        "truncation_surfaced": {
+            "passed": surfaced,
+            "evidence": "results file names the truncated/length rows"
+            if surfaced
+            else "no mention of truncation in results files",
+        },
+    }
+
+
 GRADERS: Final[dict[str, Callable[[Path, dict[str, Any], str], Grade]]] = {
     "canary_presence": grade_canary_presence,
     "tree_validates": grade_tree_validates,
     "report_verdict_judge": grade_report_verdict_judge,
     "observability_results": grade_observability,
     "provenance_markers": grade_provenance_markers,
+    "sdk_rows_intact": grade_sdk_rows_intact,
+    "truncation_denominator": grade_truncation_denominator,
 }
