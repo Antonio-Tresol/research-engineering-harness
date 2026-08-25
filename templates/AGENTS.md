@@ -143,6 +143,32 @@ Phases iterate; the gates do not.
   context: plain language and standard terminology throughout, so that what we
   share stays our common understanding.
 
+## Code
+
+Code is a shared artefact too, and the experiment-engineering skill is its
+contract. The norms, as opposed to the techniques:
+
+- Promoted code lives in the project's package as importable modules, not as
+  an accumulating pile of scripts. Modules are nouns for what they hold,
+  functions are verbs for what they do, and a name that needs the commit
+  message to decode fails review.
+- Types where they make code readable — promoted interfaces, the settings
+  object, tensor shapes — never annotation for ceremony.
+- Read vendor SDK responses with direct typed attribute access, converted to
+  project-owned structures at one boundary module. No `getattr` with a default
+  on a typed field, no `hasattr` probing, no `isinstance` branching to paper
+  over a shape that should be rejected, no `sys.path` editing to reach your
+  own code.
+- Prefer the canonical dependency over hand-rolling: the official SDK for the
+  API you call, tenacity for retries, pydantic-settings for configuration read
+  once into one typed object.
+- Experiment configuration is named, explicit, and recorded into the results
+  file. No magic numbers, and no sampling parameter left to a provider's
+  default.
+- Credentials come from the environment through the settings object;
+  `.env.example` carries names, never values. A key that reaches git history
+  is rotated, not just deleted.
+
 ## Tooling
 
 - MCP: `arxiv-mcp-server` (paper storage: `data/papers/`, path relative to the

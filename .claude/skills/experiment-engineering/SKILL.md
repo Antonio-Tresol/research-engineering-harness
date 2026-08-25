@@ -3,9 +3,11 @@ name: experiment-engineering
 description: >-
   The engineering contract for research code: two modes (explore fast, promote
   when it matters) and the non-negotiable observability requirements — structured
-  logging, resumable checkpoints, fail-fast ordering, and error handling. Use
-  whenever writing or reviewing an experiment script, pipeline, or any code that
-  spends GPU time or API budget.
+  logging, resumable checkpoints, fail-fast ordering, error handling, and the
+  pinned identity of every API call. Also covers the vendor-SDK boundary, typed
+  configuration and credentials, truncation as a measurement hazard, and module
+  structure for promoted code. Use whenever writing or reviewing an experiment
+  script, pipeline, or any code that spends GPU time or API budget.
 ---
 
 # Experiment engineering
@@ -58,6 +60,22 @@ un-observable work has to be re-run, and re-running is slower than logging was.
 6. **Seeds and shuffling.** Fix and record seeds. Always shuffle datasets yourself.
    It is free, and do not rely on someone else having done it. Sample subsets
    randomly rather than taking the first *n*.
+7. **Pin and record the full identity of every API call.** A recorded seed is
+   nowhere near sufficient, because three things drift under an identical script.
+   Model aliases get repointed at new weights: send the dated snapshot, not the
+   alias. One model id is served by many providers at different quantizations:
+   pin the provider, make an unavailable pin an error rather than a silent
+   reroute, and refuse providers that would ignore parameters you rely on
+   (on OpenRouter: `allow_fallbacks: false`, `require_parameters: true`).
+   And every sampling parameter you do not send falls back to a per-provider
+   default: send them all — temperature, top_p, top_k, max_tokens — and write
+   them into the results file, since an unrecorded parameter cannot be compared
+   across runs. Where the API can report which provider and resolved model
+   actually served the call, enable that and record it, so the pin is auditable
+   from the results file alone. Know what a seed buys you: on a continuously
+   batched endpoint at nonzero temperature it is best-effort, so the
+   reproducibility that carries evidence is distributional — n rollouts and an
+   interval — not per-rollout replay.
 
 ## Calling an API at volume
 
@@ -75,6 +93,47 @@ Runnable reference: `references/api_runner.py` (dependency-free; adapt `call_one
   makes a run resumable and what makes the cost of a re-run zero.
 - **Cap total attempts** and record permanent failures as rows with an `error`
   field. A run that quietly dropped 3% of items is worse than one that failed.
+
+## The vendor-SDK boundary
+
+Mishandled SDK responses produce plausible-but-wrong results files, the exact
+failure mode this skill exists to prevent, and they do it without raising.
+
+- **Vendor types stop at one module.** Convert responses into project-owned
+  typed structures (dataclasses or pydantic models) at that boundary and
+  nowhere else, so a vendor change breaks one file instead of every call site,
+  and so real types propagate instead of `dict[str, Any]`.
+- **At the boundary, read fields with direct typed attribute access.**
+  `message.content`, not `getattr(message, "content", None) or ""`. The
+  getattr-with-default reads as defensive and is destructive: a renamed field
+  becomes an empty string, the run records hundreds of empty responses a
+  grader cannot tell from refusals, and then it scores them. A renamed field
+  must raise on the first call, before budget is spent; a crash is a far
+  better outcome than silent corruption.
+- `getattr(obj, "x", default)` is for genuinely dynamic lookup, which a typed
+  SDK response never is. Same for `hasattr` probing.
+- **`isinstance` rejects an unexpected shape; it never branches quietly
+  between two behaviours.** Raise on the shape you did not expect.
+- **Keep absent distinct from malformed.** A genuinely optional field gets an
+  explicit `is None` branch; a malformed one raises. They need different
+  responses, and collapsing them hides whichever one you collapsed.
+
+## Configuration and credentials
+
+- **Read configuration once, at startup, into one typed object built with
+  pydantic-settings, and pass it down.** It reads `.env` and the real
+  environment with the right precedence (environment wins, so a cloud runner
+  needs no file) and validates on construction, which is fail-fast applied to
+  credentials. Never `os.environ.get(...)` at the point of use, where the
+  "is it missing?" check lives in a different module from the parser. Never a
+  hand-rolled `.env` parser: a real one silently mangled the two lines people
+  most often paste, `export KEY=value` and `KEY=value  # comment`.
+- **Keys are `SecretStr`**, so a traceback or a stray `print(settings)` cannot
+  leak them; reading one requires an explicit `get_secret_value()`.
+- The scaffold ships a committed `.env.example` carrying names, never values.
+  Keep it current: its names are the documentation a fresh clone reads.
+- **A key that reaches git history is burned.** Rotate it; deleting the commit
+  is not enough.
 
 ## Using a GPU without OOMing at hour three
 
@@ -136,6 +195,35 @@ def project(
 - Enable jaxtyping's runtime checking (a typechecker decorator) during
   development; the annotations then verify shapes rather than merely asserting them.
 
+## Structure, names, and dependencies (promoted code)
+
+Explore-mode code can be a throwaway script. Promoted code is a module, and a
+pile of sibling scripts that import each other is not a module system.
+
+- **New capability goes into the project's package** (`src/<project>/`),
+  importable, with a thin CLI entry point. Reaching your own code by editing
+  `sys.path` is the tell that packaging is missing; fix the structure, not the
+  path. (The harness's own `scripts/` are deliberately self-contained,
+  zero-install tools — that is their reason, and it is not a license for
+  experiment code to accumulate there.)
+- **Names say what the thing does**: modules are nouns for the thing they hold
+  (`rollouts`, `grading`), functions are verbs for what they do
+  (`request_completion`, `score_rollout`). A name that needs the commit
+  message to decode fails review; so does a module named `utils`.
+- **Types where they make the code readable**, not annotation for its own
+  sake: the signatures of promoted interfaces, the settings object, tensor
+  shapes, the boundary structures vendor responses convert into.
+  `dict[str, Any]` flowing through a pipeline is how boundary bugs spread.
+- **Prefer the canonical dependency over hand-rolling**: the official SDK for
+  the API you call, tenacity for retries, pydantic for schemas,
+  pydantic-settings for configuration. "Few dependencies" cuts both ways —
+  hand-rolling what a maintained library already does trades tested behaviour
+  for fresh bug surface (the `.env` parser above).
+- **No magic numbers in experiment configuration.** Every constant that shapes
+  a result — sample size, temperature, token cap, threshold — has a name, a
+  home (config object or CLI argument with an explicit default), and a copy in
+  the results file.
+
 ## Before you run it
 
 Ask, in order: What is the motivation? Have I de-risked this (is there a cheaper
@@ -152,6 +240,21 @@ model responses; check the numbers are not crazy before investigating anything
 programmatically. A metric computed over data you never looked at is where silent
 bugs live — buggy code producing plausible-but-wrong gains is a documented failure
 mode of AI-assisted research (see the harness's `research/` surveys).
+
+**Truncation is the quiet version, and it survives a glance at the metric.** A
+`max_tokens` cap that lands mid-generation returns `finish_reason: "length"`,
+the row looks complete, and an answer-extraction rule happily reads a severed
+digit as the model's answer — a value that is an artefact of where the cap
+fell, not of anything the model decided. Two rules:
+
+- **Check `finish_reason` before parsing, not after.** Anything other than
+  `stop` is unparseable: it shrinks the reported denominator visibly instead of
+  quietly biasing the rate. Analysis that reads only the response text cannot
+  tell the difference.
+- **Size the cap by the asymmetry.** Tokens are billed as generated, so a cap
+  that is never reached costs nothing, while a cap that is reached costs a data
+  point you already paid for. Err high, within the provider's ceiling, rather
+  than picking a tidy round number.
 
 ## Conventions that keep runs findable
 

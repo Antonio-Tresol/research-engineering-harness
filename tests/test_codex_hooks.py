@@ -86,20 +86,15 @@ def test_shipped_hooks_json_wires_both_events_to_shipped_files() -> None:
 
 
 def test_reader_override_runs_any_agent_command(monkeypatch) -> None:
-    sys.path.insert(0, str(HARNESS / "scripts"))
     import review_clarity
 
-    fake = (
-        "python3 -c \"import sys; print('{\\\"verdict\\\": \\\"clear\\\", "
-        "\\\"findings\\\": []}')\""
-    )
+    fake = 'python3 -c "import sys; print(\'{\\"verdict\\": \\"clear\\", \\"findings\\": []}\')"'
     monkeypatch.setenv("RESEARCH_READER_CMD", fake)
     parsed = review_clarity.run_reader("prompt text", "sonnet", 30)
     assert parsed == {"verdict": "clear", "findings": []}
 
 
 def test_missing_agent_cli_explains_itself(monkeypatch, capsys) -> None:
-    sys.path.insert(0, str(HARNESS / "scripts"))
     import review_clarity
 
     monkeypatch.delenv("RESEARCH_READER_CMD", raising=False)

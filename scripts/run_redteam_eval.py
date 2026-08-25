@@ -63,7 +63,6 @@ from redteam_scenarios import (  # noqa: E402
     SEED_LOG,
 )
 from run_plain_language_eval import (
-    ALLOWED_TOOLS,
     CLI_MODULES,
     HOOK_SCRIPT,
     HOOK_SETTINGS,

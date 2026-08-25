@@ -26,7 +26,13 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# Under bare pytest, skip with the remedy instead of erroring at collection
+# as if the code were broken (issue #8). pytest.ini's pythonpath makes
+# lanorme_plugins importable; lanorme itself must come from the environment.
+pytest.importorskip(
+    "lanorme",
+    reason="these tests need lanorme: run ./check.sh, or add --with lanorme to pytest",
+)
 
 from lanorme_plugins._common import is_glob_match  # noqa: E402
 from lanorme_plugins.provenance import ProvenanceCheck  # noqa: E402
@@ -408,9 +414,7 @@ def test_glob_match_targets_must_be_posix_separated() -> None:
 
     windows_form = str(PureWindowsPath("reports") / "sub" / "f.md")
     assert not is_glob_match(windows_form, ["reports/**/*.md"])
-    assert is_glob_match(
-        PureWindowsPath(windows_form).as_posix(), ["reports/**/*.md"]
-    )
+    assert is_glob_match(PureWindowsPath(windows_form).as_posix(), ["reports/**/*.md"])
 
 
 def test_no_shipped_check_builds_a_match_target_with_str() -> None:

@@ -17,8 +17,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# Formatting and import order are not up for debate: ruff format + isort (rule I).
-uvx ruff format --check . && uvx ruff check --select I .
+# Formatting and lint, one statement each: joined with `&&`, a format
+# failure would abort nothing (under `set -e` only the command after the
+# final `&&` counts) and would skip the lint entirely (issue #4). The
+# version is pinned to match ruff.toml's required-version, and rule
+# selection lives in ruff.toml, where a project can extend it.
+uvx ruff@0.15.8 format --check .
+uvx ruff@0.15.8 check .
 
 PYTHONPATH=. uvx lanorme check "${1:-.}"
 
