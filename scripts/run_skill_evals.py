@@ -50,6 +50,22 @@ TRIGGER_SKILLS: Final[tuple[str, ...]] = (
     "validate-claims",
 )
 ARMS: Final[tuple[str, ...]] = ("skill", "placebo", "none")
+
+# Scoped grants instead of --dangerously-skip-permissions, which the CLI
+# refuses when running as root (true of the cloud container this runs in).
+# Same pattern as run_plain_language_eval.py, broad enough that a denial
+# can never read as a behaviour difference: file tools plus interpreters
+# and shell staples. The Skill tool needs no grant — prior sweeps
+# triggered 18/18 headless under exactly this style of list.
+ALLOWED_TOOLS: Final[str] = (
+    "Read,Write,Edit,MultiEdit,Glob,Grep,TodoWrite,NotebookEdit,"
+    "Bash(uv:*),Bash(uvx:*),Bash(python3:*),Bash(python:*),Bash(ls:*),"
+    "Bash(cat:*),Bash(mkdir:*),Bash(echo:*),Bash(git:*),Bash(date:*),"
+    "Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(rg:*),"
+    "Bash(sed:*),Bash(awk:*),Bash(cut:*),Bash(sort:*),Bash(uniq:*),"
+    "Bash(cp:*),Bash(mv:*),Bash(touch:*),Bash(chmod:*),Bash(for:*),"
+    "Bash(while:*),Bash(scripts/*),Bash(./scripts/*)"
+)
 CLAIM_RE: Final[re.Pattern[str]] = re.compile(
     r"<!--\s*claim:\s*(?P<value>-?[\d.]+(?:[eE][-+]?\d+)?)\s+from\s+"
     r"(?P<path>[^\s#]+)(?:#(?P<key>\S+))?(?:\s+tol=(?P<tol>[\d.eE+-]+))?\s*-->"
@@ -89,7 +105,8 @@ def run_claude(
         str(max_turns),
         "--setting-sources",
         "project",
-        "--dangerously-skip-permissions",
+        "--allowedTools",
+        ALLOWED_TOOLS,
     ]
     try:
         done = subprocess.run(
