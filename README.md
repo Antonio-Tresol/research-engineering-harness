@@ -1,4 +1,4 @@
-# research-engineering-harness
+# Research Engineering Harness
 
 [![CI](https://github.com/Antonio-Tresol/research-engineering-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/Antonio-Tresol/research-engineering-harness/actions/workflows/ci.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21617974.svg)](https://doi.org/10.5281/zenodo.21617974)
@@ -10,13 +10,8 @@ hypothesis: it is the sustained effort to break your hypotheses until the
 ones left standing are worth believing. An AI-assisted project has to hold
 both itself and its agents to that.
 
-You get two structured project files, nine agent skills, one command-line
-tool that reads and writes the record as a graph, and checks that fail the
-build when the audit trail breaks: a claim citing evidence that does not
-exist, a number in a write-up disagreeing with the results file it came
-from, a claim marked `survived` with no falsification scorecard behind it.
-What no script can judge, an independent reader agent reads for. Built for
-AI safety research, useful for any empirical work where an agent writes the
+It is set of agentware meant to make doing research engineering with agents more reliable. It is built with
+AI safety research in mind but it might be useful for any empirical work where an agent writes the
 code and the write-up. Works with Claude Code, Codex, and anything else
 reading [`AGENTS.md`](https://agents.md/).
 
@@ -35,14 +30,10 @@ git init && ./hooks/install.sh    # optional: check on every commit
 ./check.sh
 ```
 
-The installer copies the skills, seeds `TREE.md` and `RESEARCH_LOG.md`,
-writes the `AGENTS.md` your agent reads at the start of every session, and
-stamps `.harness-version`. A fresh project passes `./check.sh` immediately.
-
 ## What it looks like in use
 
-Your beliefs live in `TREE.md` as a tree of questions, hypotheses,
-experiments, and claims. Each node has a status, and anything you have
+The beliefs live in `TREE.md` as a tree of questions, hypotheses,
+experiments and claims. Each node has a status and anything you have
 concluded links the file that supports it:
 
 ```markdown
@@ -60,20 +51,13 @@ FAIL — 1 violation(s):
     (name containing 'falsify', 'scorecard', or 'validation')
 ```
 
-A claim only reaches `survived` after something tried to kill it. Pointing
-at the same results file that produced the claim is not evidence that it
-holds up, so the check refuses it until a falsification scorecard exists on
-disk.
+A claim only reaches `survived` after something tried to kill it.
 
-Whether the record still *communicates* is a different question, and no
-mechanical check can answer it. For that:
+When something cannot be check mechanically, the cli utility can spawn an agent reviewer to take a look:
 
 ```bash
 uv run scripts/research_graph.py review --run TREE.md
 ```
-
-sends the document to an independent reader with none of your context, and
-every place it could not follow comes back quoting your text verbatim.
 
 ## Documentation
 
