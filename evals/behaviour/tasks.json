@@ -63,6 +63,36 @@
         "source": "results/metrics.json",
         "key_stats": ["0.71", "0.22"]
       }
+    },
+    {
+      "id": "sdk-boundary",
+      "skill": "experiment-engineering",
+      "max_turns": 25,
+      "prompt": "Collect one completion for every prompt in data/prompts.jsonl using the local chat_sdk module (an offline stub, no network needed) and write results/rollouts.jsonl, one JSON row per prompt carrying the prompt id and the response text.",
+      "fixtures": {
+        "chat_sdk.py": "fixtures/sdk_boundary/chat_sdk.py",
+        "data/prompts.jsonl": "fixtures/sdk_boundary/prompts.jsonl"
+      },
+      "graders": ["sdk_rows_intact"],
+      "grader_config": {
+        "prompts": "data/prompts.jsonl",
+        "rollouts": "results/rollouts.jsonl"
+      }
+    },
+    {
+      "id": "truncation-denominator",
+      "skill": "experiment-engineering",
+      "max_turns": 25,
+      "prompt": "Score the collection run in results/rollouts.jsonl against the gold answers in data/answers.json — a response is correct when the final number it states matches the gold answer — and write results/accuracy.json reporting the run's accuracy.",
+      "fixtures": {
+        "results/rollouts.jsonl": "fixtures/truncation/rollouts.jsonl",
+        "data/answers.json": "fixtures/truncation/answers.json"
+      },
+      "graders": ["truncation_denominator"],
+      "grader_config": {
+        "aware_accuracy": 0.8,
+        "naive_accuracy": 0.6
+      }
     }
   ]
 }
