@@ -24,7 +24,6 @@ code, so the prefix on a line is never just decoration.
 from __future__ import annotations
 
 import hashlib
-import json
 import subprocess
 import sys
 from datetime import date

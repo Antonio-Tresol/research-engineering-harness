@@ -31,10 +31,9 @@ import research_graph_checks as checks
 import research_graph_glossary as glossary
 import research_graph_model as model
 import research_graph_review as review
-import review_clarity
 import research_graph_views as views
 import research_graph_write as write
-from research_graph_model import INVALID as EXIT_INVALID
+import review_clarity
 from research_graph_model import OK as EXIT_OK
 from research_graph_model import USAGE as EXIT_USAGE
 

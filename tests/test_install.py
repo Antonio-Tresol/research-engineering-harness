@@ -197,9 +197,7 @@ def test_scaffold_is_stamped_with_the_harness_version(installed: Path) -> None:
     declared = re.search(r'HARNESS_VERSION: Final\[str\] = "([^"]+)"', source)
     assert declared is not None and stamp == declared.group(1)
     changelog = (HARNESS / "CHANGELOG.md").read_text(encoding="utf-8")
-    assert f"## [{stamp}]" in changelog, (
-        "the shipped version must have a section in CHANGELOG.md"
-    )
+    assert f"## [{stamp}]" in changelog, "the shipped version must have a section in CHANGELOG.md"
 
 
 def test_codex_gets_the_same_two_hooks(installed: Path) -> None:
@@ -215,3 +213,23 @@ def test_the_interpreter_pin_ships(installed: Path) -> None:
     check.sh's test step on a healthy repository."""
     assert (installed / ".python-version").read_text(encoding="utf-8").strip() == "3.13"
     assert (HARNESS / ".python-version").read_text(encoding="utf-8").strip() == "3.13"
+
+
+def test_the_gate_configuration_ships(installed: Path) -> None:
+    """Issue #5: without ruff.toml, downstream ruff ran on defaults — wrong
+    width, pyflakes never selected — and nobody could pass the format check."""
+    shipped = (installed / "ruff.toml").read_text(encoding="utf-8")
+    assert shipped == (HARNESS / "ruff.toml").read_text(encoding="utf-8")
+    assert "required-version" in shipped, "an unpinned formatter drifts with releases"
+    assert (installed / "pytest.ini").is_file()
+
+
+def test_the_credential_names_ship_but_never_values(installed: Path) -> None:
+    """Issue #11: .env.example is committed documentation — names only —
+    and .gitignore must exempt it while ignoring every real .env file."""
+    lines = (installed / ".env.example").read_text(encoding="utf-8").splitlines()
+    entries = [line for line in lines if line and not line.startswith("#")]
+    assert entries, "an example with no names documents nothing"
+    assert all(re.fullmatch(r"[A-Z][A-Z0-9_]*=", line) for line in entries)
+    ignore = (installed / ".gitignore").read_text(encoding="utf-8")
+    assert ".env\n" in ignore and "!.env.example" in ignore

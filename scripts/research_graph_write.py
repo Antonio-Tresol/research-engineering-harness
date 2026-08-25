@@ -16,7 +16,6 @@ would leave the record invalid never survives on disk. Each command also accepts
 from __future__ import annotations
 
 import datetime
-import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -35,14 +34,13 @@ import validate_research as grammar  # noqa: E402
 # is 0 and a refused or rolled-back write is 1. Code 2 is reserved for command-line
 # mistakes, which argparse reports in the command-line interface before any function
 # here is called.
-from research_graph_model import INVALID, OK  # noqa: E402
-from research_graph_txn import (  # noqa: E402
-    REJECTION_LINE,
-    write_transaction,
-)
+from research_graph_model import OK  # noqa: E402
 from research_graph_txn import missing_file as _missing_file  # noqa: E402
 from research_graph_txn import refuse as _refuse  # noqa: E402
 from research_graph_txn import reject_joined_paths as _reject_joined_paths  # noqa: E402
+from research_graph_txn import (  # noqa: E402
+    write_transaction,
+)
 
 TYPE_LETTERS: Final[dict[str, str]] = {
     "question": "Q",

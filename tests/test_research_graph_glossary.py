@@ -20,7 +20,6 @@ from pathlib import Path
 import pytest
 
 HARNESS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(HARNESS / "scripts"))
 
 from research_graph_glossary import (  # noqa: E402
     glossary_report,

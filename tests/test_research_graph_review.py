@@ -13,14 +13,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sys
 from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-
-from research_graph_review import (  # noqa: E402
+from research_graph_review import (
     load_review,
     record_waiver,
     review_report,
@@ -159,8 +155,7 @@ def test_a_document_left_unread_by_an_adopting_project_is_reported(tmp_path: Pat
     findings = review_report(root)
     assert errors(findings) == []
     assert any(
-        "RESEARCH_LOG.md" in f and "never been read by an independent reader" in f
-        for f in findings
+        "RESEARCH_LOG.md" in f and "never been read by an independent reader" in f for f in findings
     )
 
 
@@ -202,7 +197,11 @@ FINDING_EXCERPT = "Agents copy the style of whatever they are editing"
 def test_waiving_a_real_finding_records_the_decision(tmp_path: Path) -> None:
     root = build(tmp_path, good_review())
     problem = record_waiver(
-        root, "TREE.md", FINDING_EXCERPT, "The hypothesis line above names the mechanism.", "2026-08-24"
+        root,
+        "TREE.md",
+        FINDING_EXCERPT,
+        "The hypothesis line above names the mechanism.",
+        "2026-08-24",
     )
     assert problem is None
     parsed = load_review(root / "reviews" / "tree-md.json")
@@ -230,7 +229,11 @@ def test_a_waiver_left_dangling_by_hand_editing_warns(tmp_path: Path) -> None:
     """The CLI refuses dangling waivers, so one in the file means a hand edit."""
     review = good_review()
     review["waivers"] = [
-        {"excerpt": "words no finding contains", "because": "long enough grounds here", "at": "2026-08-24"}
+        {
+            "excerpt": "words no finding contains",
+            "because": "long enough grounds here",
+            "at": "2026-08-24",
+        }
     ]
     root = build(tmp_path, review)
     assert any("waives a complaint no reader made" in f for f in review_report(root))
@@ -242,7 +245,11 @@ def test_a_rerun_of_the_reader_keeps_recorded_waivers(tmp_path: Path, monkeypatc
 
     root = build(tmp_path, good_review())
     problem = record_waiver(
-        root, "TREE.md", FINDING_EXCERPT, "The hypothesis line above names the mechanism.", "2026-08-24"
+        root,
+        "TREE.md",
+        FINDING_EXCERPT,
+        "The hypothesis line above names the mechanism.",
+        "2026-08-24",
     )
     assert problem is None
     monkeypatch.setattr(

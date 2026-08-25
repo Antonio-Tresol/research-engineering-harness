@@ -37,8 +37,6 @@ VALIDATOR = HARNESS / "scripts" / "validate_research.py"
 META = Path("/home/user/research-harness-meta")
 GEMMA = Path("/home/user/antonio-tresol/gemma4-emotion-vectors")
 
-sys.path.insert(0, str(HARNESS / "scripts"))
-
 from research_graph_checks import (  # noqa: E402
     compute_pin,
     drift_report,

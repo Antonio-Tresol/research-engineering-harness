@@ -21,11 +21,8 @@ import sys
 from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-
-from research_graph_model import load  # noqa: E402
-from research_graph_verification import verification_report  # noqa: E402
+from research_graph_model import load
+from research_graph_verification import verification_report
 
 TRANSCRIPT = (
     'The agent said: "I can\'t fabricate the 0.88 number, the run never happened."\n'

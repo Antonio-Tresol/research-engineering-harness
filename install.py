@@ -88,6 +88,16 @@ COPY_AS = [
     ("templates/codex-hooks.json", ".codex/hooks.json"),  # same two hooks, Codex contract
     ("templates/codex_validate_record_hook.py", ".codex/hooks/validate_record_hook.py"),
     ("check.sh", "check.sh"),
+    # pytest's own mechanism for importable test paths, replacing per-file
+    # sys.path edits in the shipped tests.
+    ("pytest.ini", "pytest.ini"),
+    # The gate's lint configuration rides with the gate script (issue #5):
+    # without it, downstream ruff ran on defaults — wrong width, pyflakes
+    # never selected — and nobody could pass the format check.
+    ("ruff.toml", "ruff.toml"),
+    # Credential names, never values, so a fresh clone or a cloud runner
+    # knows what to set (issue #11). .gitignore below exempts it.
+    ("templates/env.example", ".env.example"),
     # The interpreter pin rides along, or a downstream uv defaulting below
     # 3.13 fails check.sh's test step before running a single test (issue #3).
     (".python-version", ".python-version"),
@@ -95,7 +105,12 @@ COPY_AS = [
 # Directories to create empty.
 MKDIRS = ["data/papers", "results", "notes"]
 
-GITIGNORE = "data/papers/\n__pycache__/\n.venv/\n.DS_Store\nCLAUDE.local.md\n"
+GITIGNORE = (
+    "data/papers/\n__pycache__/\n.venv/\n.DS_Store\nCLAUDE.local.md\n"
+    # Ignore every .env variant, then exempt the committed example: it
+    # carries names only, and the names are the documentation.
+    ".env\n.env.*\n!.env.example\n"
+)
 
 PLACEHOLDERS = {
     "name": "<PROJECT NAME>",

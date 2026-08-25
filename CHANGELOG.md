@@ -20,6 +20,62 @@ surface it holds.
 
 ## [Unreleased]
 
+### Fixed
+
+- `check.sh` ran its two ruff steps as one `a && b` statement, and under
+  `set -e` a failure to the left of `&&` aborts nothing: a formatting
+  failure was swallowed and the lint step never ran, while the gate
+  exited 0 (issue #4). In this repository the swallow was hiding four
+  unformatted test files and an unsorted import block; in the downstream
+  project that found it, 27 files. The steps are now separate
+  statements, the gate has its own tests (it must fire on bad input and
+  stay quiet on clean input, like every other check here), and the ruff
+  version is pinned in both `check.sh` and `ruff.toml` so the verdict
+  cannot drift with formatter releases.
+- The shipped tests errored at collection under bare pytest, looking
+  like broken code instead of a missing dependency (issue #8). The two
+  modules that need lanorme now skip with the remedy in the message, and
+  a shipped `pytest.ini` replaces every per-file `sys.path` edit in the
+  tests with pytest's own import mechanism.
+- Ten dead imports and one unsorted import block across the tooling and
+  a skill reference, found by pyflakes on its first run.
+
+### Added
+
+- The gate's configuration ships (issue #5): `ruff.toml` (line length
+  100, pyflakes and import sorting selected, jaxtyping reference files
+  exempted from false positives) and `pytest.ini` now reach every
+  scaffold, so a project extends the lint by editing configuration
+  rather than the gate script, whose command line would override it.
+- A credentials pattern (issue #11): scaffolds get a committed
+  `.env.example` carrying names but never values, `.gitignore` learns to
+  ignore every other `.env` file, and the experiment-engineering skill
+  documents reading configuration once into one typed object with
+  pydantic-settings and `SecretStr`, plus the rule that a key which
+  reaches git history is rotated, not deleted.
+- The experiment-engineering skill covers three failure classes found in
+  a real scaffolded project: the vendor-SDK boundary (issue #9 — typed
+  attribute access at one boundary module, so a renamed field crashes
+  before budget is spent instead of silently corrupting results), the
+  full identity of an API call (issue #10 — dated model snapshot, pinned
+  provider, every sampling parameter sent and recorded, and
+  reproducibility understood distributionally), and truncation as a
+  measurement hazard (issue #12 — check `finish_reason` before parsing,
+  size the cap by the cost asymmetry).
+- `AGENTS.md` states the code norms in one place: promoted code lives in
+  the project's package, modules are nouns and functions are verbs,
+  types where they aid readability, no `getattr`/`hasattr`/`isinstance`
+  papering or `sys.path` edits, canonical dependencies over
+  hand-rolling, and no magic numbers in experiment configuration.
+
+### Upgrading a project scaffolded before this version
+
+Split the `&&` line in your `check.sh` (or re-copy it from the harness),
+and copy `ruff.toml`, `pytest.ini`, and `.env.example` from a fresh
+install. If your project already carries its own ruff configuration,
+keep it and delete none of it: only make the two gate steps separate
+statements.
+
 ## [0.2.1] - 2026-08-25
 
 ### Fixed
