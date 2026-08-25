@@ -20,6 +20,8 @@ surface it holds.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-25
+
 ### Fixed
 
 - On Windows, two checks (`PROV-003` claim provenance, `STALE-002` stale

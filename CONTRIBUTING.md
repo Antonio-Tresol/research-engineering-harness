@@ -89,7 +89,11 @@ permanent, citable record: write it as carefully as anything else here.
    it into every scaffold. A test fails if the shipped version has no
    section in the changelog.
 3. Merge to `main` and wait for CI to pass on that exact commit.
-4. Publish the release, which creates the tag:
+4. Publish the release, which creates the tag. The Release workflow
+   (Actions, then Release, then Run workflow on `main` with the version
+   number) verifies the version against `HARNESS_VERSION` and the
+   changelog, then publishes with that changelog section as the release
+   body. The manual equivalent is:
 
        gh release create vX.Y.Z --target <commit> --title "vX.Y.Z" \
            --notes-file <the new changelog section>

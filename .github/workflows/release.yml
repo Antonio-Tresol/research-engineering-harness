@@ -1,0 +1,66 @@
+name: Release
+
+# Publishes a GitHub release for a version already prepared per
+# CONTRIBUTING.md: the changelog carries a dated section for it,
+# HARNESS_VERSION in install.py matches, and CI is green on the commit
+# being released. Run it on main with the version number; it refuses a
+# version the tree does not carry. The release body is the changelog
+# section verbatim, because Zenodo archives that body as the permanent
+# record of the version. Publishing the release creates the tag.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, without the v prefix, e.g. 0.2.1"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v6
+
+      - name: Verify the tree carries this version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          grep -qF "HARNESS_VERSION: Final[str] = \"$VERSION\"" install.py || {
+            echo "install.py does not carry HARNESS_VERSION $VERSION" >&2
+            exit 1
+          }
+          grep -qF "## [$VERSION] - " CHANGELOG.md || {
+            echo "CHANGELOG.md has no dated section for $VERSION" >&2
+            exit 1
+          }
+
+      - name: Extract the changelog section as the release body
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          awk -v ver="$VERSION" '
+            index($0, "## [" ver "] - ") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "the changelog section for $VERSION is empty" >&2
+            exit 1
+          fi
+
+      - name: Publish the release, which creates the tag
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION" --target "$GITHUB_SHA" \
+            --title "v$VERSION" --notes-file release-notes.md
