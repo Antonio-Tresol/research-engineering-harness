@@ -233,3 +233,15 @@ def test_the_credential_names_ship_but_never_values(installed: Path) -> None:
     assert all(re.fullmatch(r"[A-Z][A-Z0-9_]*=", line) for line in entries)
     ignore = (installed / ".gitignore").read_text(encoding="utf-8")
     assert ".env\n" in ignore and "!.env.example" in ignore
+
+
+def test_the_feedback_channel_ships(installed: Path) -> None:
+    """Scaffolded agents are told where their experience of the harness
+    goes: issues for defects, the standing thread for everything else, and
+    a local notes file when they cannot post. Without this section the
+    reporting loop runs only through humans relaying transcripts by hand."""
+    agents = (installed / "AGENTS.md").read_text(encoding="utf-8")
+    assert "## Feedback to the harness" in agents
+    assert "research-engineering-harness/issues/13" in agents
+    assert "notes/harness-feedback.md" in agents
+    assert ".harness-version" in agents

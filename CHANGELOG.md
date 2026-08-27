@@ -18,6 +18,23 @@ raise the patch. This file follows the spirit of
 stamps `.harness-version` into every scaffold so a project knows which
 surface it holds.
 
+## [Unreleased]
+
+### Added
+
+- A feedback channel from the agents the harness scaffolds. Every
+  scaffold's `AGENTS.md` now ends with a "Feedback to the harness"
+  section telling agents where their experience should go: defects to
+  their own issues on this repository, friction and missing pieces to
+  the standing feedback thread (issue #13), and — the signal the
+  harness wants most — corrections a human had to make on ground the
+  norms already claim to cover, quoted. It also states the rules of the
+  road: name the `.harness-version`, post nothing project-confidential
+  to the public tracker, and fall back to `notes/harness-feedback.md`
+  when the environment has no GitHub access or the user prefers not to
+  post. Until now this loop ran only through project owners relaying
+  transcripts by hand; issues #2 through #12 all arrived that way.
+
 ## [0.3.0] - 2026-08-25
 
 Every entry here traces to one downstream project's first day of real

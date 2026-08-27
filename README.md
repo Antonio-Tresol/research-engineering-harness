@@ -89,6 +89,14 @@ exactly one that requires such action. `install.py` stamps
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the principles a change is
 reviewed against and how to add a check, a command, or a skill.
 
+Most of the changelog traces to reports from scaffolded projects in real
+use — filed by the humans running them and by the agents working in
+them. Defects belong in their own issues; everything else — friction,
+missing pieces, corrections a human had to make on ground the harness
+claims to cover — goes to the [standing feedback
+thread](https://github.com/Antonio-Tresol/research-engineering-harness/issues/13).
+Every scaffold's `AGENTS.md` tells its agents the same.
+
 ## Citation
 
 Archived on Zenodo. The DOI below is the *concept* DOI: it always resolves to the
