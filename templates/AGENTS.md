@@ -219,9 +219,9 @@ contract. The norms, as opposed to the techniques:
 
 The rules, skills, and checks in this repository come from the
 [research-engineering harness](https://github.com/Antonio-Tresol/research-engineering-harness),
-and it improves through reports from the projects using it — its last
-two releases trace, entry by entry, to exactly such reports. Your
-experience is wanted, agent or human alike:
+and it improves through reports from the projects using it — its
+releases v0.2.1 and v0.3.0 trace, entry by entry, to exactly such
+reports. Your experience is wanted, agent or human alike:
 
 - Something is broken — a check that lies, a rule that cannot be
   followed, a script that fails: file an issue on that repository.
