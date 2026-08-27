@@ -239,7 +239,7 @@ def test_the_feedback_channel_ships(installed: Path) -> None:
     """Scaffolded agents are told where their experience of the harness
     goes: issues for defects, the standing thread for everything else, and
     a local notes file when they cannot post. Without this section the
-    reporting loop runs only through humans relaying transcripts by hand."""
+    reporting loop runs only through humans carrying reports by hand."""
     agents = (installed / "AGENTS.md").read_text(encoding="utf-8")
     assert "## Feedback to the harness" in agents
     assert "research-engineering-harness/issues/13" in agents
