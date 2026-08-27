@@ -214,3 +214,31 @@ contract. The norms, as opposed to the techniques:
     after you mark the project trusted, and note it *outranks* your personal
     `~/.codex/config.toml`. Codex subagents are on by default; shareable custom
     agent roles can be added under `.codex/agents/` if the project needs them.
+
+## Feedback to the harness
+
+The rules, skills, and checks in this repository come from the
+[research-engineering harness](https://github.com/Antonio-Tresol/research-engineering-harness),
+and it improves through reports from the agents working under it — most
+of its changelog traces to exactly such reports. Your experience is
+wanted, agent or human alike:
+
+- Something is broken — a check that lies, a rule that cannot be
+  followed, a script that fails: file an issue on that repository.
+- Friction that is not a defect — a rule that fought you, a workflow
+  that cost turns, something missing that you needed: comment on the
+  standing feedback thread,
+  <https://github.com/Antonio-Tresol/research-engineering-harness/issues/13>.
+- A human corrected your work on ground these rules already claim to
+  cover — code not clean or readable despite the norms above,
+  documentation padded with unnecessary detail: report that too, with
+  the correction quoted. A norm agents read and still miss is stated
+  badly, and the maintainers want to know that more than almost
+  anything else.
+
+Say what you were doing in one line, what happened, and the version in
+`.harness-version`. The tracker is public: no secrets, nothing
+project-confidential — describe the behaviour, never this project's
+content. If your environment has no GitHub access, or your user prefers
+you not to post, append the same report to `notes/harness-feedback.md`
+and tell your user it is there to pass on.
