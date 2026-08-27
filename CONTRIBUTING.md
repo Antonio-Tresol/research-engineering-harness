@@ -85,6 +85,9 @@ permanent, citable record: write it as carefully as anything else here.
 1. Move the `[Unreleased]` entries into a new `## [X.Y.Z] - YYYY-MM-DD`
    section. Raise the minor version for new capability or for a change
    that requires an installed project to act, the patch version for fixes.
+   Write the section to stand alone: it is published verbatim as the
+   release body, where a phrase like "the rule above" points at nothing
+   (the v0.3.0 body carries exactly that dangling reference).
 2. Set the same version in `HARNESS_VERSION` in `install.py`, which stamps
    it into every scaffold. A test fails if the shipped version has no
    section in the changelog.

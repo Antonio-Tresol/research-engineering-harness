@@ -23,7 +23,7 @@ surface it holds.
 ### Added
 
 - A feedback channel from the agents the harness scaffolds. Every
-  scaffold's `AGENTS.md` now ends with a "Feedback to the harness"
+  scaffold's `AGENTS.md` now carries a "Feedback to the harness"
   section telling agents where their experience should go: defects to
   their own issues on this repository, friction and missing pieces to
   the standing feedback thread (issue #13), and — the signal the
@@ -32,8 +32,8 @@ surface it holds.
   road: name the `.harness-version`, post nothing project-confidential
   to the public tracker, and fall back to `notes/harness-feedback.md`
   when the environment has no GitHub access or the user prefers not to
-  post. Until now this loop ran only through project owners relaying
-  transcripts by hand; issues #2 through #12 all arrived that way.
+  post. Until now this loop ran only through a project's own humans
+  carrying reports by hand; issues #2 through #12 all arrived that way.
 
 ## [0.3.0] - 2026-08-25
 

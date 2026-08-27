@@ -219,9 +219,9 @@ contract. The norms, as opposed to the techniques:
 
 The rules, skills, and checks in this repository come from the
 [research-engineering harness](https://github.com/Antonio-Tresol/research-engineering-harness),
-and it improves through reports from the agents working under it — most
-of its changelog traces to exactly such reports. Your experience is
-wanted, agent or human alike:
+and it improves through reports from the projects using it — its last
+two releases trace, entry by entry, to exactly such reports. Your
+experience is wanted, agent or human alike:
 
 - Something is broken — a check that lies, a rule that cannot be
   followed, a script that fails: file an issue on that repository.
@@ -231,10 +231,9 @@ wanted, agent or human alike:
   <https://github.com/Antonio-Tresol/research-engineering-harness/issues/13>.
 - A human corrected your work on ground these rules already claim to
   cover — code not clean or readable despite the norms above,
-  documentation padded with unnecessary detail: report that too, with
-  the correction quoted. A norm agents read and still miss is stated
-  badly, and the maintainers want to know that more than almost
-  anything else.
+  documentation padded with unnecessary detail: comment that on the
+  same thread, with the correction quoted. A norm agents read and
+  still miss is stated badly — a harness defect of its own kind.
 
 Say what you were doing in one line, what happened, and the version in
 `.harness-version`. The tracker is public: no secrets, nothing
