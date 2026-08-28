@@ -35,6 +35,34 @@ surface it holds.
   post. Until now this loop ran only through a project's own humans
   carrying reports by hand; issues #2 through #12 all arrived that way.
 
+### Fixed
+
+- Re-installing over an existing project no longer destroys it. `copy_dir`
+  removed the destination tree before copying, so `--force`, the only
+  documented way to take an update, deleted whatever the project kept
+  under `tests/`, `.claude/`, `scripts/` and `lanorme_plugins/` — its own
+  test files, its own skills, its own plugins. It now merges file by file
+  and never deletes, so `--force` overwrites the harness's files and leaves
+  the project's alone. Found while updating a project from a pre-`0.2.1`
+  scaffold, where the only safe route was to install without `--force` and
+  then sync directory contents by hand.
+- `TREE.md` and `RESEARCH_LOG.md` are never replaced, even under `--force`.
+  A re-install rendered the seed scaffold over them, so taking an update
+  destroyed the record the harness exists to protect. They now follow the
+  rule the pre-commit hook already followed. Upgrade note: a project that
+  re-installed with `--force` before this release should check its record
+  against git history.
+- A plain re-install now carries a release's new files into a project that
+  already has the directory. `copy_dir` skipped any directory that existed,
+  so without `--force` nothing new arrived and with `--force` everything
+  was deleted first; there was no setting that simply updated a project.
+- `tests/test_codex_hooks.py` stays home. It reads `templates/`, which does
+  not ship, so every project installed since it was added received a test
+  that could not pass. `test_every_shipped_test_passes_in_a_fresh_project`
+  is now the forcing function, running the shipped suite inside a fresh
+  scaffold rather than naming files one at a time. Upgrade note: delete
+  `tests/test_codex_hooks.py` from an installed project.
+
 ## [0.3.0] - 2026-08-25
 
 Every entry here traces to one downstream project's first day of real

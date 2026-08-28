@@ -40,6 +40,7 @@ import shutil
 import sys
 from dataclasses import dataclass
 from datetime import date
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import Final
 
@@ -52,12 +53,11 @@ HARNESS_VERSION: Final[str] = "0.3.0"
 
 # Files/dirs copied verbatim (portable, no placeholders).
 COPY_TREE = [".claude", "scripts", "lanorme_plugins", "hooks", "tests"]
-# Harness-internal files that never reach a project. scripts/: the eval
-# runners and graders are lab equipment for measuring agent behaviour ON the
-# harness; projects need the validator and research_graph tooling only.
-# tests/: test_install.py needs install.py and templates/, which do not ship.
-# .claude/: settings come from templates/claude-settings.json (COPY_AS below);
-# the harness's own settings shadowed that template until the two diverged.
+# Harness-internal files that never reach a project. scripts/: eval runners and
+# graders are lab equipment, measuring agent behaviour ON the harness. tests/:
+# both named files read templates/, which does not ship. .claude/: settings come
+# from templates/claude-settings.json (COPY_AS below), which the harness's own
+# settings shadowed until the two diverged.
 COPY_IGNORE = {
     ".claude": ("settings.json", "settings.local.json"),
     "scripts": (
@@ -68,9 +68,15 @@ COPY_IGNORE = {
         "redteam_*",
         "falsify_*",
     ),
-    "tests": ("test_install.py",),
+    "tests": ("test_install.py", "test_codex_hooks.py"),
 }
 # Reference material worth having in every project (read-only evidence base).
+#: Files an install never replaces once they exist, even under --force. TREE.md
+#: and RESEARCH_LOG.md are the project's database, not harness surface: a
+#: re-install that restores the seed scaffold over them destroys the record it
+#: exists to protect. Same rule the pre-commit hook already follows.
+NEVER_REPLACE: Final[frozenset[str]] = frozenset({"TREE.md", "RESEARCH_LOG.md"})
+
 COPY_REFERENCE = ["references", "research"]
 # Templates rendered with placeholder substitution: (template_src, dest_in_project).
 RENDER = [
@@ -189,6 +195,16 @@ class InstallPlan:
     with_reference: bool = True
 
 
+def is_ignored(relative: Path, ignore: tuple[str, ...]) -> bool:
+    """Whether a path inside a copied directory stays home.
+
+    Patterns match the file name, which is what every COPY_IGNORE entry is.
+    """
+    if "__pycache__" in relative.parts:
+        return True
+    return any(fnmatch(relative.name, pattern) for pattern in ignore)
+
+
 class Installer:
     """Performs the install, recording one action line per step."""
 
@@ -197,20 +213,43 @@ class Installer:
         self.actions: list[str] = []
 
     def can_write(self, dest: Path) -> bool:
-        """False (and records a SKIP) when dest exists and --force was not given."""
+        """False (and records a SKIP) when dest must not be written.
+
+        Two reasons: it exists and --force was not given, or it is the record,
+        which --force does not cover.
+        """
+        rel = dest.relative_to(self.plan.target)
+        if dest.exists() and str(rel) in NEVER_REPLACE:
+            self.actions.append(f"SKIP (the record, never replaced): {rel}")
+            return False
         if dest.exists() and not self.plan.force:
-            self.actions.append(f"SKIP (exists, use --force): {dest.relative_to(self.plan.target)}")
+            self.actions.append(f"SKIP (exists, use --force): {rel}")
             return False
         return True
 
     def copy_dir(self, rel: str, label: str = "", ignore: tuple[str, ...] = ()) -> None:
+        """Merge the harness's copy of a directory into the project's.
+
+        File by file rather than tree by tree, and it never deletes. The old
+        behaviour removed the destination first, so --force on an existing
+        project took the project's own tests, skills and plugins with it, and
+        without --force the whole directory was skipped, so a release's new
+        files never reached a project that already had the directory. Merging
+        gives both halves: new files always arrive, existing ones need --force,
+        and files the harness does not ship are left alone.
+        """
         src, dest = HARNESS / rel, self.plan.target / rel
-        if not src.exists() or not self.can_write(dest):
+        if not src.exists():
             return
-        if dest.exists():
-            shutil.rmtree(dest)
-        shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__", *ignore))
-        self.actions.append(f"copied {rel}/{label}")
+        copied = 0
+        for path in sorted(p for p in src.rglob("*") if p.is_file()):
+            relative = path.relative_to(src)
+            if is_ignored(relative, ignore) or not self.can_write(dest / relative):
+                continue
+            (dest / relative).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, dest / relative)  # copy2: executable bits survive
+            copied += 1
+        self.actions.append(f"copied {rel}/{label}: {copied} file(s)")
 
     def copy_file(self, src_rel: str, dest_rel: str) -> None:
         dest = self.plan.target / dest_rel

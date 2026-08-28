@@ -245,3 +245,74 @@ def test_the_feedback_channel_ships(installed: Path) -> None:
     assert "research-engineering-harness/issues/13" in agents
     assert "notes/harness-feedback.md" in agents
     assert ".harness-version" in agents
+
+
+# --- Re-installing over a project that already exists --------------------
+
+
+def install_into(target: Path, *extra: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(HARNESS / "install.py"), str(target), "--no-input", *extra],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+
+
+@pytest.fixture
+def lived_in(tmp_path: Path) -> Path:
+    """A project that has been installed once and then worked in."""
+    assert install_into(tmp_path).returncode == 0
+    (tmp_path / "tests/test_project_thing.py").write_text(
+        "def test_x() -> None:\n    assert True\n"
+    )
+    (tmp_path / ".claude/skills/project-only").mkdir(parents=True, exist_ok=True)
+    (tmp_path / ".claude/skills/project-only/SKILL.md").write_text("# a skill this project wrote\n")
+    (tmp_path / "TREE.md").write_text("- Q1: the real question [open]\n")
+    (tmp_path / "RESEARCH_LOG.md").write_text("# real log\n")
+    return tmp_path
+
+
+def test_reinstall_keeps_the_projects_own_files(lived_in: Path) -> None:
+    """--force is consent to overwrite harness files, never to delete the
+    project's. Removing the destination tree first took tests, skills and
+    plugins with it."""
+    assert install_into(lived_in, "--force").returncode == 0
+    assert (lived_in / "tests/test_project_thing.py").exists()
+    assert (lived_in / ".claude/skills/project-only/SKILL.md").exists()
+
+
+def test_the_record_survives_force(lived_in: Path) -> None:
+    """TREE.md and RESEARCH_LOG.md are the database, and --force does not
+    reach them: a re-install that restores the seed scaffold destroys the
+    record the harness exists to protect."""
+    assert install_into(lived_in, "--force").returncode == 0
+    assert (lived_in / "TREE.md").read_text() == "- Q1: the real question [open]\n"
+    assert (lived_in / "RESEARCH_LOG.md").read_text() == "# real log\n"
+
+
+def test_a_new_harness_file_reaches_an_existing_project(lived_in: Path) -> None:
+    """Skipping a directory that already exists meant a release's new files
+    never arrived. A plain re-install adds them without touching anything."""
+    (lived_in / "scripts/research_graph.py").unlink()
+    edited = lived_in / "scripts/validate_research.py"
+    edited.write_text("# edited by the project\n")
+    assert install_into(lived_in).returncode == 0
+    assert (lived_in / "scripts/research_graph.py").exists()
+    assert edited.read_text() == "# edited by the project\n"  # existing files still need --force
+
+
+def test_every_shipped_test_passes_in_a_fresh_project(installed: Path) -> None:
+    """The forcing function for what ships under tests/. A test that reads
+    templates/ or install.py cannot pass here, and shipping it hands every
+    project a red suite on day one."""
+    done = subprocess.run(
+        [sys.executable, "-m", "pytest", "tests", "-q"],
+        cwd=installed,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+    )
+    assert done.returncode == 0, done.stdout[-3000:]
