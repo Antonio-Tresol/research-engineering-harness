@@ -34,6 +34,22 @@ surface it holds.
   when the environment has no GitHub access or the user prefers not to
   post. Until now this loop ran only through a project's own humans
   carrying reports by hand; issues #2 through #12 all arrived that way.
+- The norms no script can check are now written down, each with an honest
+  label of how it is enforced. `AGENTS.md` gains "Working with the human"
+  (lead with the outcome and stop; the human did not watch the session),
+  "Building" (align on the plan and its tests, implement by orchestrating
+  subagents, then test, improve, and review with an independent reviewer
+  until a round finds nothing, then deliver), and four code norms: one
+  place per piece of logic with understanding over efficiency, typed data
+  over bare dicts and tuples, formatting on everything including
+  exploratory code, and tests that fail without the code they cover. The
+  experiment-engineering skill carries the reasoning and a "Tests that
+  prove something" section, and its two-mode table now says what
+  `check.sh` actually runs: `ruff` over the whole tree in both modes,
+  `lanorme` and tests on promoted code only. The communicate-results skill
+  applies the same outcome-first order to replies. Where a script checks a
+  norm the text names it (`ruff`, `DRY-001`, `TYPE-002`); everywhere else
+  the independent reviewer is the enforcement, and the text says so.
 
 ### Fixed
 

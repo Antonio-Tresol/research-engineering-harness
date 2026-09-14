@@ -30,6 +30,11 @@ Keep **one deck per project**, extended over time rather than rebuilt. Structure
 show ten. The ones that did not work go in backup slides — available when asked,
 not occupying the main line.
 
+The same order holds for a reply in conversation, with nothing after it: the
+outcome, the numbers that carry it with their *n*, then stop. Detail is one
+question away, and the human asks for it more cheaply than they read it
+unasked.
+
 ## Honesty requirements (these are the point, not decoration)
 
 - **Show the full prompts** alongside results. A result without its prompt is not

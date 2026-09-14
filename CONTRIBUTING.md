@@ -21,7 +21,10 @@ the companion `research-harness-meta` repository.
   Judgement (is this clear, is this well designed) is advisory, or
   delegated to an independent reader whose verdicts are themselves
   checkable. A checker that cries wolf gets bypassed and takes its true
-  positives with it; this is measured, not asserted.
+  positives with it; this is measured, not asserted. Most norms in
+  `templates/AGENTS.md` and the skills are judgement of this kind, and the
+  text never pretends a script checks them: for those the independent
+  reviewer is the procedure, not an extra.
 - **Norms and mechanisms together.** The written rules remove the reasons
   to cut corners; the mechanisms catch the mistakes honesty does not
   prevent. Red-teaming found each catching what the other misses, so a
@@ -45,6 +48,10 @@ the companion `research-harness-meta` repository.
 - **Shipped scripts are self-contained.** PEP 723 uv scripts with inline
   dependencies; the validator stays dependency-free so a project that
   installs nothing still gets every integrity guarantee.
+- **Tests prove something.** A new test fails against the code before the
+  change and passes after it, and every mechanical check has a test that
+  feeds it bad input. A test that passes regardless of the code is not
+  accepted, and the reviewer reads every test with that question.
 
 ## Setup
 
@@ -74,8 +81,10 @@ build; every script declares its own dependencies.
   forget. Narrate the why, not just the what, and include upgrade steps
   when an installed project must act.
 
-Before pushing: `./check.sh` green, and reread what you wrote as the
-research partner who was not in the room when you wrote it.
+Before pushing: `./check.sh` green, an independent reviewer with none of
+your context over the diff and over any prose you touched, and reread what
+you wrote as the research partner who was not in the room when you wrote
+it.
 
 ## Cutting a release
 

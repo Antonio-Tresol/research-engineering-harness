@@ -20,7 +20,8 @@ Research code has two modes. Confusing them is what makes process feel like drag
 | Goal | time-to-insight | reproducibility and reuse |
 | Polish (naming, structure, types) | **skip it** | apply it |
 | Observability contract (below) | required as soon as a run costs real time or money | required always |
-| Linting gates | not enforced | enforced |
+| Formatting, import order, pyflakes (`ruff`) | enforced: `./check.sh` runs it over the whole tree, notebooks excepted | enforced |
+| Polish checks (`lanorme`), tests, review | not enforced: `lanorme.toml` excludes `notebooks/` and `explore/` | enforced |
 
 Most work is explore mode; the workflow literature puts it around 75%. Code is
 **promoted** to pipeline mode when it produces evidence a claim will rest on, when
@@ -210,10 +211,24 @@ pile of sibling scripts that import each other is not a module system.
   (`rollouts`, `grading`), functions are verbs for what they do
   (`request_completion`, `score_rollout`). A name that needs the commit
   message to decode fails review; so does a module named `utils`.
+- **Each piece of logic lives in one place, and understanding beats
+  efficiency.** Code is read far more often than it runs; when the two
+  conflict, write the version a reader follows first, and measure before
+  trading it away. `DRY-001` catches only identical function bodies of five
+  or more statements; the broader rule is the reviewer's.
 - **Types where they make the code readable**, not annotation for its own
   sake: the signatures of promoted interfaces, the settings object, tensor
   shapes, the boundary structures vendor responses convert into.
   `dict[str, Any]` flowing through a pipeline is how boundary bugs spread.
+  Data that crosses a function boundary has a type: a `dataclass` or
+  pydantic model with named fields, not a dict or tuple whose meaning lives
+  in the caller's head, unless the structure genuinely cannot be named.
+  `TYPE-002` rejects bare containers; whether a dict should have been a
+  class is the reviewer's call.
+- **Formatted, always.** `ruff format` and sorted imports run in both modes
+  (the table above). The formatter keeps a trailing comma on any call or
+  collection split across lines, and it stays: adding an element is then a
+  one-line diff.
 - **Prefer the canonical dependency over hand-rolling**: the official SDK for
   the API you call, tenacity for retries, pydantic for schemas,
   pydantic-settings for configuration. "Few dependencies" cuts both ways —
@@ -223,6 +238,30 @@ pile of sibling scripts that import each other is not a module system.
   a result — sample size, temperature, token cap, threshold — has a name, a
   home (config object or CLI argument with an explicit default), and a copy in
   the results file.
+
+## Tests that prove something
+
+Promoted code is tested, and the plan for it names the tests before the
+code exists (Building, in `AGENTS.md`). Three rules make a test worth
+running:
+
+- **It fails without the code it covers, and fails again when that code's
+  behaviour changes.** Run it against the previous version before trusting
+  it; a test that passes either way is decoration.
+- **A grader gets planted ground truth**: rows known right, known wrong,
+  and severed by a token cap, so a scorer that reads a severed digit as an
+  answer fails its test instead of biasing the run.
+- **Every mechanical check gets a test that feeds it bad input.** A gate
+  that passes by not running is worse than no gate: the harness's own
+  quality gate once joined two steps with `&&` under `set -e`, so a
+  formatting failure aborted nothing and the lint never ran while the gate
+  exited 0 (issue #4 in the harness repository).
+
+None of this is checked by a script; no mutation testing runs here. So
+before promoted code is delivered, an independent reviewer agent, given the
+diff and these norms and nothing else, reads every test with one question
+first: what would make this fail? The author fixes what it finds and
+reviews again until a round finds nothing worth changing.
 
 ## Before you run it
 
