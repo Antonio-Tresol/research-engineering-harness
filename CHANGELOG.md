@@ -18,7 +18,13 @@ raise the patch. This file follows the spirit of
 stamps `.harness-version` into every scaffold so a project knows which
 surface it holds.
 
-## [Unreleased]
+## [0.4.0] - 2026-09-14
+
+Two sources. One downstream project upgraded from v0.3.0 and found the
+installer destroying what it updated; and the norms the harness's
+maintainer works by, which no scaffold had ever stated, are now written
+down with an honest label of how each is enforced. The minor version
+rises because the Added entries are new capability.
 
 ### Added
 
@@ -79,6 +85,15 @@ surface it holds.
   is now the forcing function, running the shipped suite inside a fresh
   scaffold rather than naming files one at a time. Upgrade note: delete
   `tests/test_codex_hooks.py` from an installed project.
+
+### Upgrading a project scaffolded before this version
+
+Re-run `install.py --force` from this version to take the new files: it
+now merges file by file, deletes nothing, and never touches `TREE.md` or
+`RESEARCH_LOG.md`. `AGENTS.md` is rendered from the template, so a project
+that has customised it should instead copy the three new sections by hand
+("Working with the human", "Building", and the new Code bullets). Delete
+`tests/test_codex_hooks.py`.
 
 ## [0.3.0] - 2026-08-25
 

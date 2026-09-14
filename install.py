@@ -49,7 +49,7 @@ HARNESS = Path(__file__).resolve().parent
 # Single source of truth for the shipped surface's version; CHANGELOG.md
 # narrates what each version changed. Stamped into every scaffold as
 # .harness-version so a project knows which surface it holds.
-HARNESS_VERSION: Final[str] = "0.3.0"
+HARNESS_VERSION: Final[str] = "0.4.0"
 
 # Files/dirs copied verbatim (portable, no placeholders).
 COPY_TREE = [".claude", "scripts", "lanorme_plugins", "hooks", "tests"]
