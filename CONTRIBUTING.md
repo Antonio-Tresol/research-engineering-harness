@@ -81,8 +81,8 @@ build; every script declares its own dependencies.
   forget. Narrate the why, not just the what, and include upgrade steps
   when an installed project must act.
 
-Before pushing: `./check.sh` green, an independent reviewer with none of
-your context over the diff and over any prose you touched, and reread what
+Before pushing: `./check.sh` green, the diff and any prose you touched read
+by an independent reviewer with none of your context, and a reread of what
 you wrote as the research partner who was not in the room when you wrote
 it.
 
