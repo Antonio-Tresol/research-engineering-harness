@@ -41,12 +41,13 @@ surface it holds.
   subagents, then test, improve, and review with an independent reviewer
   until a round finds nothing, then deliver), and four code norms: one
   place per piece of logic with understanding over efficiency, typed data
-  over bare dicts and tuples, formatting on everything including
-  exploratory code, and tests that fail without the code they cover. The
+  over bare dicts and tuples, formatting on every script including
+  exploratory ones, and tests that fail without the code they cover. The
   experiment-engineering skill carries the reasoning and a "Tests that
   prove something" section, and its two-mode table now says what
-  `check.sh` actually runs: `ruff` over the whole tree in both modes,
-  `lanorme` and tests on promoted code only. The communicate-results skill
+  `check.sh` actually runs: `ruff` over every script in both modes,
+  `lanorme` on promoted code only, and tests and review required at
+  promotion but checked by no script. The communicate-results skill
   applies the same outcome-first order to replies. Where a script checks a
   norm the text names it (`ruff`, `DRY-001`, `TYPE-002`); everywhere else
   the independent reviewer is the enforcement, and the text says so.

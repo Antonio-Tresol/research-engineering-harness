@@ -6,7 +6,7 @@ description: >-
   logging, resumable checkpoints, fail-fast ordering, error handling, and the
   pinned identity of every API call. Also covers the vendor-SDK boundary, typed
   configuration and credentials, truncation as a measurement hazard, and module
-  structure for promoted code. Use whenever writing or reviewing an experiment
+  structure and tests for promoted code. Use whenever writing or reviewing an experiment
   script, pipeline, or any code that spends GPU time or API budget.
 ---
 
@@ -21,12 +21,17 @@ Research code has two modes. Confusing them is what makes process feel like drag
 | Polish (naming, structure, types) | **skip it** | apply it |
 | Observability contract (below) | required as soon as a run costs real time or money | required always |
 | Formatting, import order, pyflakes (`ruff`) | enforced: `./check.sh` runs it over the whole tree, notebooks excepted | enforced |
-| Polish checks (`lanorme`), tests, review | not enforced: `lanorme.toml` excludes `notebooks/` and `explore/` | enforced |
+| Polish checks (`lanorme`) | not enforced: `lanorme.toml`'s exclude list covers `notebooks/`, `explore/`, `scratch/`, and dated `experiments/` folders | enforced |
+| Tests and independent review | not required | required at promotion (Building, in `AGENTS.md`); no script checks them |
 
 Most work is explore mode; the workflow literature puts it around 75%. Code is
 **promoted** to pipeline mode when it produces evidence a claim will rest on, when
 someone else must run it, or when it will run more than a few times. Promotion is
 the gate; there is no gate on exploring.
+
+Formatting is the one check both modes share, and it is free. The formatter
+keeps a trailing comma on any call or collection split across lines, and it
+stays: adding an element is then a one-line diff.
 
 ## The observability contract (non-negotiable for any run that costs time or money)
 
@@ -225,10 +230,6 @@ pile of sibling scripts that import each other is not a module system.
   in the caller's head, unless the structure genuinely cannot be named.
   `TYPE-002` rejects bare containers; whether a dict should have been a
   class is the reviewer's call.
-- **Formatted, always.** `ruff format` and sorted imports run in both modes
-  (the table above). The formatter keeps a trailing comma on any call or
-  collection split across lines, and it stays: adding an element is then a
-  one-line diff.
 - **Prefer the canonical dependency over hand-rolling**: the official SDK for
   the API you call, tenacity for retries, pydantic for schemas,
   pydantic-settings for configuration. "Few dependencies" cuts both ways —

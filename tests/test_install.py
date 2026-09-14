@@ -237,10 +237,10 @@ def test_the_credential_names_ship_but_never_values(installed: Path) -> None:
 
 def test_the_agent_norm_sections_ship(installed: Path) -> None:
     """The norms no script can check reach every scaffold as text: how to
-    talk to the human, the building loop with its independent reviewer,
-    what a real test is, and where feedback about the harness goes (issues
-    for defects, the standing thread for everything else, a local notes
-    file when posting is impossible)."""
+    talk to the human, the building loop with its independent reviewer, the
+    code norms, what a real test is, and where feedback about the harness
+    goes (issues for defects, the standing thread for everything else, a
+    local notes file when posting is impossible)."""
     agents = (installed / "AGENTS.md").read_text(encoding="utf-8")
     for heading in (
         "## Working with the human",
