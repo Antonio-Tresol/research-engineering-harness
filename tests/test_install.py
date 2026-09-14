@@ -235,16 +235,25 @@ def test_the_credential_names_ship_but_never_values(installed: Path) -> None:
     assert ".env\n" in ignore and "!.env.example" in ignore
 
 
-def test_the_feedback_channel_ships(installed: Path) -> None:
-    """Scaffolded agents are told where their experience of the harness
-    goes: issues for defects, the standing thread for everything else, and
-    a local notes file when they cannot post. Without this section the
-    reporting loop runs only through humans carrying reports by hand."""
+def test_the_agent_norm_sections_ship(installed: Path) -> None:
+    """The norms no script can check reach every scaffold as text: how to
+    talk to the human, the building loop with its independent reviewer,
+    what a real test is, and where feedback about the harness goes (issues
+    for defects, the standing thread for everything else, a local notes
+    file when posting is impossible)."""
     agents = (installed / "AGENTS.md").read_text(encoding="utf-8")
-    assert "## Feedback to the harness" in agents
+    for heading in (
+        "## Working with the human",
+        "## Building",
+        "## Code",
+        "## Feedback to the harness",
+    ):
+        assert heading in agents, heading
     assert "research-engineering-harness/issues/13" in agents
     assert "notes/harness-feedback.md" in agents
     assert ".harness-version" in agents
+    skill = installed / ".claude" / "skills" / "experiment-engineering" / "SKILL.md"
+    assert "## Tests that prove something" in skill.read_text(encoding="utf-8")
 
 
 # --- Re-installing over a project that already exists --------------------

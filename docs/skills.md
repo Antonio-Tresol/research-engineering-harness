@@ -13,7 +13,7 @@ not.
 | `research` | Literature search through the configured paper-search servers (Model Context Protocol), with plain web-search fallbacks when they are absent |
 | `derive-from-sources` | Read every source, take verbatim-quote notes, draft only from the notes |
 | `eval-design` | Threat model, specification, question design, QC, construct-validity checklist, LLM-judge audit |
-| `experiment-engineering` | Observability contract, API concurrency and backoff, GPU batching, tensor discipline. Includes runnable reference code |
+| `experiment-engineering` | Observability contract, API concurrency and backoff, the vendor-SDK boundary, typed configuration and credentials, GPU batching, tensor discipline, module structure and naming for promoted code, and tests that fail without the code they cover. Includes runnable reference code |
 | `falsify` | Permutation nulls, bootstrap CIs, base-rate checks, and tests that a qualitative label can actually distinguish the cases it claims to |
 | `validate-claims` | Trace every number to data, every method sentence to code, every citation to a real paper |
 | `research-log` | Tree and log grammar, the [plain-language rules](the-record.md), and the session routine: `verify` at session start, the day's log entry and the validator at session end |

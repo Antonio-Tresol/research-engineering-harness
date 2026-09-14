@@ -72,8 +72,9 @@ Phases iterate; the gates do not.
 
 0. **Speed is a first-class constraint.** Most work is exploratory de-risking in
    notebooks and throwaway scripts, and that code is deliberately exempt from
-   polish and linting (`experiment-engineering` has the two-mode table). Gates
-   apply at *promotion*, when code produces evidence a claim rests on. What is
+   polish, though not from formatting (`experiment-engineering` has the
+   two-mode table). Gates apply at *promotion*, when code produces evidence a
+   claim rests on. What is
    never deferred, even in explore mode, is the observability contract: structured
    incremental logs, resumable checkpoints, fail-fast ordering, seeds. Unlogged
    fast work has to be re-run, and re-running is slower than logging was.
@@ -105,6 +106,21 @@ Phases iterate; the gates do not.
 8. **Communicate**. Use `communicate-results` for decks and write-ups: strongest
    message first, failed setups in backup, error bars and *n* on every number,
    full prompts and real outputs shown.
+
+## Working with the human
+
+- **Lead with the outcome, then stop.** The answer or the result first, in
+  plain words; the human dives deeper by asking, and a follow-up question
+  costs them less than a wall of text. The vocabulary rules of the
+  `research-log` skill apply here too: standard terms, no abbreviations or
+  names of your own.
+- **The human did not watch this session.** They have the repository, but
+  not your tool calls, the files you just read, or the labels you made up
+  along the way, and prose that assumes otherwise is unreadable to them. Say
+  what you mean in place, with the file names and the numbers.
+
+No script checks either rule. The human's corrections do, and each one is
+feedback to the harness (last section).
 
 ## Collaboration and parallelism
 
@@ -143,10 +159,34 @@ Phases iterate; the gates do not.
   context: plain language and standard terminology throughout, so that what we
   share stays our common understanding.
 
+## Building
+
+The loop for any change larger than a small fix:
+
+1. **Align.** Agree with the human on what will be built and on what will be
+   tested or evaluated to show it works; the plan names the tests before the
+   code exists.
+2. **Implement by orchestrating.** Split the work into self-contained pieces
+   and delegate them to subagents ("Be an orchestrator" above), keeping
+   integration and the record in the orchestrating session.
+3. **Test, improve, review, and loop.** Run the tests and `./check.sh` and
+   fix what they show. Then an independent reviewer with none of your
+   context reads the result: for any document, the outside reader
+   (`research_graph.py review --run <file>`); for code, a reviewer agent
+   given the diff, the norms below, and nothing else. Fix what it finds and
+   review again until a round finds nothing worth changing. This step is
+   not a courtesy: most rules in this file cannot be checked by a script,
+   and for those the reviewer is the enforcement.
+4. **Deliver.** Gate green, reviewed, recorded in the log.
+
 ## Code
 
 Code is a shared artefact too, and the experiment-engineering skill is its
-contract. The norms, as opposed to the techniques:
+contract. Scripts check the little they can — formatting and import order
+(`ruff`), bare containers, identical function bodies, size and complexity
+(`lanorme`), leaked keys — and the reviewer in Building step 3 checks
+everything else, which is most of this list. The norms, as opposed to the
+techniques:
 
 - Promoted code lives in the project's package as importable modules, not as
   an accumulating pile of scripts. Modules are nouns for what they hold,
@@ -168,6 +208,23 @@ contract. The norms, as opposed to the techniques:
 - Credentials come from the environment through the settings object;
   `.env.example` carries names, never values. A key that reaches git history
   is rotated, not just deleted.
+- Each piece of logic lives in one place, and when understanding and
+  efficiency conflict, prefer understanding: code is read far more often
+  than it runs. `DRY-001` catches only identical function bodies; the rest
+  is the reviewer's.
+- Data has a type: a `dataclass` or pydantic model with named fields, not a
+  dict or tuple whose meaning lives in the caller's head, unless the
+  structure genuinely cannot be named. `TYPE-002` rejects bare containers;
+  whether a dict should have been a class is the reviewer's.
+- `ruff format` and sorted imports on everything, every time, exploratory
+  code included: the check is instant, free, and part of `./check.sh`. The
+  formatter keeps a trailing comma on any call or collection split across
+  lines; leave it there.
+- A test proves something: it fails without the code it covers and fails
+  again when that code's behaviour changes. A test that passes either way
+  is decoration, and a gate that passes by not running is worse than none,
+  so every mechanical check gets a test that feeds it bad input. No script
+  checks this; the reviewer asks it of every test.
 
 ## Tooling
 
